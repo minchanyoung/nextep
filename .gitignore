@@ -1,0 +1,162 @@
+# =====================================================
+# Nextep 프로젝트 .gitignore
+# =====================================================
+
+# =====================================================
+# 🔐 환경 설정 및 보안 파일
+# =====================================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+
+# =====================================================
+# 🐍 Python
+# =====================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Flask
+instance/
+.webassets-cache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ChromaDB
+instance/chroma_db/
+
+# Model files (too large for git)
+*.pkl
+*.cbm
+*.bin
+*.onnx
+
+# Node modules (if any)
+node_modules/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Oracle
+*.ora
+
+# Windows
+desktop.ini
+Thumbs.db
+
+# =====================================================
+# 🚀 Nextep 특화 설정
+# =====================================================
+# 로그 파일
+logs/*.log
+*.log
+
+# 캐시 및 임시 파일
+cache/
+temp/
+tmp/
+
+# 백업 파일
+backups/
+*.backup
+
+# 성능 프로파일링
+*.prof
+profile_*
+
+# 개발용 테스트 파일
+dev_test.py
+test_*.py
+*_test.py
+
+# ML 모델 아티팩트 (큰 파일)
+app/ml/saved_models/*.pkl
+app/ml/saved_models/*.cbm
+app/ml/saved_models/*.joblib
+
+# 데이터베이스 덤프
+*.sql
+*.dump
+*.sqlite
+
+# IDE 특화 설정
+.vscode/settings.json
+.idea/workspace.xml
+.claude/

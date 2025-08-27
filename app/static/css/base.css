@@ -1,0 +1,139 @@
+/* base.css */
+@charset "UTF-8";
+
+/* ==========================
+   🔹 CSS 변수 (디자인 시스템)
+========================== */
+:root {
+    --primary-color: #00b894;
+    --primary-color-dark: #008a6e;
+    --text-color: #333;
+    --text-color-light: #555;
+    --border-color: #ddd;
+    --bg-color: #ffffff;
+    --bg-color-alt: #f8f8f8;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --border-radius-sm: 6px;
+    --border-radius-md: 12px;
+    --font-family-base: 'Noto Sans KR', sans-serif;
+}
+
+/* ==========================
+   🔹 전역 스타일 & 리셋
+========================== */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family-base);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ==========================
+   🔹 공통 레이아웃
+========================== */
+.wrapper {
+    width: 95%;
+    max-width: 1800px;
+    margin: 120px auto 0; /* bottom margin 제거 */
+    padding: 0 20px 80px; /* bottom padding으로 공간 확보 */
+    flex-grow: 1; /* 남은 공간을 채우도록 설정 */
+}
+
+@media (max-width: 768px) {
+    .wrapper {
+        margin-top: 100px;
+        margin-bottom: 0; /* bottom margin 제거 */
+        padding-bottom: 60px; /* bottom padding으로 공간 확보 */
+    }
+}
+
+/* ==========================
+   🔹 타이포그래피
+========================== */
+h1, h2, h3, h4 {
+    color: var(--primary-color);
+    margin-top: 0;
+}
+
+h1 { font-size: 2.2rem; margin-bottom: 40px; }
+h2 { font-size: 1.8rem; margin-bottom: 30px; }
+h3 { font-size: 1.5rem; margin-bottom: 20px; }
+p { line-height: 1.7; color: var(--text-color-light); }
+
+/* ==========================
+   🔹 폼 스타일
+========================== */
+.form-wrapper {
+    max-width: 450px;
+    margin: 120px auto 80px;
+    padding: 30px;
+    background-color: var(--bg-color-alt);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 12px 12px var(--shadow-color);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-color-light);
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group input[type="email"],
+.form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.5);
+}
+
+/* ==========================
+   🔹 버튼 스타일
+========================== */
+.btn {
+    display: inline-block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color-dark);
+}

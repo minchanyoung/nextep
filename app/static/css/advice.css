@@ -1,0 +1,209 @@
+/* advice.css */
+
+.advice-container {
+    max-width: 800px;
+    /* 네비게이션 바 높이를 고려하여 상단 마진 추가 (120px) */
+    margin: 120px auto 60px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.advice-header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 20px;
+}
+
+.advice-header h1 {
+    font-size: 2.5rem;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+/* 프라이머리 컬러 적용을 위한 스타일 추가 */
+.advice-header h1 .primary-color {
+    color: var(--primary-color);
+}
+
+.advice-header p {
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.chat-window {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chat-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeIn 0.5s forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-message .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.chat-message .message-bubble {
+    padding: 15px 20px;
+    border-radius: 18px;
+    max-width: 85%;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+/* AI 메시지 스타일 */
+.chat-message.ai .avatar {
+    background-color: #4a90e2;
+    color: white;
+}
+
+.chat-message.ai .message-bubble {
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-top-left-radius: 4px;
+    color: #333;
+}
+
+/* 사용자 메시지 스타일 (미래 확장용) */
+.chat-message.user {
+    justify-content: flex-end;
+}
+
+.chat-message.user .avatar {
+    order: 2;
+    background-color: #50e3c2;
+    color: white;
+}
+
+.chat-message.user .message-bubble {
+    order: 1;
+    background-color: #dcf8c6;
+    border-top-right-radius: 4px;
+}
+
+/* 타이핑 인디케이터 */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: #aaa;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 2px;
+    animation: bounce 1.4s infinite both;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: 0.0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1.0); }
+}
+
+/* 채팅 입력창 스타일 */
+.chat-input-area {
+    display: flex;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.chat-input-area textarea {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    resize: none;
+    font-size: 1rem;
+    line-height: 1.5;
+    max-height: 100px; /* 스크롤 생기기 전 최대 높이 */
+    overflow-y: auto;
+    transition: border-color 0.3s;
+}
+
+.chat-input-area textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.chat-input-area button {
+    margin-left: 10px;
+    padding: 0 20px;
+    border: none;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.chat-input-area button:hover {
+    background-color: #0056b3;
+}
+
+/* 스트리밍 응답용 스타일 */
+.streaming-message .message-bubble {
+    border: 1px solid #4a90e2;
+    background: linear-gradient(90deg, #f8f9fa 25%, #ffffff 50%, #f8f9fa 75%);
+    background-size: 200% 100%;
+    animation: streaming-glow 2s ease-in-out infinite;
+}
+
+@keyframes streaming-glow {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.streaming-cursor {
+    color: #4a90e2;
+    font-weight: bold;
+    animation: cursor-blink 1s infinite;
+}
+
+@keyframes cursor-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* 스트리밍 완료 후 스타일 복원 */
+.chat-message.ai:not(.streaming-message) .message-bubble {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    animation: none;
+}

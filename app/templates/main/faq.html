@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}FAQ | NEXTEP.AI{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/faq.css') }}">
+{% endblock %}
+
+{% block header %}
+    {% include 'common/header.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+    <h1>자주 묻는 질문 (FAQ)</h1>
+    <div class="accordion">
+        <div class="accordion-item">
+            <button class="accordion-header">Q. 이 서비스의 예측 결과는 믿을만한가요? 어떤 데이터로 만들어졌나요?</button>
+            <div class="accordion-body">
+                <p>A. 저희 예측 모델은 대한민국 국민 2만여 명을 20년간 추적 조사한 국가 공인 통계 데이터, <strong>'한국노동패널(KLIPS)'</strong>을 기반으로 학습되었습니다. 이는 개인의 실제 경험에 기반한 데이터이므로, 통계적으로 신뢰도 높은 예측을 제공합니다.</p>
+                <p>다만, 예측은 개인의 모든 변수를 반영할 수 없으므로, 커리어 결정을 위한 참고 자료로 활용하시는 것을 권장합니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Q. 예측 결과의 '소득 변화율'과 '만족도 변화'는 무엇을 의미하나요?</button>
+            <div class="accordion-body">
+                <p>A. <strong>'소득 변화율'</strong>은 현재 소득 대비 1년 후 예상되는 소득의 상승 또는 하락 비율(%)입니다. <strong>'만족도 변화'</strong>는 현재 직무 만족도 점수를 기준으로, 1년 후 만족도가 얼마나 변할지(-4점 ~ +3점)를 나타냅니다.</p>
+                <p>예측 결과와 함께 제공되는 '유사 사례 분포' 차트를 보시면, 나와 비슷한 사람들의 실제 변화가 어땠는지 참고하실 수 있습니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Q. 'AI 추천'은 어떤 기준으로 정해지나요?</button>
+            <div class="accordion-body">
+                <p>A. 'AI 추천'은 사용자가 직접 설정한 우선순위에 따라 결정됩니다. 예측 결과 페이지의 <strong>'결과 추천 기준' 슬라이더</strong>를 '소득 우선' 또는 '만족도 우선'으로 조절해 보세요.</p>
+                <p>AI는 설정된 가중치에 따라 세 가지 시나리오(현직 유지, 직업 A, 직업 B)의 점수를 실시간으로 계산하여 가장 높은 점수를 받은 선택지를 추천합니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Q. 이직 시나리오에서 제 실제 소득이 아닌 '직업군 평균 소득'을 기준으로 예측하는 이유가 무엇인가요?</button>
+            <div class="accordion-body">
+                <p>A. 좋은 질문입니다. 이는 더 현실적인 예측을 위한 핵심 로직입니다. 일반적으로 다른 직업으로 이직할 경우, 개인의 기존 소득보다는 <strong>해당 직업 시장의 평균적인 소득 수준에서 새로운 연봉이 결정될 확률이 높습니다.</strong></p>
+                <p>저희 모델은 이러한 현실을 반영하여, '만약 당신이 그 직업을 가졌다면'이라는 가정 하에 예상되는 소득과 만족도 변화를 시뮬레이션합니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Q. 제 개인정보는 안전하게 관리되나요?</button>
+            <div class="accordion-body">
+                <p>A. 네, 그럼요. 회원가입 시 입력하신 정보는 암호화되어 안전하게 저장됩니다. 예측 시 사용하는 나이, 성별 등의 정보는 서버에 저장되지 않고 오직 예측 목적으로만 실시간으로 사용된 후 즉시 폐기됩니다.</p>
+                <p>저희는 사용자의 개인정보 보호를 최우선으로 생각합니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Q. 이 서비스는 계속 무료로 이용할 수 있나요?</button>
+            <div class="accordion-body">
+                <p>A. 네, 현재 제공되는 모든 핵심 예측 기능은 앞으로도 계속 무료로 제공될 예정입니다. 사용자의 커리어 성장을 돕는 것이 저희의 최우선 목표이기 때문입니다.</p>
+                <p>추후 더 전문적인 분석이나 컨설팅 기능이 추가될 경우, 별도의 유료 플랜이 생길 수 있습니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="email-section">
+    <p>더 궁금한 점이 있으신가요?</p>
+    <a href="mailto:mcwhy2@naver.com" class="email-btn">이메일 문의하기</a>
+</div>
+{% endblock %}
+
+{% block footer %}
+    {% include 'common/footer.html' %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/faq.js') }}"></script>
+{% endblock %}

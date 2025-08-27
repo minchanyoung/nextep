@@ -1,0 +1,12 @@
+/* signup.css */
+.signup-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.message {
+  font-size: 0.85rem;
+  color: #ff7675; /* 에러 메시지는 별도 색상 유지 */
+  margin-top: 4px;
+  display: block;
+}

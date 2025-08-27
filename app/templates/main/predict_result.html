@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}예측 결과 | NEXTEP.AI{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/predict_result.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+{% endblock %}
+
+{% block header %}
+    {% include 'common/header.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <aside class="sidebar">
+        <h3>직업군 선택</h3>
+        <form id="predictionForm" action="{{ url_for('main.predict_result') }}" method="post">
+            {# 페이지에서 직접 변경되지 않는 원본 사용자 정보만 hidden으로 유지 #}
+            <input type="hidden" name="age" value="{{ user_input.age }}">
+            <input type="hidden" name="gender" value="{{ user_input.gender }}">
+            <input type="hidden" name="education" value="{{ user_input.education }}">
+            <input type="hidden" name="monthly_income" value="{{ user_input.monthly_income }}">
+            <input type="hidden" name="job_satisfaction" value="{{ user_input.job_satisfaction }}">
+            <input type="hidden" name="current_job_category" value="{{ user_input.current_job_category }}">
+            <input type="hidden" name="satis_focus_key" value="{{ user_input.satis_focus_key }}">
+
+            <div class="input-group">
+                <p><strong>현재 직업군:</strong> {{ job_category_map[user_input.current_job_category] }}</p>
+
+                <label for="jobACategorySelect">선택 직업군 A</label>
+                <select id="jobACategorySelect" name="job_A_category" onchange="this.form.submit()">
+                    {% for code, name in job_category_map.items() %}
+                    <option value="{{ code }}" {% if code == user_input.job_A_category %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="jobBCategorySelect">선택 직업군 B</label>
+                <select id="jobBCategorySelect" name="job_B_category" onchange="this.form.submit()">
+                    {% for code, name in job_category_map.items() %}
+                    <option value="{{ code }}" {% if code == user_input.job_B_category %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="prioritySlider">결과 추천 기준</label>
+                <div class="slider-wrapper">
+                    <span>만족도 우선</span>
+                    <input type="range" id="prioritySlider" min="0" max="100" value="50" step="10">
+                    <span>소득 우선</span>
+                </div>
+                <div id="priorityLabel" class="slider-label">균형 (50:50)</div>
+            </div>
+        </form>
+    </aside>
+
+    <main class="main-content">
+        <h2>커리어 선택 예측 결과</h2>
+        {% if error_message %}
+            <p class="error-message">{{ error_message }}</p>
+        {% endif %}
+
+        <h3>예측 결과 요약</h3>
+        <div class="result-cards-container" id="predictionResultsContainer">
+            {% set currentResult = prediction_results[0] %}
+            {% set jobAResult = prediction_results[1] %}
+            {% set jobBResult = prediction_results[2] if prediction_results|length > 2 else None %}
+
+            <div class="result-card" data-scenario-id="current">
+                <div class="recommend-badge">AI 추천</div>
+                <h4>현직 유지 시</h4>
+                <div class="result-item">
+                    <span class="label">월 소득 변화율</span>
+                    <span class="value {{ get_change_class(currentResult.income_change_rate) }}">{{ format_income_change(currentResult.income_change_rate) }}</span>
+                </div>
+                <div class="result-item">
+                    <span class="label">직무 만족도 변화</span>
+                    <span class="value {{ get_change_class(currentResult.satisfaction_change_score) }}">{{ format_satisfaction_change(currentResult.satisfaction_change_score) }}</span>
+                </div>
+                {% if focus_key_name %}<p class="focus-key-info">중요 항목: {{ focus_key_name }} 반영</p>{% endif %}
+            </div>
+
+            <div class="result-card" data-scenario-id="jobA">
+                <div class="recommend-badge">AI 추천</div>
+                <h4 id="jobAName">{{ job_category_map[user_input.job_A_category] }}</h4>
+                <div class="result-item">
+                    <span class="label">월 소득 변화율</span>
+                    <span class="value {{ get_change_class(jobAResult.income_change_rate) }}" id="jobAIncome">{{ format_income_change(jobAResult.income_change_rate) }}</span>
+                </div>
+                <div class="result-item">
+                    <span class="label">직무 만족도 변화</span>
+                    <span class="value {{ get_change_class(jobAResult.satisfaction_change_score) }}" id="jobASatis">{{ format_satisfaction_change(jobAResult.satisfaction_change_score) }}</span>
+                </div>
+                {% if focus_key_name %}<p class="focus-key-info">중요 항목: {{ focus_key_name }} 반영</p>{% endif %}
+            </div>
+
+            <div class="result-card" data-scenario-id="jobB" {% if not jobBResult %}style="display:none;"{% endif %}>
+                <div class="recommend-badge">AI 추천</div>
+                <h4 id="jobBName">{{ job_category_map[user_input.job_B_category] if jobBResult else '' }}</h4>
+                <div class="result-item">
+                    <span class="label">월 소득 변화율</span>
+                    <span class="value {{ get_change_class(jobBResult.income_change_rate if jobBResult) }}" id="jobBIncome">{{ format_income_change(jobBResult.income_change_rate if jobBResult) }}</span>
+                </div>
+                <div class="result-item">
+                    <span class="label">직무 만족도 변화</span>
+                    <span class="value {{ get_change_class(jobBResult.satisfaction_change_score if jobBResult) }}" id="jobBSatis">{{ format_satisfaction_change(jobBResult.satisfaction_change_score if jobBResult) }}</span>
+                </div>
+                {% if jobBResult and focus_key_name %}<p class="focus-key-info">중요 항목: {{ focus_key_name }} 반영</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button" data-tab="charts">차트</button>
+                <button class="tab-button" data-tab="report">상세 분석 리포트</button>
+            </div>
+
+            <div id="charts" class="tab-content">
+                <h3 class="section-title">시나리오 비교</h3>
+                <div class="charts-section">
+                    <div class="chart-container">
+                        <h4>월 소득 변화율</h4>
+                        <div class="chart-canvas-wrapper"><canvas id="incomeChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <h4>직무 만족도 변화</h4>
+                        <div class="chart-canvas-wrapper"><canvas id="satisfactionChart"></canvas></div>
+                    </div>
+                </div>
+
+                <h3 class="section-title">유사 사례 분포</h3>
+                <p class="chart-description">
+                    AI가 추천한 '<span id="distributionChartTitle" class="highlight"></span>' 시나리오와<br>
+                    유사한 조건(직업, 연령, 학력)을 가진 사람들의 1년 후 결과 분포입니다.
+                </p>
+                <div class="charts-section">
+                    <div class="chart-container">
+                        <h4>소득 변화율 분포</h4>
+                        <div class="chart-canvas-wrapper"><canvas id="incomeDistributionChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <h4>직무 만족도 변화 분포</h4>
+                        <div class="chart-canvas-wrapper"><canvas id="satisfactionDistributionChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="report" class="tab-content">
+                <div class="report-section">
+                    <h4>AI 예측 결과 상세 분석 리포트</h4>
+                    <p>
+                        본 리포트는 <strong>{{ user_input.age }}세, {{ "남성" if user_input.gender == '0' else "여성" }}, {{ dict(education.items())[user_input.education] }}</strong>인 사용자의 데이터를 기반으로,
+                        NEXTEP.AI의 예측 모델이 분석한 커리어 경로별 예상 변화입니다.
+                        현재 직업인 <strong>{{ job_category_map[user_input.current_job_category] }}</strong>(월 소득 {{ user_input.monthly_income }}만원)을 유지하는 시나리오와
+                        새로운 직업으로 이직하는 시나리오를 비교 분석합니다.
+                    </p>
+
+                    <div class="sub-section">
+                        <h5>주요 예측 결과 해석</h5>
+                        <p>
+                            예측 결과는 향후 1년간의 <strong>월 소득 변화율(%)</strong>과 <strong>직무 만족도 변화(점)</strong>를 중심으로 제공됩니다.
+                            특히, 이직 시나리오의 소득은 해당 직업군의 평균 소득을 기준으로 예측되었으며, 만족도는 사용자가 중요하게 선택한
+                            <strong class="highlight">'{{ dict(satis_focus_key.items())[user_input.satis_focus_key] }}'</strong> 요인을 **핵심적인 판단 기준으로 삼아** 변화를 분석했습니다.
+                        </p>
+                        <ul>
+                            <li>
+                                <strong>소득 변화율</strong>: 현재 소득 대비 1년 후의 소득 변화 비율입니다. 이직 시에는 해당 직업군의 평균 소득으로 이동하는 것을 가정합니다.
+                            </li>
+                            <li>
+                                <strong>만족도 변화</strong>: 현재 만족도 점수 대비 1년 후의 만족도 변화량입니다. 긍정적(+) 또는 부정적(-) 변화를 나타냅니다.
+                            </li>
+                        </ul>
+                        <p>
+                            AI 추천은 사용자가 설정한 <strong>'소득'과 '만족도'의 우선순위</strong>에 따라 가장 높은 점수를 받은 시나리오를 동적으로 제시합니다.
+                            슬라이더를 조절하여 자신에게 맞는 최적의 경로를 탐색해 보세요.
+                        </p>
+                    </div>
+
+                    <div class="sub-section">
+                        <h5>머신러닝 모델 설명</h5>
+                        <p>
+                            본 예측에는 한국노동패널(KLIPS) 데이터를 학습한 머신러닝 모델이 사용되었습니다.
+                            소득 예측에는 <strong>CatBoost 단일 모델</strong>이, 만족도 예측에는 <strong>XGBoost와 CatBoost 모델을 결합한 Soft-Blending 앙상블 모델</strong>이 적용되었습니다.
+                            모델이 학습한 주요 정보는 다음과 같습니다.
+                        </p>
+                        <ul>
+                            <li><strong>개인 특성</strong>: 연령, 성별, 학력 등 기본 정보와 현재의 월 소득, 직무 만족도, 그리고 가장 중요하게 생각하는 만족도 요인 1가지가 포함됩니다.</li>
+                            <li><strong>직업 특성</strong>: 각 시나리오의 대상 직업군이 갖는 평균적인 특성(평균 소득, 평균 학력, 평균 만족도)을 반영합니다.</li>
+                            <li><strong>상대적 위치 및 상호작용 특성</strong>: 개인의 특성과 직업 특성을 결합하여 시너지를 분석하는 복합 변수입니다. '직업군 평균 대비 개인의 소득 수준' 같은 상대적 지표와, '나이 × 직업군'처럼 특정 조건이 결합될 때의 효과를 보는 상호작용 변수가 포함됩니다.</li>
+                        </ul>
+
+                        <h5>정교한 예측을 위한 노력: 상호작용 특성(Interaction Features)</h5>
+                        <p>
+                            단순히 개인의 특성과 직업의 특성을 개별적으로 보는 것을 넘어, 두 요소가 결합될 때 발생하는 시너지 효과를 분석하기 위해 '상호작용 특성'을 직접 설계하여 모델에 반영했습니다.
+                            예를 들어, '나이'라는 요소가 '관리자' 직업군에 미치는 영향과 '단순 노무 종사자' 직업군에 미치는 영향은 다를 수 있습니다. 저희 모델은 이러한 복합적인 관계(나이 × 직업군)를 하나의 중요한 정보로 학습하여, 보다 현실적이고 정교한 예측을 수행합니다. 이러한 피처 엔지니어링 과정은 예측 오차를 줄이고 정확도를 높이기 위한 <strong>핵심적인 노력 중 하나입니다.</strong>
+                        </p>
+
+                        <p>
+                            본 예측 모델의 성능은 여러 지표로 검증되었습니다. 모델이 변화의 원인을 설명하는 능력(R²)은 <strong>소득 모델이 약 82%, 만족도 모델이 약 64%</strong>에 달합니다. 실제 예측과 결과의 평균적인 차이(MAE)는 <strong>만족도에서 약 ±0.25점</strong>, <strong>소득 변화율에서 약 ±11%p(퍼센트포인트)</strong> 수준입니다. <strong>종합적으로, 이 지표들은 저희 모델이 데이터의 큰 흐름을 잘 파악하면서도(R²), 개별 예측의 오차를 최소화(MAE)하고 있음을 보여줍니다.</strong> '유사 사례 분포' 차트는 이러한 예측의 신뢰도를 보완하는 참고 자료로 활용할 수 있습니다.
+                        </p>
+                    </div>
+                     <p style="text-align: right; font-size: 0.85rem; color: #888; margin-top: 20px;">
+                        - 본 리포트는 통계적 예측이며, 실제 결과와는 차이가 있을 수 있습니다. -
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title">AI 추천</h3>
+        <div class="recommendation-section">
+            <div class="recommendation-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.25 21.75l-.648-1.188a2.25 2.25 0 01-1.423-1.423L13.5 18.75l1.188-.648a2.25 2.25 0 011.423 1.423l.648 1.188z" />
+                </svg>
+            </div>
+            <div class="recommendation-content">
+                <p class="recommendation-label">AI 추천 선택지</p>
+                <p id="recommendedJobName" class="recommendation-title">계산 중...</p>
+                <p id="recommendationReason" class="recommendation-reason">추천 기준을 조절하여 가장 적합한 선택지를 찾아보세요.</p>
+            </div>
+        </div>
+
+        <div class="advice-link-wrapper">
+            <form action="{{ url_for('main.advice') }}" method="post">
+                <button type="submit" class="btn-advice">AI 조언 받기</button>
+            </form>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block footer %}
+    {% include 'common/footer.html' %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        // 서버에서 전달받은 데이터를 JavaScript 변수로 변환
+        const predictionResultsRaw = {{ prediction_results | tojson }};
+        const selectedJobACategory = {{ user_input.job_A_category | tojson }};
+        const selectedJobBCategory = {{ user_input.job_B_category | tojson }};
+        const jobCategoryMapJs = {{ job_category_map | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/predict_result.js') }}"></script>
+{% endblock %}

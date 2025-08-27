@@ -1,0 +1,76 @@
+/* footer.css */
+.footer {
+    background-color: var(--bg-color-alt);
+    color: var(--text-color-light);
+    padding: 40px 20px;
+    border-top: 1px solid var(--border-color);
+    font-size: 14px;
+    margin-top: auto; /* 내용을 아래로 밀어냄 */
+}
+
+.footer-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+
+.footer-logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-right: 40px;
+}
+
+.footer-logo a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.footer-logo i {
+    margin-right: 5px;
+	transform: rotate(-90deg);
+}
+
+.footer-info {
+    text-align: left;
+    flex-grow: 1;
+}
+
+.footer-info p {
+    margin: 5px 0;
+}
+
+.footer-family select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--bg-color);
+}
+
+/* 반응형 스타일 */
+@media (max-width: 768px) {
+    .footer-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .footer-logo,
+    .footer-info,
+    .footer-family {
+        width: 100%;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .footer-info {
+       margin-bottom: 20px;
+    }
+
+    .footer-family {
+        margin-bottom: 0;
+    }
+}

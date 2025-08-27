@@ -1,0 +1,23 @@
+/* auth.css */
+.auth-container {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 20px 40px; /* 상단 패딩을 늘려 헤더와의 간격 확보 */
+    min-height: 100vh; /* 최소 높이를 화면 전체로 설정 */
+    box-sizing: border-box;
+}
+
+.auth-wrapper {
+    max-width: 650px;
+    width: 100%;
+    padding: 40px;
+    background-color: var(--bg-color-alt);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.auth-wrapper h2 {
+    text-align: center;
+}

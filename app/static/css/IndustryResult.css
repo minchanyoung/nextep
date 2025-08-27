@@ -1,0 +1,197 @@
+/* IndustryResult.css */
+
+/* ==========================
+   🔹 전체 페이지 레이아웃 (simulateResult.css 기반)
+========================== */
+.page-wrapper {
+    display: flex;
+    flex-grow: 1;
+    gap: 24px;
+    padding: 120px max(2%, 20px) 40px; /* 좌우 패딩 조정 */
+    max-width: 1920px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ==========================
+   🔹 사이드바 영역
+========================== */
+.sidebar {
+    flex: 1; /* flex-grow, flex-shrink, flex-basis */
+    min-width: 280px; /* 최소 너비 설정 */
+    max-width: 320px; /* 최대 너비 유지 */
+    background: var(--bg-color-alt);
+    padding: 24px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.sidebar h3 {
+    margin-top: 0;
+	font-size: 1.5rem;
+	color: var(--text-color);
+    text-align: center;
+}
+
+.sidebar hr {
+	border: none;
+	border-top: 1px solid var(--border-color);
+	margin: 20px 0;
+}
+
+.sidebar h4 {
+	font-size: 1.2rem;
+	color: var(--text-color-light);
+	margin-bottom: 15px;
+}
+
+/* ==========================
+   🔹 메인 콘텐츠 영역
+========================== */
+.main-content {
+    flex: 3; /* 사이드바보다 3배 더 많은 공간 차지 */
+    background: var(--bg-color-alt);
+    padding: 20px 30px 30px; /* 상단 패딩 축소 */
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    min-width: 0; /* flex 아이템이 수축할 수 있도록 함 */
+    display: flex; /* Flexbox 레이아웃 적용 */
+    flex-direction: column; /* 세로 방향 정렬 */
+    align-items: center; /* 자식 요소(카드)를 가운데 정렬 */
+}
+
+.main-content .page-title {
+    text-align: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 2rem;
+    margin-bottom: 20px; /* 차트와의 간격 조정 */
+    flex-shrink: 0; /* 제목은 줄어들지 않도록 설정 */
+    width: 100%; /* 부모의 align-items: center 설정에 따라 너비 100%를 유지 */
+}
+
+/* ==========================
+   🔹 차트 영역
+========================== */
+.chart-area.card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--bg-color);
+    border: 1px solid #ccc;
+    flex-grow: 1; /* 남은 공간을 모두 차지하도록 설정 */
+    width: 100%; /* 캔버스 래퍼의 너비에 맞춰짐 */
+    max-width: calc(600px + 40px); /* 캔버스(600px) + 좌우 패딩(40px) */
+}
+
+.chart-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%; /* 부모 요소(chart-area)의 높이를 채움 */
+    /* max-width는 부모인 .chart-area.card에서 제어 */
+    margin: 0 auto;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+/* ==========================
+   🔹 비교 목록 (기존 스타일 유지)
+========================== */
+.industry-list-wrapper {
+	max-height: 250px;
+	overflow-y: auto;
+	margin-top: 15px;
+	padding-right: 10px;
+}
+
+.industry-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px;
+	border-radius: var(--border-radius-sm);
+	margin-bottom: 8px;
+	background-color: var(--bg-color);
+	border: 1px solid var(--border-color);
+}
+
+.industry-info {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-weight: 500;
+}
+
+.industry-color {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	border: 2px solid #fff;
+	box-shadow: 0 0 0 1px var(--border-color);
+}
+
+.remove-btn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: #e74c3c;
+	font-size: 1.2rem;
+	padding: 5px;
+	line-height: 1;
+}
+
+.remove-btn:hover {
+	color: #c0392b;
+}
+
+/* ==========================
+   🔹 반응형 디자인
+========================== */
+@media (min-width: 1024px) { /* 데스크탑 뷰포트 조정 */
+    .sidebar {
+        position: sticky;
+        top: 120px;
+        align-self: flex-start;
+        max-height: calc(100vh - 160px);
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 1023.98px) { /* 태블릿 및 모바일 뷰포트 조정 */
+    .page-wrapper {
+        flex-direction: column;
+        padding: 90px 3% 20px;
+    }
+    .sidebar {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 20px;
+        position: static;
+        flex: none; /* flex 속성 초기화 */
+    }
+    .main-content {
+        flex: none; /* flex 속성 초기화 */
+    }
+    .chart-canvas-wrapper {
+        aspect-ratio: 1 / 1; /* 모바일에서는 1:1 비율 유지 */
+    }
+}
+
+@media (max-width: 599.98px) {
+    .main-content {
+        padding: 20px;
+    }
+    .page-wrapper {
+        padding: 80px 2% 20px;
+    }
+}

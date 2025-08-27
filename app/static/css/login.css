@@ -1,0 +1,21 @@
+/* login.css */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.goto-signup {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.9rem;
+}
+
+.goto-signup a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.goto-signup a:hover {
+  text-decoration: underline;
+}

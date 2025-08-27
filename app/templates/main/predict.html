@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}내 커리어 예측 | NEXTEP.AI{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/predict.css') }}">
+{% endblock %}
+
+{% block header %}
+    {% include 'common/header.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="form-wrapper predict-wrapper">
+    <form id="predictionForm" class="predict-form" action="{{ url_for('main.predict_result') }}" method="post">
+        <h1>내 커리어, AI에게 물어보세요</h1>
+        <p class="subtitle">
+            당신의 현재 정보를 알려주시면, AI가 미래의 변화를 예측해 드립니다.
+        </p>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="age">나이</label>
+                <input type="number" id="age" name="age" placeholder="예: 30" required>
+            </div>
+            <div class="form-group">
+                <label>성별</label>
+                <div class="gender-buttons">
+                    <button type="button" class="gender-btn" data-value="0">남성</button>
+                    <button type="button" class="gender-btn" data-value="1">여성</button>
+                    <input type="hidden" id="gender" name="gender" value="" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="education">최종 학력</label>
+                <select id="education" name="education" required>
+                    <option value="" disabled selected>선택해주세요</option>
+                    <option value="6">대학교 졸업 이상</option>
+                    <option value="5">전문대 졸업</option>
+                    <option value="4">대재 또는 중퇴</option>
+                    <option value="3">고졸</option>
+                    <option value="2">고졸 미만</option>
+                    <option value="1">무학 또는 초중퇴</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="monthlyIncome">현재 월 소득 (만원)</label>
+                <input type="number" id="monthlyIncome" name="monthly_income" placeholder="예: 300" required>
+            </div>
+            <div class="form-group full-width">
+                <label for="currentJobCategory">현재 직업군</label>
+                <select id="currentJobCategory" name="current_job_category" required>
+                    <option value="" disabled selected>선택해주세요</option>
+                    <option value="3">사무 종사자</option>
+                    <option value="2">전문가 및 관련 종사자</option>
+                    <option value="1">관리자</option>
+                    <option value="4">서비스 종사자</option>
+                    <option value="5">판매 종사자</option>
+                    <option value="7">기능원 및 관련 기능 종사자</option>
+                    <option value="8">장치·기계조작 및 조립 종사자</option>
+                    <option value="9">단순 노무 종사자</option>
+                    <option value="6">농림 어업 숙련 종사자</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>현재 직무 만족도 (5점 만점)</label>
+                <div class="satisfaction-group">
+                    <input type="radio" id="satis1" name="job_satisfaction" value="1" required>
+                    <label for="satis1">1점</label>
+                    <input type="radio" id="satis2" name="job_satisfaction" value="2">
+                    <label for="satis2">2점</label>
+                    <input type="radio" id="satis3" name="job_satisfaction" value="3">
+                    <label for="satis3">3점</label>
+                    <input type="radio" id="satis4" name="job_satisfaction" value="4">
+                    <label for="satis4">4점</label>
+                    <input type="radio" id="satis5" name="job_satisfaction" value="5">
+                    <label for="satis5">5점</label>
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label for="satisFocusKey">가장 중요하게 생각하는 만족도 요인</label>
+                <select id="satisFocusKey" name="satis_focus_key" required>
+                    <option value="" disabled selected>선택해주세요</option>
+                    <option value="satis_wage">임금 또는 보수</option>
+                    <option value="satis_stability">고용 안정성</option>
+                    <option value="satis_growth">발전 가능성</option>
+                    <option value="satis_task_content">일의 내용</option>
+                    <option value="satis_work_env">근무 환경</option>
+                    <option value="satis_work_time">근무 시간과 여가</option>
+                    <option value="satis_communication">인간 관계</option>
+                    <option value="satis_fair_eval">공정한 평가와 보상</option>
+                    <option value="satis_welfare">복리 후생</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">예측 결과 보기</button>
+    </form>
+</div>
+
+<div id="loadingOverlay" style="display: none;">
+    <div class="spinner"></div>
+    <p>AI가 결과를 분석하고 있습니다. 잠시만 기다려주세요...</p>
+</div>
+{% endblock %}
+
+{% block footer %}
+    {% include 'common/footer.html' %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/predict.js') }}"></script>
+{% endblock %}

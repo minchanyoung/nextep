@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}프로필{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/predict.css') }}"> {# predict.css를 추가하여 스타일을 공유 #}
+{% endblock %}
+
+{% block content %}
+<div class="form-wrapper predict-wrapper">
+    <form method="POST" action="{{ url_for('main.profile') }}" class="predict-form">
+        <h1>내 프로필</h1>
+        <p class="subtitle">
+            회원님의 정보를 최신 상태로 유지하여 맞춤형 서비스를 경험하세요.
+        </p>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="username">사용자 이름</label>
+                <input type="text" id="username" name="username" value="{{ user.username }}" readonly>
+            </div>
+            <div class="form-group">
+                <label for="email">이메일</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" readonly>
+            </div>
+            <div class="form-group">
+                <label for="age">나이</label>
+                <input type="number" id="age" name="age" placeholder="예: 30" value="{{ user.age if user.age is not none else '' }}">
+            </div>
+            <div class="form-group">
+                <label>성별</label>
+                <div class="gender-buttons">
+                    <button type="button" class="gender-btn {% if user.gender == 0 %}active{% endif %}" data-value="0">남성</button>
+                    <button type="button" class="gender-btn {% if user.gender == 1 %}active{% endif %}" data-value="1">여성</button>
+                    <input type="hidden" id="gender" name="gender" value="{{ user.gender if user.gender is not none else '' }}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="education">최종 학력</label>
+                <select id="education" name="education">
+                    <option value="" disabled {% if user.education is none %}selected{% endif %}>선택해주세요</option>
+                    <option value="6" {% if user.education == 6 %}selected{% endif %}>대학교 졸업 이상</option>
+                    <option value="5" {% if user.education == 5 %}selected{% endif %}>전문대 졸업</option>
+                    <option value="4" {% if user.education == 4 %}selected{% endif %}>대재 또는 중퇴</option>
+                    <option value="3" {% if user.education == 3 %}selected{% endif %}>고졸</option>
+                    <option value="2" {% if user.education == 2 %}selected{% endif %}>고졸 미만</option>
+                    <option value="1" {% if user.education == 1 %}selected{% endif %}>무학 또는 초중퇴</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="monthly_income">현재 월 소득 (만원)</label>
+                <input type="number" id="monthly_income" name="monthly_income" placeholder="예: 300" value="{{ user.monthly_income if user.monthly_income is not none else '' }}">
+            </div>
+            <div class="form-group full-width">
+                <label for="job_category">현재 직업군</label>
+                <select id="job_category" name="job_category">
+                    <option value="" disabled {% if user.job_category is none %}selected{% endif %}>선택해주세요</option>
+                    <option value="1" {% if user.job_category == 1 %}selected{% endif %}>관리자</option>
+                    <option value="2" {% if user.job_category == 2 %}selected{% endif %}>전문가 및 관련 종사자</option>
+                    <option value="3" {% if user.job_category == 3 %}selected{% endif %}>사무 종사자</option>
+                    <option value="4" {% if user.job_category == 4 %}selected{% endif %}>서비스 종사자</option>
+                    <option value="5" {% if user.job_category == 5 %}selected{% endif %}>판매 종사자</option>
+                    <option value="6" {% if user.job_category == 6 %}selected{% endif %}>농림 어업 숙련 종사자</option>
+                    <option value="7" {% if user.job_category == 7 %}selected{% endif %}>기능원 및 관련 기능 종사자</option>
+                    <option value="8" {% if user.job_category == 8 %}selected{% endif %}>장치·기계조작 및 조립 종사자</option>
+                    <option value="9" {% if user.job_category == 9 %}selected{% endif %}>단순 노무 종사자</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>현재 직무 만족도 (5점 만점)</label>
+                <div class="satisfaction-group">
+                    <input type="radio" id="satis1" name="job_satisfaction" value="1" {% if user.job_satisfaction == 1 %}checked{% endif %}>
+                    <label for="satis1">1점</label>
+                    <input type="radio" id="satis2" name="job_satisfaction" value="2" {% if user.job_satisfaction == 2 %}checked{% endif %}>
+                    <label for="satis2">2점</label>
+                    <input type="radio" id="satis3" name="job_satisfaction" value="3" {% if user.job_satisfaction == 3 %}checked{% endif %}>
+                    <label for="satis3">3점</label>
+                    <input type="radio" id="satis4" name="job_satisfaction" value="4" {% if user.job_satisfaction == 4 %}checked{% endif %}>
+                    <label for="satis4">4점</label>
+                    <input type="radio" id="satis5" name="job_satisfaction" value="5" {% if user.job_satisfaction == 5 %}checked{% endif %}>
+                    <label for="satis5">5점</label>
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label for="satis_focus_key">가장 중요하게 생각하는 만족도 요인</label>
+                <select id="satis_focus_key" name="satis_focus_key">
+                    <option value="" disabled {% if user.satis_focus_key is none %}selected{% endif %}>선택해주세요</option>
+                    <option value="satis_wage" {% if user.satis_focus_key == 'satis_wage' %}selected{% endif %}>임금 또는 보수</option>
+                    <option value="satis_stability" {% if user.satis_focus_key == 'satis_stability' %}selected{% endif %}>고용 안정성</option>
+                    <option value="satis_growth" {% if user.satis_focus_key == 'satis_growth' %}selected{% endif %}>발전 가능성</option>
+                    <option value="satis_task_content" {% if user.satis_focus_key == 'satis_task_content' %}selected{% endif %}>일의 내용</option>
+                    <option value="satis_work_env" {% if user.satis_focus_key == 'satis_work_env' %}selected{% endif %}>근무 환경</option>
+                    <option value="satis_work_time" {% if user.satis_focus_key == 'satis_work_time' %}selected{% endif %}>근무 시간과 여가</option>
+                    <option value="satis_communication" {% if user.satis_focus_key == 'satis_communication' %}selected{% endif %}>인간 관계</option>
+                    <option value="satis_fair_eval" {% if user.satis_focus_key == 'satis_fair_eval' %}selected{% endif %}>공정한 평가와 보상</option>
+                    <option value="satis_welfare" {% if user.satis_focus_key == 'satis_welfare' %}selected{% endif %}>복리 후생</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">프로필 업데이트</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/predict.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const genderButtons = document.querySelectorAll('.gender-btn');
+            const genderInput = document.getElementById('gender');
+
+            genderButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    genderButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    genderInput.value = this.dataset.value;
+                });
+            });
+
+            // 페이지 로드 시 현재 선택된 성별 버튼 활성화
+            if (genderInput.value !== '') {
+                const selectedButton = document.querySelector(`.gender-btn[data-value="${genderInput.value}"]`);
+                if (selectedButton) {
+                    selectedButton.classList.add('active');
+                }
+            }
+        });
+    </script>
+{% endblock %}

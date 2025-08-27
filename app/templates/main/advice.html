@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}생성형 AI | NEXTEP.AI{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/advice.css') }}">
+{% endblock %}
+
+{% block header %}
+    {% include 'common/header.html' %}
+{% endblock %}
+
+{% block content %}
+<main class="advice-container">
+    <div class="advice-header">
+        <h1><span class="primary-color">AI</span> 조언</h1>
+        <p>머신러닝 예측 결과와 노동시장 평가와 전망을 종합하여 당신만을 위한 커리어 조언을 생성합니다.</p>
+    </div>
+
+    <div class="chat-window" id="chatWindow">
+        <!-- JavaScript가 여기에 채팅 메시지를 동적으로 추가합니다. -->
+    </div>
+
+    <div class="chat-input-area">
+        <textarea id="userInput" placeholder="AI 컨설턴트에게 추가 질문을 해보세요..." rows="1"></textarea>
+        <button id="sendButton">전송</button>
+    </div>
+
+    <!-- AI가 생성한 전체 조언 텍스트를 여기에 숨겨둡니다. -->
+    <div id="aiFullResponse" style="display: none;">{{ ai_advice }}</div>
+</main>
+{% endblock %}
+
+{% block footer %}
+    {% include 'common/footer.html' %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/advice.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,159 @@
+/* about.css */
+@charset "UTF-8";
+
+.wrapper ul {
+  padding-left: 20px;
+  margin-bottom: 32px;
+}
+
+.wrapper li {
+  margin-bottom: 10px;
+  line-height: 1.6;
+  color: var(--text-color); 
+}
+
+.wrapper .section {
+  margin-bottom: 60px;
+}
+
+.wrapper .highlight {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* ==========================
+   🔹 Tabs
+========================== */
+.tabs {
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 40px;
+    display: flex;
+}
+
+.tab-link {
+    background-color: transparent;
+    border: none;
+    padding: 15px 25px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-color-light);
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.tab-link:hover {
+    color: var(--primary-color);
+}
+
+.tab-link.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    border-bottom: 3px solid var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
+/* ==========================
+   🔹 How It Works 섹션
+========================== */
+.how-it-works-section {
+    padding: 40px 0;
+    text-align: center;
+    background-color: var(--bg-color-alt);
+    border-radius: var(--border-radius-md);
+    margin-top: 50px;
+}
+
+.how-it-works-section h2 {
+    margin-bottom: 50px;
+}
+
+.steps-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.step {
+    flex: 1;
+    max-width: 250px;
+    padding: 20px;
+}
+
+.step-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 20px;
+    color: var(--primary-color);
+    background-color: rgba(0, 184, 148, 0.1);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.3s ease;
+    font-size: 2rem; /* For emoji icons */
+}
+
+.step:hover .step-icon {
+    transform: scale(1.1);
+}
+
+.step-icon svg {
+    width: 30px;
+    height: 30px;
+}
+
+.step h3 {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.step p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.step-separator {
+    align-self: center;
+    flex-grow: 1;
+    max-width: 80px;
+    height: 2px;
+    background-color: var(--border-color);
+    margin-top: -60px;
+}
+
+@media (max-width: 768px) {
+    .tabs {
+        flex-direction: column;
+    }
+    .tab-link {
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 0;
+    }
+    .tab-link.active {
+        border-bottom: 3px solid var(--primary-color);
+    }
+    .step-separator {
+        display: none;
+    }
+    .how-it-works-section h2 {
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+    }
+}

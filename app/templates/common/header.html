@@ -1,0 +1,25 @@
+<header>
+  <div class="logo">
+    <a href="{{ url_for('main.index') }}" class="logo"><i class="fas fa-shoe-prints"></i> NEXTEP<span>.AI</span></a>
+  </div>
+
+  <button class="hamburger" id="hamburger">&#9776;</button>
+
+  <nav>
+    <ul class="nav-menu" id="navMenu">
+      <li><a href="{{ url_for('main.industry_form') }}">노동시장 예측</a></li>
+      <li><a href="{{ url_for('main.predict') }}">내 커리어 예측</a></li>
+      <li><a href="{{ url_for('main.advice') }}">생성형 AI</a></li>
+      <li><a href="{{ url_for('main.about') }}">서비스 소개</a></li>
+      <li><a href="{{ url_for('main.faq') }}">FAQ</a></li>
+
+      {% if not session.user %}
+        <li><a href="{{ url_for('auth.login') }}" class="btn-link">로그인</a></li>
+        <li><a href="{{ url_for('auth.signup') }}" class="btn-link">회원가입</a></li>
+      {% else %}
+        <li><a href="{{ url_for('main.profile') }}" class="btn-link">{{ session.user }}님</a></li>
+        <li><a href="{{ url_for('auth.logout') }}" class="btn-link">로그아웃</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+</header>
