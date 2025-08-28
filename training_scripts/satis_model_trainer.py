@@ -104,16 +104,11 @@ y_pred_cat = cat_best.predict(X_test)
 alpha = 0.3
 y_pred_blend = alpha * y_pred_xgb + (1 - alpha) * y_pred_cat
 
-# --- 예측값 후처리: 소수점을 정수로 변환 및 실제 데이터 범위로 클리핑 ---
-# 1. 반올림 (가장 가까운 정수)
-y_pred_xgb_int = np.round(y_pred_xgb)
-y_pred_cat_int = np.round(y_pred_cat)
-y_pred_blend_int = np.round(y_pred_blend)
-
-# 2. 값 범위 제한 (클리핑): 사용자께서 확인해주신 최소값과 최대값으로 조정
-y_pred_xgb_int = np.clip(y_pred_xgb_int, MIN_SATISFACTION_CHANGE, MAX_SATISFACTION_CHANGE)
-y_pred_cat_int = np.clip(y_pred_cat_int, MIN_SATISFACTION_CHANGE, MAX_SATISFACTION_CHANGE)
-y_pred_blend_int = np.clip(y_pred_blend_int, MIN_SATISFACTION_CHANGE, MAX_SATISFACTION_CHANGE)
+# --- 예측값 후처리: 실제 데이터 범위로 클리핑 (정보 손실 최소화) ---
+# 예측된 소수점 값을 유지하되, 현실적인 범위로만 제한합니다.
+y_pred_xgb_clipped = np.clip(y_pred_xgb, MIN_SATISFACTION_CHANGE, MAX_SATISFACTION_CHANGE)
+y_pred_cat_clipped = np.clip(y_pred_cat, MIN_SATISFACTION_CHANGE, MAX_SATISFACTION_CHANGE)
+y_pred_blend_clipped = np.clip(y_pred_blend, MIN_SATISFACTION_CHANGE, MAX_SATISFACTION_CHANGE)
 # ----------------------------------------------------
 
 # 7. 평가 함수 (이전과 동일)
@@ -127,9 +122,10 @@ def evaluate(name, y_true, y_pred):
     print("📈 R²  :", round(r2, 4))
 
 # 8. 결과 출력 (후처리된 예측값으로 평가)
-evaluate("XGBoost (Tuned, Integer)", y_test, y_pred_xgb_int)
-evaluate("CatBoost (Tuned, Integer)", y_test, y_pred_cat_int)
-evaluate("Soft-Blended Ensemble (Integer)", y_test, y_pred_blend_int)
+evaluate("XGBoost (Tuned, Clipped)", y_test, y_pred_xgb_clipped)
+evaluate("CatBoost (Tuned, Clipped)", y_test, y_pred_cat_clipped)
+evaluate("Soft-Blended Ensemble (Clipped)", y_test, y_pred_blend_clipped)
+
 
 import matplotlib.pyplot as plt
 import seaborn as sns

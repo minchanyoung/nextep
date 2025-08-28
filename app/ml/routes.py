@@ -26,13 +26,36 @@ MIN_SATISFACTION_CHANGE = -4
 MAX_SATISFACTION_CHANGE = 3
 
 SATIS_FEATURES = [
-    "age","gender","education","monthly_income","job_category","satis_wage",
-    "satis_stability","satis_task_content","satis_work_env","satis_work_time",
-    "satis_growth","satis_communication","satis_fair_eval","satis_welfare",
-    "prev_job_satisfaction","prev_monthly_income","job_category_income_avg",
-    "income_relative_to_job","job_category_education_avg","education_relative_to_job",
-    "job_category_satisfaction_avg","age_x_job_category","monthly_income_x_job_category",
-    "education_x_job_category","income_relative_to_job_x_job_category"
+    "age",
+    "gender",
+    "education",
+    "monthly_income",
+    "job_category",
+    "satis_wage",
+    "satis_stability",
+    "satis_growth",
+    "satis_task_content",
+    "satis_work_env",
+    "satis_work_time",
+    "satis_communication",
+    "satis_fair_eval",
+    "satis_welfare",
+    "prev_job_satisfaction",
+    "prev_monthly_income",
+    "job_category_income_avg",
+    "income_relative_to_job",
+    "job_category_education_avg",
+    "education_relative_to_job",
+    "job_category_satisfaction_avg",
+    "age_x_job_category",
+    "monthly_income_x_job_category",
+    "education_x_job_category",
+    "income_relative_to_job_x_job_category",
+    "satisfaction_mean",
+    "satisfaction_std",
+    "satisfaction_min",
+    "satisfaction_max",
+    "satisfaction_range"
 ]
 INCOME_FEATURES = SATIS_FEATURES + ["job_satisfaction"]
 

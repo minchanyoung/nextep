@@ -1,11 +1,12 @@
+import traceback
 from flask import render_template, request, redirect, url_for, flash, session, current_app
 from app import services
 from app.constants import (
-    JOB_CATEGORY_MAP, SATIS_FACTOR_MAP, EDUCATION_MAP, 
+    JOB_CATEGORY_MAP, SATIS_FACTOR_MAP, EDUCATION_MAP,
     REQUIRED_PROFILE_FIELDS, DEFAULT_PREDICTION_RESULTS, MESSAGES
 )
 from app.utils.session_utils import (
-    get_current_username, is_user_logged_in, get_prediction_data, 
+    get_current_username, is_user_logged_in, get_prediction_data,
     set_prediction_data, get_chat_messages, set_chat_messages, add_chat_message
 )
 from app.utils.auth_utils import login_required, get_current_user, require_profile_complete
@@ -99,13 +100,17 @@ def predict_result():
         if 'job_A_category' not in user_input: user_input['job_A_category'] = '2'
         if 'job_B_category' not in user_input: user_input['job_B_category'] = '3'
 
+        current_app.logger.info(f"Prediction started with user_input: {user_input}")
+
         try:
             prediction_results = services.run_prediction(user_input)
+            current_app.logger.info("Prediction successful.")
             # 회원인 경우에만 세션에 저장
             if not is_guest:
                 set_prediction_data(user_input, prediction_results)
         except Exception as e:
-            current_app.logger.error(f"예측 중 오류 발생: {e}")
+            tb_str = traceback.format_exc()
+            current_app.logger.error(f"An error occurred during prediction: {e}\n{tb_str}")
             prediction_results = DEFAULT_PREDICTION_RESULTS
             error_message = "예측 중 오류가 발생했습니다. 입력값을 확인하거나 잠시 후 다시 시도해주세요."
     elif request.method == 'GET':
@@ -113,7 +118,7 @@ def predict_result():
         if is_guest:
             flash("예측 데이터가 없습니다. 다시 예측을 시도해주세요.")
             return redirect(url_for('main.predict'))
-            
+
         prediction_data = get_prediction_data()
         if prediction_data:
             user_input = prediction_data['user_input']
@@ -133,6 +138,7 @@ def predict_result():
         satis_focus_key=SATIS_FACTOR_MAP,
         is_guest=is_guest  # 템플릿에서 사용할 수 있도록 전달
     )
+
 
 @bp.route('/advice', methods=['GET', 'POST'])
 def advice():
