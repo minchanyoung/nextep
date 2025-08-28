@@ -121,6 +121,7 @@
                     <span class="label">직무 만족도 변화</span>
                     <span class="value {{ get_change_class(jobBResult.satisfaction_change_score if jobBResult) }}" id="jobBSatis">{{ format_satisfaction_change(jobBResult.satisfaction_change_score if jobBResult) }}</span>
                 </div>
+                <p class="focus-key-info">9개 만족도 요인 종합 분석</p>
                 {% if jobBResult and focus_key_name %}<p class="focus-key-info">중요 항목: {{ focus_key_name }} 반영</p>{% endif %}
             </div>
         </div>

@@ -178,16 +178,15 @@ const ResultPageManager = {
         const satisfactionData = this.scenarios.map(s => s.satisfaction);
         const count = this.scenarios.length;
 
-        // 2. 세련된 컬러 팔레트 정의 (투명도 적용)
-        const bgColors = ['rgba(0, 184, 148, 0.6)', 'rgba(255, 188, 66, 0.7)', 'rgba(124, 185, 232, 0.7)'].slice(0, count);
-        const borderColors = ['rgba(0, 184, 148, 1)', 'rgba(255, 188, 66, 1)', 'rgba(124, 185, 232, 1)'].slice(0, count);
+        // 2. 세련된 컬러 팔레트 정의 (개선안)
+        const bgColors = ['rgba(96, 165, 250, 0.6)', 'rgba(74, 222, 128, 0.6)', 'rgba(250, 204, 21, 0.6)'].slice(0, count);
+        const borderColors = ['rgba(96, 165, 250, 1)', 'rgba(74, 222, 128, 1)', 'rgba(250, 204, 21, 1)'].slice(0, count);
 
         const createChart = (canvas, chartLabel, data, unit) => {
             if (!canvas) return;
 
-            // Y축의 시작점을 0으로 고정하고, 데이터에 맞게 최대값을 조정
             const dataMax = Math.max(...data, 0);
-            const suggestedMax = dataMax > 0 ? dataMax * 1.2 : 1; // 양수 최대값에 20% 여백, 아니면 1
+            const suggestedMax = dataMax > 0 ? dataMax * 1.2 : 1;
 
             new Chart(canvas, {
                 type: 'bar',
@@ -199,18 +198,17 @@ const ResultPageManager = {
                         backgroundColor: bgColors,
                         borderColor: borderColors,
                         borderWidth: 2,
-                        borderRadius: 8, // 둥근 모서리 적용
+                        borderRadius: 8,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        padding: { top: 30 } // 데이터 라벨이 잘리지 않도록 상단에 여백 추가
+                        padding: { top: 30 }
                     },
                     plugins: {
                         legend: { display: false },
-                        // 4. 데이터 라벨 플러그인 설정
                         datalabels: {
                             color: '#444',
                             formatter: function(value) {
@@ -230,11 +228,13 @@ const ResultPageManager = {
                             }
                         },
                         y: {
-                            beginAtZero: true, // y축을 0에서 시작하도록 강제
-                            suggestedMax: suggestedMax, // 최대값에 여유 공간 제안
+                            beginAtZero: true,
+                            suggestedMax: suggestedMax,
                             grid: {
-                                color: '#e9e9e9', // 5. 그리드 라인 색상 연하게
-                                drawBorder: false,
+                                // 5. 그리드 라인 스타일 개선
+                                color: '#e9e9e9',
+                                borderDash: [5, 5], // 점선으로 변경
+                                drawBorder: false, // 축 경계선 제거
                             },
                             ticks: {
                                 font: { size: 13 },
