@@ -398,3 +398,59 @@ canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 10
     text-align: center;
     margin-top: 40px;
 }
+
+/* ==================================
+   🔹 추가 개선안 (2025-08-28)
+================================== */
+
+/* AI 추천 카드 스타일 */
+.recommendation-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 40px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-left: 5px solid var(--primary-color); /* 웹사이트 프라이머리 컬러 사용 */
+}
+
+/* AI 추천 섹션 제목 (카드 안으로 이동) */
+.recommendation-card .section-title {
+    text-align: left;
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* 기존 recommendation-section 스타일 일부 조정 */
+.recommendation-section {
+    margin-top: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+}
+
+
+/* AI 조언 받기 버튼 개선 */
+.btn-advice {
+    /* 기존 스타일 리셋 및 재정의 */
+    background-color: var(--primary-color); /* 웹사이트 프라이머리 컬러 사용 */
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: bold;
+    display: inline-block;
+    text-decoration: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-advice:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
+    background-color: var(--primary-color-dark); /* 웹사이트 프라이머리 컬러 (dark) 사용 */
+}
