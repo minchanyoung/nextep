@@ -7,6 +7,7 @@ RAG 시스템 관리 도구
 
 import os
 import sys
+import glob
 sys.path.insert(0, os.path.abspath('.'))
 
 from app import create_app
@@ -33,65 +34,84 @@ class RAGAdmin:
                 print("RAG 매니저를 찾을 수 없습니다.")
                 return
             
-            stats = rag_manager.get_database_stats()
+            stats = rag_manager.get_collection_stats()
             
             print("\n" + "=" * 50)
             print("RAG 데이터베이스 통계")
             print("=" * 50)
             
             print(f"총 문서 수: {stats.get('total_documents', 0)}")
-            print(f"고유 소스 수: {stats.get('unique_sources', 0)}")
-            print(f"총 페이지 수: {stats.get('total_pages', 0)}")
             print(f"컬렉션 명: {stats.get('collection_name', 'N/A')}")
             
-            if stats.get('sources'):
-                print(f"\n소스 목록:")
-                for source in stats['sources']:
-                    print(f"  - {source}")
-            
-            if stats.get('chunk_types'):
-                print(f"\n청크 유형별 분포:")
-                for chunk_type, count in stats['chunk_types'].items():
-                    print(f"  - {chunk_type}: {count}개")
-            
-            if stats.get('source_distribution'):
-                print(f"\n소스별 문서 분포:")
-                for source, count in stats['source_distribution'].items():
-                    print(f"  - {source}: {count}개")
-    
+            # 상세 통계가 필요하면 rag_manager에 추가 구현 필요
+            # 예: 소스별, 청크 유형별 분포 등
+
     def add_pdf(self, pdf_path):
         """PDF 파일 추가"""
         with self.app.app_context():
             from app.rag_manager import get_rag_manager
             
             rag_manager = get_rag_manager()
-            llm_service = self.app.extensions.get("llm_service")
             
             if not rag_manager:
                 print("RAG 매니저를 찾을 수 없습니다.")
-                return
+                return False
             
             if not os.path.exists(pdf_path):
                 print(f"PDF 파일을 찾을 수 없습니다: {pdf_path}")
-                return
+                return False
             
             print(f"PDF 파일 처리 중: {pdf_path}")
             
-            success = rag_manager.ingest_pdf_document(pdf_path, llm_service)
+            success = rag_manager.ingest_pdf_document(pdf_path)
             
             if success:
-                print("PDF 파일이 성공적으로 추가되었습니다.")
-                self.show_stats()
+                print(f"PDF 파일이 성공적으로 추가되었습니다: {os.path.basename(pdf_path)}")
+                return True
             else:
-                print("PDF 파일 추가 실패")
-    
+                print(f"PDF 파일 추가 실패: {os.path.basename(pdf_path)}")
+                return False
+
+    def ingest_all_pdfs(self):
+        """'data' 디렉터리의 모든 PDF 파일을 처리"""
+        print("'data' 디렉터리에서 모든 PDF 파일 인제스트를 시작합니다...")
+        
+        # 프로젝트 루트를 기준으로 'data' 디렉터리 경로 설정
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        data_dir = os.path.join(project_root, 'rag_data')
+        
+        pdf_files = glob.glob(os.path.join(data_dir, '*.pdf'))
+        
+        if not pdf_files:
+            print("'rag_data' 디렉터리에서 PDF 파일을 찾을 수 없습니다.")
+            return
+
+        print(f"총 {len(pdf_files)}개의 PDF 파일을 찾았습니다.")
+        
+        success_count = 0
+        fail_count = 0
+        
+        for pdf_path in pdf_files:
+            if self.add_pdf(pdf_path):
+                success_count += 1
+            else:
+                fail_count += 1
+            print("-" * 60)
+
+        print("\n" + "=" * 60)
+        print("모든 PDF 파일 처리 완료!")
+        print(f"성공: {success_count}개, 실패: {fail_count}개")
+        print("=" * 60)
+        
+        # 최종 통계 표시
+        self.show_stats()
+
     def search_documents(self, query, n_results=5):
         """문서 검색 테스트"""
         with self.app.app_context():
             from app.rag_manager import get_rag_manager
             
             rag_manager = get_rag_manager()
-            llm_service = self.app.extensions.get("llm_service")
             
             if not rag_manager:
                 print("RAG 매니저를 찾을 수 없습니다.")
@@ -101,9 +121,8 @@ class RAGAdmin:
             print("-" * 50)
             
             results = rag_manager.search_documents(
-                query=query,
-                n_results=n_results,
-                llm_service=llm_service
+                query=query, 
+                top_k=n_results
             )
             
             if not results:
@@ -119,64 +138,9 @@ class RAGAdmin:
                 print(f"소스: {metadata.get('source', 'N/A')}")
                 print(f"페이지: {metadata.get('page', 'N/A')}")
                 print(f"청크 타입: {metadata.get('chunk_type', 'N/A')}")
-                print(f"키워드: {', '.join(metadata.get('keywords', []))}")
+                print(f"키워드: {metadata.get('keywords', 'N/A')}")
                 print(f"내용: {content[:300]}...")
                 print("-" * 30)
-    
-    def refresh_database(self):
-        """데이터베이스 새로고침"""
-        with self.app.app_context():
-            from app.rag_manager import get_rag_manager
-            
-            rag_manager = get_rag_manager()
-            llm_service = self.app.extensions.get("llm_service")
-            
-            if not rag_manager:
-                print("RAG 매니저를 찾을 수 없습니다.")
-                return
-            
-            print("데이터베이스 새로고침 중...")
-            
-            success = rag_manager.refresh_database(llm_service)
-            
-            if success:
-                print("데이터베이스 새로고침 완료")
-                self.show_stats()
-            else:
-                print("데이터베이스 새로고침 실패")
-    
-    def test_legacy_compatibility(self):
-        """기존 함수 호환성 테스트"""
-        with self.app.app_context():
-            from app.services import retrieve_labor_market_info, retrieve_learning_recommendations
-            
-            print("\n🧪 기존 함수 호환성 테스트")
-            print("=" * 50)
-            
-            test_queries = [
-                "청년층 고용 문제",
-                "제조업 전망",
-                "정보통신업 성장"
-            ]
-            
-            for query in test_queries:
-                print(f"\n테스트 쿼리: '{query}'")
-                
-                # 노동시장 정보
-                labor_info = retrieve_labor_market_info(query, top_n=2)
-                if labor_info:
-                    print(f"노동시장 정보: {len(labor_info)} 문자")
-                    print(f"미리보기: {labor_info[:150]}...")
-                else:
-                    print("노동시장 정보 없음")
-                
-                # 학습 추천
-                learning_info = retrieve_learning_recommendations(query, top_n=2)
-                if learning_info:
-                    print(f"학습 추천: {len(learning_info)} 문자")
-                    print(f"미리보기: {learning_info[:150]}...")
-                else:
-                    print("학습 추천 없음")
     
     def delete_source(self, source_name):
         """특정 소스의 문서 삭제"""
@@ -191,8 +155,16 @@ class RAGAdmin:
             
             print(f"소스 삭제 중: {source_name}")
             
-            success = rag_manager.vector_db.delete_by_source(source_name)
-            
+            # RAGManager에 소스 삭제 기능이 필요. ChromaDB 직접 호출은 지양.
+            # success = rag_manager.delete_documents_by_source(source_name) 
+            # 아래는 임시 구현. RAGManager에 위임하는 것이 좋음.
+            try:
+                rag_manager.vector_store._collection.delete(where={"source": source_name})
+                success = True
+            except Exception as e:
+                print(f"소스 삭제 중 오류: {e}")
+                success = False
+
             if success:
                 print("소스 삭제 완료")
                 self.show_stats()
@@ -201,35 +173,28 @@ class RAGAdmin:
 
 def main():
     parser = argparse.ArgumentParser(description="NEXTEP RAG 시스템 관리 도구")
-    subparsers = parser.add_subparsers(dest='command', help='사용 가능한 명령어')
+    subparsers = parser.add_subparsers(dest='command', help='사용 가능한 명령어', required=True)
     
     # stats 명령어
     subparsers.add_parser('stats', help='데이터베이스 통계 표시')
     
     # add-pdf 명령어
-    add_pdf_parser = subparsers.add_parser('add-pdf', help='PDF 파일 추가')
+    add_pdf_parser = subparsers.add_parser('add-pdf', help='단일 PDF 파일 추가')
     add_pdf_parser.add_argument('pdf_path', help='추가할 PDF 파일 경로')
+
+    # ingest-all 명령어
+    subparsers.add_parser('ingest-all', help="'data' 디렉터리의 모든 PDF 파일을 DB에 추가")
     
     # search 명령어
     search_parser = subparsers.add_parser('search', help='문서 검색')
     search_parser.add_argument('query', help='검색어')
     search_parser.add_argument('-n', '--n_results', type=int, default=5, help='반환할 결과 수')
     
-    # refresh 명령어
-    subparsers.add_parser('refresh', help='데이터베이스 새로고침')
-    
-    # test 명령어
-    subparsers.add_parser('test', help='기존 함수 호환성 테스트')
-    
     # delete-source 명령어
-    delete_parser = subparsers.add_parser('delete-source', help='특정 소스 삭제')
-    delete_parser.add_argument('source_name', help='삭제할 소스 이름')
+    delete_parser = subparsers.add_parser('delete-source', help='특정 소스(파일명)의 모든 문서 삭제')
+    delete_parser.add_argument('source_name', help='삭제할 소스 파일 이름 (예: my_document.pdf)')
     
     args = parser.parse_args()
-    
-    if not args.command:
-        parser.print_help()
-        return
     
     admin = RAGAdmin()
     
@@ -238,12 +203,10 @@ def main():
             admin.show_stats()
         elif args.command == 'add-pdf':
             admin.add_pdf(args.pdf_path)
+        elif args.command == 'ingest-all':
+            admin.ingest_all_pdfs()
         elif args.command == 'search':
             admin.search_documents(args.query, args.n_results)
-        elif args.command == 'refresh':
-            admin.refresh_database()
-        elif args.command == 'test':
-            admin.test_legacy_compatibility()
         elif args.command == 'delete-source':
             admin.delete_source(args.source_name)
         else:

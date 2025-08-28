@@ -42,7 +42,7 @@ class RAGManager:
         if app:
             self.init_app(app)
     
-    def init_app(self, app):
+    def init_app(self, app, llm_service):
         """Flask 앱과 연결"""
         try:
             # 설정 로드
@@ -55,10 +55,6 @@ class RAGManager:
                 "model": settings.ollama.embedding_model
             }
             
-            # timeout이 설정되어 있을 때만 추가
-            if settings.ollama.timeout:
-                embed_params["timeout"] = settings.ollama.timeout
-                
             self.embedding_model = OllamaEmbeddings(**embed_params)
             
             # 텍스트 분할기 초기화
@@ -91,7 +87,7 @@ class RAGManager:
             self.document_processor = DocumentProcessor()
             
             # RAG 체인 초기화
-            self._initialize_rag_chain()
+            self._initialize_rag_chain(llm_service)
             
             app.extensions['rag_manager'] = self
             self._initialized = True
@@ -102,12 +98,9 @@ class RAGManager:
             logger.error(f"RAG 관리자 초기화 실패: {e}")
             raise RAGError(f"RAG 시스템 초기화 실패: {str(e)}")
     
-    def _initialize_rag_chain(self):
+    def _initialize_rag_chain(self, llm_service):
         """RAG 체인 초기화"""
         try:
-            from app.llm_service import get_llm_service
-            
-            llm_service = get_llm_service()
             if not llm_service:
                 logger.warning("LLM 서비스를 사용할 수 없어 RAG 체인 초기화를 건너뜁니다.")
                 return
@@ -357,6 +350,36 @@ class RAGManager:
         except Exception as e:
             logger.error(f"통계 정보 조회 실패: {e}")
             return {'error': str(e)}
+
+    def reset_database(self) -> bool:
+        """데이터베이스의 모든 문서를 삭제하여 초기화 (ID 기반 삭제)"""
+        try:
+            collection = self.vector_store._collection
+            
+            # 모든 문서의 ID 가져오기
+            all_ids = collection.get(include=[])['ids']
+            
+            if not all_ids:
+                logger.info("데이터베이스가 이미 비어있습니다.")
+                return True
+
+            logger.info(f"{len(all_ids)}개의 문서를 삭제합니다...")
+            collection.delete(ids=all_ids)
+            
+            # 확인
+            new_count = collection.count()
+            if new_count == 0:
+                logger.info(f"성공적으로 {len(all_ids)}개의 문서를 삭제하고 데이터베이스를 초기화했습니다.")
+                return True
+            else:
+                logger.error(f"데이터베이스 초기화 실패. {new_count}개의 문서가 남아있습니다.")
+                return False
+                
+        except Exception as e:
+            logger.error(f"데이터베이스 초기화 중 오류 발생: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
     
     def delete_documents(self, filters: Optional[Dict] = None) -> bool:
         """문서 삭제"""

@@ -30,28 +30,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def initialize_rag_embeddings():
-    """
-    LangChain RAG 시스템 초기화 (기존 호환성)
-    """
-    try:
-        rag_manager = get_rag_manager()
-        if not rag_manager:
-            logger.warning("RAG Manager를 사용할 수 없어 RAG 초기화를 건너뜁니다.")
-            return False
-        
-        # 기존 데이터를 LangChain 벡터 스토어로 이전
-        success = rag_manager.ingest_legacy_data()
-        if success:
-            logger.info("RAG 시스템 초기화 완료!")
-            return True
-        else:
-            logger.warning("RAG 시스템 초기화 실패")
-            return False
-            
-    except Exception as e:
-        logger.error(f"RAG 초기화 중 오류: {e}")
-        return False
+
 
 
 def chat_complete(messages, temperature=0.6, num_ctx=8192) -> str:
@@ -191,7 +170,7 @@ def retrieve_learning_recommendations(query_text: str, top_n: int = 2) -> str:
 
 
 def generate_career_advice_hf(user_input, prediction_results, job_category_map, satis_factor_map):
-    """LangChain 기반 커리어 조언 생성 (완전 통합)"""
+    """LangChain 기반 커리어 조언 생성 (PDF 데이터 통합 RAG)"""
     try:
         llm_service = get_llm_service()
         rag_manager = get_rag_manager()
@@ -199,28 +178,24 @@ def generate_career_advice_hf(user_input, prediction_results, job_category_map, 
         if not llm_service:
             raise LLMServiceError("LLM 서비스를 사용할 수 없습니다.")
         
-        # RAG 검색으로 컨텍스트 수집
+        # RAG 검색을 위한 통합 쿼리 생성
         current_job_name = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')
         job_a_name = job_category_map.get(user_input.get('job_A_category', ''), '알 수 없음')
         job_b_name = job_category_map.get(user_input.get('job_B_category', ''), '알 수 없음')
         focus_key_name = satis_factor_map.get(user_input.get('satis_focus_key'), '지정되지 않음')
         
-        labor_market_context = ""
-        learning_context = ""
+        comprehensive_query = f"{current_job_name} 직업의 전망과 {focus_key_name} 가치를 높이기 위한 역량 개발 방법. {job_a_name} 또는 {job_b_name}으로의 이직 고려. 2024년 및 2025년 노동 시장 동향 포함."
         
+        rag_context = ""
         if rag_manager:
-            # 노동시장 정보 검색
-            labor_query = f"2024 2025 노동시장 전망 {current_job_name} {job_a_name} {job_b_name} 고용 취업"
-            labor_market_context = rag_manager.get_labor_market_info(labor_query, top_k=3)
-            
-            # 학습 추천 정보 검색
-            learning_query = f"{current_job_name} {focus_key_name} 역량 개발 교육 훈련"
-            learning_context = rag_manager.get_learning_recommendations(learning_query, top_k=2)
-        
-        # 프롬프트 템플릿 사용
+            # 통합된 쿼리로 PDF 전체에서 관련 정보 검색
+            rag_context = rag_manager.get_career_advice(comprehensive_query, top_k=5)
+
+        # 프롬프트 템플릿 사용 (통합된 RAG 컨텍스트 전달)
         messages = prompt_manager.get_career_advice_prompt(
             user_input, prediction_results, job_category_map, satis_factor_map,
-            labor_market_context, learning_context
+            labor_market_context=rag_context,  # labor_market_context 자리에 통합 컨텍스트 전달
+            learning_context=""  # learning_context는 비움
         )
         
         # LangChain으로 응답 생성

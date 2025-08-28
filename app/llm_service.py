@@ -107,10 +107,6 @@ class LLMService:
                 "model": self.ollama_embedding_model
             }
             
-            # timeout이 설정되어 있을 때만 추가
-            if self.ollama_timeout:
-                embed_params["timeout"] = self.ollama_timeout
-                
             self.embedding_model = OllamaEmbeddings(**embed_params)
             
             logger.info("LangChain 모델 초기화 완료")

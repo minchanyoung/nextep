@@ -24,7 +24,7 @@ def create_app(config_class):
     # LangChain 기반 통합 서비스들 초기화
     try:
         llm_service.init_app(app)
-        rag_manager.init_app(app)
+        rag_manager.init_app(app, llm_service)
         app.logger.info("LangChain 기반 서비스들이 성공적으로 초기화되었습니다.")
     except Exception as e:
         app.logger.error(f"LangChain 서비스 초기화 실패: {e}")
