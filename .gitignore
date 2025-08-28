@@ -160,3 +160,43 @@ app/ml/saved_models/*.joblib
 .vscode/settings.json
 .idea/workspace.xml
 .claude/
+
+# =====================================================
+# 🔗 LangChain 마이그레이션 관련 (2025-08-28)
+# =====================================================
+# LangChain 캐시 파일
+.langchain/
+langchain.cache
+langchain_cache/
+
+# 벡터 데이터베이스 파일 (이미 instance/에서 제외되지만 명시)
+instance/chroma_db/
+*.chroma
+chroma_db/
+
+# LangChain 로그 파일
+langchain.log
+langchain_*.log
+
+# 임베딩 캐시 파일
+embeddings_cache/
+*.embedding_cache
+
+# LangChain 설정 파일 (민감한 API 키 포함 가능)
+langchain_config.json
+langchain_secrets.json
+
+# 모델 가중치 및 체크포인트
+checkpoints/
+model_weights/
+*.ckpt
+*.pth
+*.safetensors
+
+# Ollama 관련 (로컬에서만 사용)
+.ollama/
+ollama_models/
+
+# HuggingFace 모델 캐시
+.cache/huggingface/
+transformers_cache/

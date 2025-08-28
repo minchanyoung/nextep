@@ -44,4 +44,16 @@ class Config:
     OLLAMA_EMBEDDING_MODEL = _settings.ollama.embedding_model
     OLLAMA_TIMEOUT = _settings.ollama.timeout
     OLLAMA_KEEP_ALIVE = _settings.ollama.keep_alive
+    
+    # LangChain 설정 (마이그레이션 후 추가)
+    LANGCHAIN_VERBOSE = getattr(_settings, 'langchain_verbose', False)
+    LANGCHAIN_CALLBACKS_ENABLED = getattr(_settings, 'langchain_callbacks_enabled', True)
+    
+    # RAG & 벡터 데이터베이스 설정
+    CHROMA_PERSIST_DIR = getattr(_settings, 'chroma_persist_dir', 'instance/chroma_db')
+    CHROMA_COLLECTION_NAME = getattr(_settings, 'chroma_collection_name', 'labor_market_docs')
+    TEXT_CHUNK_SIZE = getattr(_settings, 'text_chunk_size', 1000)
+    TEXT_CHUNK_OVERLAP = getattr(_settings, 'text_chunk_overlap', 200)
+    SIMILARITY_SCORE_THRESHOLD = getattr(_settings, 'similarity_score_threshold', 0.7)
+    SEARCH_TOP_K = getattr(_settings, 'search_top_k', 5)
 

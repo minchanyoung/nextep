@@ -1,7 +1,7 @@
 # app/vector_db.py
 """
-벡터 데이터베이스 관리 시스템
-Chroma DB를 사용한 RAG 문서 저장 및 검색
+벡터 데이터베이스 관리 시스템 (LangChain 통합됨)
+이 파일은 호환성을 위해 유지되며, 실제 구현은 rag_manager.py에서 처리됩니다.
 """
 
 import logging

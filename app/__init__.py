@@ -9,6 +9,7 @@ import os
 db = SQLAlchemy()
 migrate = Migrate()
 compress = Compress()
+# LangChain 기반 통합 서비스들
 llm_service = LLMService()
 rag_manager = RAGManager()
 
@@ -19,8 +20,15 @@ def create_app(config_class):
     db.init_app(app)
     migrate.init_app(app, db)
     compress.init_app(app)
-    llm_service.init_app(app)
-    rag_manager.init_app(app)
+    
+    # LangChain 기반 통합 서비스들 초기화
+    try:
+        llm_service.init_app(app)
+        rag_manager.init_app(app)
+        app.logger.info("LangChain 기반 서비스들이 성공적으로 초기화되었습니다.")
+    except Exception as e:
+        app.logger.error(f"LangChain 서비스 초기화 실패: {e}")
+        raise e
 
     # 로깅 설정
     import logging

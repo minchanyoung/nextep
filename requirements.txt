@@ -46,6 +46,15 @@ typing_extensions==4.14.1
 # 컬러 출력 (개발/디버깅용)
 colorama==0.4.6
 
+# LangChain 및 관련 라이브러리
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-core>=0.2.0
+langchain-chroma>=0.1.0
+langchain-openai>=0.1.0
+langchain-huggingface>=0.0.3
+sentence-transformers>=2.2.0
+
 # 벡터 데이터베이스  
 chromadb>=0.4.0
 PyPDF2==3.0.1
