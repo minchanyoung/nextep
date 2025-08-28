@@ -27,7 +27,16 @@
             <input type="hidden" name="monthly_income" value="{{ user_input.monthly_income }}">
             <input type="hidden" name="job_satisfaction" value="{{ user_input.job_satisfaction }}">
             <input type="hidden" name="current_job_category" value="{{ user_input.current_job_category }}">
-            <input type="hidden" name="satis_focus_key" value="{{ user_input.satis_focus_key }}">
+            <!-- 9개 만족도 요인 hidden 필드 -->
+            <input type="hidden" name="satis_wage" value="{{ user_input.satis_wage or 3 }}">
+            <input type="hidden" name="satis_stability" value="{{ user_input.satis_stability or 3 }}">
+            <input type="hidden" name="satis_growth" value="{{ user_input.satis_growth or 3 }}">
+            <input type="hidden" name="satis_task_content" value="{{ user_input.satis_task_content or 3 }}">
+            <input type="hidden" name="satis_work_env" value="{{ user_input.satis_work_env or 3 }}">
+            <input type="hidden" name="satis_work_time" value="{{ user_input.satis_work_time or 3 }}">
+            <input type="hidden" name="satis_communication" value="{{ user_input.satis_communication or 3 }}">
+            <input type="hidden" name="satis_fair_eval" value="{{ user_input.satis_fair_eval or 3 }}">
+            <input type="hidden" name="satis_welfare" value="{{ user_input.satis_welfare or 3 }}">
 
             <div class="input-group">
                 <p><strong>현재 직업군:</strong> {{ job_category_map[user_input.current_job_category] }}</p>
@@ -84,7 +93,7 @@
                     <span class="label">직무 만족도 변화</span>
                     <span class="value {{ get_change_class(currentResult.satisfaction_change_score) }}">{{ format_satisfaction_change(currentResult.satisfaction_change_score) }}</span>
                 </div>
-                {% if focus_key_name %}<p class="focus-key-info">중요 항목: {{ focus_key_name }} 반영</p>{% endif %}
+                <p class="focus-key-info">9개 만족도 요인 종합 분석</p>
             </div>
 
             <div class="result-card" data-scenario-id="jobA">
@@ -98,7 +107,7 @@
                     <span class="label">직무 만족도 변화</span>
                     <span class="value {{ get_change_class(jobAResult.satisfaction_change_score) }}" id="jobASatis">{{ format_satisfaction_change(jobAResult.satisfaction_change_score) }}</span>
                 </div>
-                {% if focus_key_name %}<p class="focus-key-info">중요 항목: {{ focus_key_name }} 반영</p>{% endif %}
+                <p class="focus-key-info">9개 만족도 요인 종합 분석</p>
             </div>
 
             <div class="result-card" data-scenario-id="jobB" {% if not jobBResult %}style="display:none;"{% endif %}>
@@ -166,8 +175,8 @@
                         <h5>주요 예측 결과 해석</h5>
                         <p>
                             예측 결과는 향후 1년간의 <strong>월 소득 변화율(%)</strong>과 <strong>직무 만족도 변화(점)</strong>를 중심으로 제공됩니다.
-                            특히, 이직 시나리오의 소득은 해당 직업군의 평균 소득을 기준으로 예측되었으며, 만족도는 사용자가 중요하게 선택한
-                            <strong class="highlight">'{{ dict(satis_focus_key.items())[user_input.satis_focus_key] }}'</strong> 요인을 **핵심적인 판단 기준으로 삼아** 변화를 분석했습니다.
+                            특히, 이직 시나리오의 소득은 해당 직업군의 평균 소득을 기준으로 예측되었으며, 만족도는 사용자가 입력한
+                            <strong class="highlight">9개 만족도 요인별 점수</strong>를 종합적으로 분석하여 변화를 예측했습니다.
                         </p>
                         <ul>
                             <li>
@@ -191,7 +200,7 @@
                             모델이 학습한 주요 정보는 다음과 같습니다.
                         </p>
                         <ul>
-                            <li><strong>개인 특성</strong>: 연령, 성별, 학력 등 기본 정보와 현재의 월 소득, 직무 만족도, 그리고 가장 중요하게 생각하는 만족도 요인 1가지가 포함됩니다.</li>
+                            <li><strong>개인 특성</strong>: 연령, 성별, 학력 등 기본 정보와 현재의 월 소득, 직무 만족도, 그리고 9개 만족도 요인별 점수(임금, 고용안정성, 발전가능성, 일의내용, 근무환경, 근무시간, 인간관계, 공정평가, 복리후생)가 포함됩니다.</li>
                             <li><strong>직업 특성</strong>: 각 시나리오의 대상 직업군이 갖는 평균적인 특성(평균 소득, 평균 학력, 평균 만족도)을 반영합니다.</li>
                             <li><strong>상대적 위치 및 상호작용 특성</strong>: 개인의 특성과 직업 특성을 결합하여 시너지를 분석하는 복합 변수입니다. '직업군 평균 대비 개인의 소득 수준' 같은 상대적 지표와, '나이 × 직업군'처럼 특정 조건이 결합될 때의 효과를 보는 상호작용 변수가 포함됩니다.</li>
                         </ul>
@@ -237,7 +246,16 @@
                     <input type="hidden" name="monthly_income" value="{{ user_input.monthly_income }}">
                     <input type="hidden" name="job_satisfaction" value="{{ user_input.job_satisfaction }}">
                     <input type="hidden" name="current_job_category" value="{{ user_input.current_job_category }}">
-                    <input type="hidden" name="satis_focus_key" value="{{ user_input.satis_focus_key }}">
+                    <!-- 9개 만족도 요인 hidden 필드 -->
+                    <input type="hidden" name="satis_wage" value="{{ user_input.satis_wage or 3 }}">
+                    <input type="hidden" name="satis_stability" value="{{ user_input.satis_stability or 3 }}">
+                    <input type="hidden" name="satis_growth" value="{{ user_input.satis_growth or 3 }}">
+                    <input type="hidden" name="satis_task_content" value="{{ user_input.satis_task_content or 3 }}">
+                    <input type="hidden" name="satis_work_env" value="{{ user_input.satis_work_env or 3 }}">
+                    <input type="hidden" name="satis_work_time" value="{{ user_input.satis_work_time or 3 }}">
+                    <input type="hidden" name="satis_communication" value="{{ user_input.satis_communication or 3 }}">
+                    <input type="hidden" name="satis_fair_eval" value="{{ user_input.satis_fair_eval or 3 }}">
+                    <input type="hidden" name="satis_welfare" value="{{ user_input.satis_welfare or 3 }}">
                     <input type="hidden" name="job_A_category" value="{{ user_input.job_A_category }}">
                     <input type="hidden" name="job_B_category" value="{{ user_input.job_B_category }}">
                     <button type="submit" class="btn-advice">AI 조언 받기</button>

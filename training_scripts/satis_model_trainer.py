@@ -8,6 +8,21 @@ from catboost import CatBoostRegressor
 # 1. 데이터 불러오기
 df = pd.read_csv("data/klips_data_23.csv")
 
+# 1-1. 만족도 통계 피처 생성
+satisfaction_factors = [
+    "satis_wage", "satis_stability", "satis_growth", "satis_task_content",
+    "satis_work_env", "satis_work_time", "satis_communication",
+    "satis_fair_eval", "satis_welfare"
+]
+
+# 만족도 통계 계산
+satisfaction_data = df[satisfaction_factors].fillna(3)  # 결측값을 3으로 채움
+df["satisfaction_mean"] = satisfaction_data.mean(axis=1)
+df["satisfaction_std"] = satisfaction_data.std(axis=1).fillna(0)  # std가 NaN인 경우 0으로 처리
+df["satisfaction_min"] = satisfaction_data.min(axis=1)
+df["satisfaction_max"] = satisfaction_data.max(axis=1)
+df["satisfaction_range"] = df["satisfaction_max"] - df["satisfaction_min"]
+
 # 2. Feature / Target 설정
 features = [
     "age", "gender", "education", "monthly_income", "job_category",
@@ -103,7 +118,7 @@ y_pred_blend_int = np.clip(y_pred_blend_int, MIN_SATISFACTION_CHANGE, MAX_SATISF
 
 # 7. 평가 함수 (이전과 동일)
 def evaluate(name, y_true, y_pred):
-    rmse = mean_squared_error(y_true, y_pred, squared=False)
+    rmse = mean_squared_error(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
     r2 = r2_score(y_true, y_pred)
     print(f"\n-------- {name} --------")

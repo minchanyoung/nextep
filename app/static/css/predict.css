@@ -167,6 +167,33 @@
     grid-column: 1 / -1;
 }
 
+/* 직업 비교 섹션 */
+.job-comparison-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.job-selection {
+    display: flex;
+    flex-direction: column;
+}
+
+.job-selection label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.job-selection select {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--bg-color);
+    font-size: 1rem;
+}
+
 /* 제출 버튼 */
 .btn-primary {
     width: 100%;

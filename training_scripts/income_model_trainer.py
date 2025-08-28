@@ -18,6 +18,22 @@ def load_data(file_path="data/klips_data_23.csv"):
 
 def prepare_features_and_target(df):
     """데이터프레임에서 피처와 타겟 변수를 분리합니다."""
+    
+    # 만족도 통계 피처 생성
+    satisfaction_factors = [
+        "satis_wage", "satis_stability", "satis_growth", "satis_task_content",
+        "satis_work_env", "satis_work_time", "satis_communication",
+        "satis_fair_eval", "satis_welfare"
+    ]
+    
+    # 만족도 통계 계산
+    satisfaction_data = df[satisfaction_factors].fillna(3)  # 결측값을 3으로 채움
+    df["satisfaction_mean"] = satisfaction_data.mean(axis=1)
+    df["satisfaction_std"] = satisfaction_data.std(axis=1).fillna(0)  # std가 NaN인 경우 0으로 처리
+    df["satisfaction_min"] = satisfaction_data.min(axis=1)
+    df["satisfaction_max"] = satisfaction_data.max(axis=1)
+    df["satisfaction_range"] = df["satisfaction_max"] - df["satisfaction_min"]
+    
     features = [
         "age", "gender", "education", "monthly_income", "job_category",
         "satis_wage", "satis_stability", "satis_growth", "satis_task_content",
