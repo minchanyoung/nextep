@@ -11,16 +11,26 @@ df = pd.read_csv("data/klips_data_23.csv")
 # 2. Feature / Target 설정
 features = [
     "age", "gender", "education", "monthly_income", "job_category",
-    "satis_wage", "satis_stability", "satis_task_content", "satis_work_env",
-    "satis_work_time", "satis_growth", "satis_communication",
+    "satis_wage", "satis_stability", "satis_growth", "satis_task_content",
+    "satis_work_env", "satis_work_time", "satis_communication",
     "satis_fair_eval", "satis_welfare", "prev_job_satisfaction",
     "prev_monthly_income", "job_category_income_avg",
     "income_relative_to_job", "job_category_education_avg", "education_relative_to_job",
     "job_category_satisfaction_avg", "age_x_job_category", "monthly_income_x_job_category",
-    "education_x_job_category", "income_relative_to_job_x_job_category"
+    "education_x_job_category", "income_relative_to_job_x_job_category",
+    # 새로운 만족도 통계 피처
+    "satisfaction_mean", "satisfaction_std", "satisfaction_min", 
+    "satisfaction_max", "satisfaction_range"
 ]
 
-X = df[features]
+# 존재하는 컬럼만 선택
+available_features = [f for f in features if f in df.columns]
+missing_features = [f for f in features if f not in df.columns]
+
+if missing_features:
+    print(f"Warning: Missing features in data: {missing_features}")
+
+X = df[available_features]
 y = df["satisfaction_change_score"]
 
 # 사용자께서 확인해주신 실제 y값의 최소/최대 범위 사용

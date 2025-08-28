@@ -60,9 +60,18 @@ def predict():
                 'monthly_income': str(user.monthly_income),
                 'current_job_category': str(user.job_category),
                 'job_satisfaction': str(user.job_satisfaction),
-                'satis_focus_key': user.satis_focus_key,
                 'job_A_category': '2', # 기본값
-                'job_B_category': '3'  # 기본값
+                'job_B_category': '3',  # 기본값
+                # 9개 만족도 요인 추가
+                'satis_wage': str(user.satis_wage or 3),
+                'satis_stability': str(user.satis_stability or 3),
+                'satis_growth': str(user.satis_growth or 3),
+                'satis_task_content': str(user.satis_task_content or 3),
+                'satis_work_env': str(user.satis_work_env or 3),
+                'satis_work_time': str(user.satis_work_time or 3),
+                'satis_communication': str(user.satis_communication or 3),
+                'satis_fair_eval': str(user.satis_fair_eval or 3),
+                'satis_welfare': str(user.satis_welfare or 3)
             }
 
             try:
@@ -417,10 +426,22 @@ def profile():
         monthly_income = request.form.get('monthly_income', type=int)
         job_category = request.form.get('job_category', type=int)
         job_satisfaction = request.form.get('job_satisfaction', type=int)
-        satis_focus_key = request.form.get('satis_focus_key')
+        
+        # 9개 만족도 요인 수집
+        satisfaction_factors = {
+            'satis_wage': request.form.get('satis_wage', type=int),
+            'satis_stability': request.form.get('satis_stability', type=int),
+            'satis_growth': request.form.get('satis_growth', type=int),
+            'satis_task_content': request.form.get('satis_task_content', type=int),
+            'satis_work_env': request.form.get('satis_work_env', type=int),
+            'satis_work_time': request.form.get('satis_work_time', type=int),
+            'satis_communication': request.form.get('satis_communication', type=int),
+            'satis_fair_eval': request.form.get('satis_fair_eval', type=int),
+            'satis_welfare': request.form.get('satis_welfare', type=int)
+        }
 
         success = services.update_user_profile(
-            user.id, age, gender, education, monthly_income, job_category, job_satisfaction, satis_focus_key
+            user.id, age, gender, education, monthly_income, job_category, job_satisfaction, **satisfaction_factors
         )
         if success:
             flash('프로필이 성공적으로 업데이트되었습니다.')

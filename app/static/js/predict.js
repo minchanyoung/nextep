@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("predictForm");
+    const form = document.getElementById("predictionForm");
     const loadingOverlay = document.getElementById("loadingOverlay");
 
     // 성별 버튼 클릭
@@ -14,18 +14,27 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    // 만족도 슬라이더 값 업데이트
+    document.querySelectorAll(".satisfaction-slider").forEach(slider => {
+        const valueDisplay = document.getElementById(slider.id + "Value");
+        
+        // 초기값 설정
+        valueDisplay.textContent = slider.value;
+        
+        // 값 변경 이벤트
+        slider.addEventListener("input", () => {
+            valueDisplay.textContent = slider.value;
+        });
+    });
+
     form.addEventListener("submit", (e) => {
         // 기본 제출 막음
         e.preventDefault();
 
-        const birthInput = document.getElementById("birth");
-        const birth = parseInt(birthInput.value);
-        const nowYear = new Date().getFullYear();
-        const age = nowYear - birth;
-        document.getElementById("age").value = age;
+        // 나이 입력은 직접 받으므로 birth 처리 불필요
 
         // 필수 필드 유효성 검사
-        const requiredFields = document.querySelectorAll('#predictForm [required]');
+        const requiredFields = document.querySelectorAll('#predictionForm [required]');
         for (let i = 0; i < requiredFields.length; i++) {
             const field = requiredFields[i];
             if (field.type === 'radio') {
@@ -54,10 +63,12 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 연령 유효성 검사 (적절한 범위 설정)
-        if (age < 15 || age > 90) { // 예시: 15세 미만, 90세 이상은 비정상으로 간주
-            alert('유효한 출생년도를 입력해주세요. (예: 1995 -> 나이 범위 15~90세)');
-            birthInput.focus();
+        // 연령 유효성 검사
+        const ageInput = document.getElementById("age");
+        const age = parseInt(ageInput.value);
+        if (age < 15 || age > 90) {
+            alert('나이는 15세부터 90세까지 입력 가능합니다.');
+            ageInput.focus();
             return;
         }
 

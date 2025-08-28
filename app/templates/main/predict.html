@@ -81,19 +81,107 @@
                 </div>
             </div>
             <div class="form-group full-width">
-                <label for="satisFocusKey">가장 중요하게 생각하는 만족도 요인</label>
-                <select id="satisFocusKey" name="satis_focus_key" required>
-                    <option value="" disabled selected>선택해주세요</option>
-                    <option value="satis_wage">임금 또는 보수</option>
-                    <option value="satis_stability">고용 안정성</option>
-                    <option value="satis_growth">발전 가능성</option>
-                    <option value="satis_task_content">일의 내용</option>
-                    <option value="satis_work_env">근무 환경</option>
-                    <option value="satis_work_time">근무 시간과 여가</option>
-                    <option value="satis_communication">인간 관계</option>
-                    <option value="satis_fair_eval">공정한 평가와 보상</option>
-                    <option value="satis_welfare">복리 후생</option>
-                </select>
+                <label>각 요인별 현재 만족도를 평가해주세요 (1: 매우 불만족 ~ 5: 매우 만족)</label>
+                <div class="satisfaction-factors-grid">
+                    <div class="satisfaction-factor">
+                        <label for="satisWage">임금 또는 보수</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisWage" name="satis_wage" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisWageValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisStability">고용 안정성</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisStability" name="satis_stability" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisStabilityValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisGrowth">발전 가능성</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisGrowth" name="satis_growth" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisGrowthValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisTaskContent">일의 내용</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisTaskContent" name="satis_task_content" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisTaskContentValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisWorkEnv">근무 환경</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisWorkEnv" name="satis_work_env" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisWorkEnvValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisWorkTime">근무 시간과 여가</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisWorkTime" name="satis_work_time" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisWorkTimeValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisCommunication">인간 관계</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisCommunication" name="satis_communication" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisCommunicationValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisFairEval">공정한 평가와 보상</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisFairEval" name="satis_fair_eval" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisFairEvalValue">3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="satisfaction-factor">
+                        <label for="satisWelfare">복리 후생</label>
+                        <div class="slider-container">
+                            <input type="range" id="satisWelfare" name="satis_welfare" min="1" max="5" value="3" class="satisfaction-slider">
+                            <div class="slider-labels">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                            <div class="slider-value" id="satisWelfareValue">3</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

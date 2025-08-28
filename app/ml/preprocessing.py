@@ -8,12 +8,23 @@ def prepare_prediction_features(user_input, ml_predictor):
         "job_satisfaction": int(user_input["job_satisfaction"]),
         "prev_job_satisfaction": int(user_input["job_satisfaction"]),
     }
-    satis_keys = [
-        "satis_wage", "satis_stability", "satis_task_content", "satis_work_env", 
-        "satis_work_time", "satis_growth", "satis_communication", "satis_fair_eval", "satis_welfare"
+    
+    # 9개 만족도 요인별 점수 (1-5점)
+    satisfaction_factors = [
+        "satis_wage", "satis_stability", "satis_growth", "satis_task_content", 
+        "satis_work_env", "satis_work_time", "satis_communication", "satis_fair_eval", "satis_welfare"
     ]
-    for key in satis_keys:
-        base_features[key] = 1 if key == user_input["satis_focus_key"] else 0
+    
+    for factor in satisfaction_factors:
+        base_features[factor] = int(user_input.get(factor, 3))
+    
+    # 만족도 요인 통계 계산
+    satisfaction_scores = [base_features[factor] for factor in satisfaction_factors]
+    base_features["satisfaction_mean"] = sum(satisfaction_scores) / len(satisfaction_scores)
+    base_features["satisfaction_std"] = (sum((x - base_features["satisfaction_mean"])**2 for x in satisfaction_scores) / len(satisfaction_scores))**0.5
+    base_features["satisfaction_min"] = min(satisfaction_scores)
+    base_features["satisfaction_max"] = max(satisfaction_scores)
+    base_features["satisfaction_range"] = base_features["satisfaction_max"] - base_features["satisfaction_min"]
 
     scenarios = []
     job_categories = [

@@ -73,7 +73,7 @@ def get_user_by_username(username):
 
 
 @safe_db_operation("사용자 프로필 업데이트")
-def update_user_profile(user_id, age, gender, education, monthly_income, job_category, job_satisfaction, satis_focus_key):
+def update_user_profile(user_id, age, gender, education, monthly_income, job_category, job_satisfaction, **satisfaction_factors):
     """사용자 프로필 정보를 업데이트합니다."""
     user = User.query.get(user_id)
     if user:
@@ -83,7 +83,18 @@ def update_user_profile(user_id, age, gender, education, monthly_income, job_cat
         user.monthly_income = monthly_income
         user.job_category = job_category
         user.job_satisfaction = job_satisfaction
-        user.satis_focus_key = satis_focus_key
+        
+        # 9개 만족도 요인 업데이트
+        satisfaction_fields = [
+            'satis_wage', 'satis_stability', 'satis_growth', 'satis_task_content',
+            'satis_work_env', 'satis_work_time', 'satis_communication', 
+            'satis_fair_eval', 'satis_welfare'
+        ]
+        
+        for field in satisfaction_fields:
+            if field in satisfaction_factors:
+                setattr(user, field, satisfaction_factors[field])
+        
         return True
     return False
 
