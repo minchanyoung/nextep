@@ -228,9 +228,9 @@
         </div>
 
         <div class="advice-link-wrapper">
-            <form action="{{ url_for('main.advice') }}" method="post">
-                {% if is_guest %}
-                    <!-- 비회원용 hidden fields: 예측 결과 데이터 전달 -->
+            {% if is_guest %}
+                <!-- 비회원용: POST 요청으로 데이터 전달 -->
+                <form action="{{ url_for('main.advice') }}" method="post">
                     <input type="hidden" name="age" value="{{ user_input.age }}">
                     <input type="hidden" name="gender" value="{{ user_input.gender }}">
                     <input type="hidden" name="education" value="{{ user_input.education }}">
@@ -240,9 +240,12 @@
                     <input type="hidden" name="satis_focus_key" value="{{ user_input.satis_focus_key }}">
                     <input type="hidden" name="job_A_category" value="{{ user_input.job_A_category }}">
                     <input type="hidden" name="job_B_category" value="{{ user_input.job_B_category }}">
-                {% endif %}
-                <button type="submit" class="btn-advice">AI 조언 받기</button>
-            </form>
+                    <button type="submit" class="btn-advice">AI 조언 받기</button>
+                </form>
+            {% else %}
+                <!-- 회원용: GET 요청으로 이동 (세션 데이터 사용) -->
+                <a href="{{ url_for('main.advice') }}" class="btn-advice">AI 조언 받기</a>
+            {% endif %}
         </div>
     </main>
 </div>
