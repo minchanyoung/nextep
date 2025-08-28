@@ -11,7 +11,7 @@ import glob
 sys.path.insert(0, os.path.abspath('.'))
 
 from app import create_app
-from config import Config
+from app.config.settings import get_settings
 import argparse
 import logging
 
@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 class RAGAdmin:
     def __init__(self):
         """RAG 관리자 초기화"""
-        self.app = create_app(Config)
+        settings = get_settings()
+        config = settings.to_flask_config()
+        self.app = create_app(type('Config', (), config))
         
     def show_stats(self):
         """데이터베이스 통계 표시"""

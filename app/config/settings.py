@@ -133,7 +133,7 @@ class Settings:
         return OllamaSettings(
             url=os.environ.get('OLLAMA_URL', 'http://localhost:11434'),
             model=os.environ.get('OLLAMA_MODEL', 'exaone3.5:7.8b'),
-            embedding_model=os.environ.get('OLLAMA_EMBEDDING_MODEL', 'llama3'),
+            embedding_model=os.environ.get('OLLAMA_EMBEDDING_MODEL', 'llama3:latest'),
             timeout=self._get_optional_int('OLLAMA_TIMEOUT'),
             keep_alive=os.environ.get('OLLAMA_KEEP_ALIVE', '30m'),
             num_ctx=int(os.environ.get('OLLAMA_NUM_CTX', '2048')),
@@ -222,6 +222,11 @@ class Settings:
             'OLLAMA_EMBEDDING_MODEL': self.ollama.embedding_model,
             'OLLAMA_TIMEOUT': self.ollama.timeout,
             'OLLAMA_KEEP_ALIVE': self.ollama.keep_alive,
+            
+            # 로깅 설정
+            'LOG_TO_STDOUT': self.logging.to_stdout,
+            'LOG_FILE': self.logging.file,
+            'LOG_LEVEL': self.logging.level,
         }
 
 
