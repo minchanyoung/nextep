@@ -11,13 +11,10 @@ logger = logging.getLogger(__name__)
 # ==============================================================================
 # 1) 경로/상수
 # ==============================================================================
-# 실제 KLIPS 데이터 기준으로 현실적 범위 조정
-MIN_SATISFACTION_CHANGE = -4  # 실제 최소값
-MAX_SATISFACTION_CHANGE = 3   # 실제 최대값
-
-# 실제 KLIPS 데이터 기반 현실적 범위 (클리핑 제거를 위한 참고값)
-# 실제 5-95분위수: -40% ~ +80%, 평균 12.69%
-# 클리핑 대신 피처 엔지니어링으로 현실적 예측 유도
+# KLIPS 데이터 실제 분포 (참고용)
+# 소득 변화율: 평균 12.69%, 5-95분위수 -40%~+80%, 표준편차 106.1%
+# 만족도 변화: 평균 -0.0083점, 5-95분위수 -1점~+1점, 표준편차 0.63점
+# 모델의 자연스러운 예측값을 그대로 사용하여 현실적인 분포를 반영
 
 # ==============================================================================
 # 2) 초기화 함수
@@ -46,19 +43,19 @@ def init_app(app):
             logger.info("Pre-loading ML models and data...")
 
             # --- 모델 로드 ---
-            # 소득 모델
-            income_model_path = os.path.join(MODEL_DIR, "lgb_income_change_model.txt")
+            # 소득 모델 (XGBoost pickle 형식 사용)
+            income_model_path = os.path.join(MODEL_DIR, "xgb_income_change_model.pkl")
             logger.info(f"Loading income model from: {income_model_path}")
-            ml_resources['lgb_income'] = lgb.Booster(model_file=income_model_path)
-            logger.info("LightGBM income model loaded successfully")
+            with open(income_model_path, 'rb') as f:
+                ml_resources['xgb_income'] = joblib.load(f)
+            logger.info("XGBoost income model loaded successfully")
             
-            # 만족도 모델 (최적 단일 모델: CatBoost)
-            satis_model_path = os.path.join(MODEL_DIR, "final_cat_satis_model.cbm")
+            # 만족도 모델 (XGBoost 사용으로 변경)
+            satis_model_path = os.path.join(MODEL_DIR, "final_xgb_satis_model.pkl")
             logger.info(f"Loading satisfaction model from: {satis_model_path}")
-            cat_satis_model = CatBoostRegressor()
-            cat_satis_model.load_model(satis_model_path)
-            ml_resources['cat_satis'] = cat_satis_model
-            logger.info("CatBoost satisfaction model loaded successfully")
+            with open(satis_model_path, 'rb') as f:
+                ml_resources['xgb_satis'] = joblib.load(f)
+            logger.info("XGBoost satisfaction model loaded successfully")
 
             # --- 데이터 및 피처 정보 로드 ---
             logger.info(f"Loading KLIPS data from: {DATA_PATH}")
@@ -86,9 +83,11 @@ def init_app(app):
                 ml_resources['satis_features'] = config['features']
             logger.info(f"Satisfaction features loaded: {len(ml_resources['satis_features'])} features")
 
-            # 실제 모델에서 피처 이름을 직접 추출
-            logger.info("Extracting feature names from loaded income model...")
-            ml_resources['income_features'] = ml_resources['lgb_income'].feature_name()
+            # XGBoost 모델에서 피처 이름 추출
+            logger.info("Loading income model feature names from JSON...")
+            income_features_path = os.path.join(MODEL_DIR, "income_feature_names_correct.json")
+            with open(income_features_path, 'r') as f:
+                ml_resources['income_features'] = json.load(f)
             logger.info(f"Income features loaded: {len(ml_resources['income_features'])} features")
 
             # app.extensions에 저장
@@ -136,24 +135,11 @@ def predict_scenario_with_proper_features(user_input, scenario_index):
     
     # ML 리소스 확인
     has_ml_models = all(k in ml_resources and ml_resources[k] is not None 
-                       for k in ['lgb_income', 'cat_satis', 'income_features', 'satis_features'])
+                       for k in ['xgb_income', 'xgb_satis', 'income_features', 'satis_features'])
     
     if not has_ml_models:
-        logger.warning(f"ML models not available, using fallback")
-        job_category = int(user_input.get("current_job_category" if scenario_index == 0 else 
-                                         f"job_{'A' if scenario_index == 1 else 'B'}_category", 1))
-        base_income_change = 0.02  # 2% 기본값
-        base_satis_change = 0.0
-        
-        # 직업별 조정
-        if job_category == 2:
-            base_income_change = 0.025
-            base_satis_change = 0.1
-        elif job_category == 3:
-            base_income_change = 0.015
-            base_satis_change = 0.05
-        
-        return round(base_income_change, 4), round(base_satis_change, 4)
+        logger.error("ML 모델을 로드할 수 없습니다. 애플리케이션을 다시 시작해주세요.")
+        raise RuntimeError("ML 모델이 로드되지 않았습니다.")
     
     try:
         # 소득 모델용 피처 생성
@@ -166,7 +152,7 @@ def predict_scenario_with_proper_features(user_input, scenario_index):
         
         # --- 소득 예측 ---
         income_features = ml_resources['income_features']
-        lgb_income_model = ml_resources['lgb_income']
+        xgb_income_model = ml_resources['xgb_income']
         
         # 피처를 정확한 순서로 준비
         income_model_features = []
@@ -177,65 +163,47 @@ def predict_scenario_with_proper_features(user_input, scenario_index):
                 logger.warning(f"소득 모델 피처 누락: {feature}")
                 income_model_features.append(0.0)
         
-        # 소득 예측 실행 (클리핑 제거)
-        income_prediction = lgb_income_model.predict([income_model_features])[0]
-        income_change = income_prediction  # 자연스러운 예측값 사용
+        # 소득 예측 실행
+        import numpy as np
+        income_input = np.array(income_model_features).reshape(1, -1)
+        income_prediction = xgb_income_model.predict(income_input)[0]
+        income_change = float(income_prediction)  # numpy float32 -> Python float 변환
         
-        logger.info(f"시나리오 {scenario_index} 소득 예측: 원본값={income_prediction:.6f}, 클리핑후={income_change:.6f}")
+        logger.info(f"시나리오 {scenario_index} 소득 예측 (클리핑 없음): {income_change:.6f}")
         logger.info(f"소득 주요 피처값: job_category={income_row.get('job_category')}, monthly_income={income_row.get('monthly_income')}, age={income_row.get('age')}, job_category_change={income_row.get('job_category_change', 0)}, potential_promotion={income_row.get('potential_promotion', 0)}")
         
         # --- 만족도 예측 ---
         satis_features = ml_resources['satis_features']
         
-        # CatBoost 모델들
+        # XGBoost 만족도 모델
         xgb_satis = ml_resources.get('xgb_satis')
-        lgb_satis = ml_resources.get('lgb_satis')  
-        cat_satis = ml_resources.get('cat_satis')
         
         # 앙상블 가중치
         ensemble_config = ml_resources.get('ensemble_config', {})
         weights = ensemble_config.get('weights', {'xgb': 0.34, 'lgb': 0.31, 'cat': 0.34})
         
-        # 피처를 정확한 순서로 준비
+        # 피처를 정확한 순서로 준비 (모든 피처를 수치형으로)
         satis_model_features = []
         for feature in satis_features:
             if feature in satis_row:
                 value = satis_row[feature]
-                # CatBoost categorical 피처를 위해 일부 피처는 문자열로 변환
-                if feature in ['gender', 'education', 'job_category', 'career_stage']:
-                    satis_model_features.append(str(int(float(value))))
-                else:
-                    satis_model_features.append(float(value))
+                satis_model_features.append(float(value))
             else:
                 logger.warning(f"만족도 모델 피처 누락: {feature}")
-                # categorical 피처면 문자열 "0", 수치 피처면 0.0
-                if feature in ['gender', 'education', 'job_category', 'career_stage']:
-                    satis_model_features.append("0")
-                else:
-                    satis_model_features.append(0.0)
+                satis_model_features.append(0.0)
         
-        # 앙상블 예측
-        predictions = []
+        # XGBoost 만족도 예측
         if xgb_satis:
-            pred = xgb_satis.predict([satis_model_features])[0]
-            predictions.append(('xgb', pred, weights['xgb']))
-        if lgb_satis:
-            pred = lgb_satis.predict([satis_model_features])[0] 
-            predictions.append(('lgb', pred, weights['lgb']))
-        if cat_satis:
-            pred = cat_satis.predict([satis_model_features])[0]
-            predictions.append(('cat', pred, weights['cat']))
-        
-        if predictions:
-            satis_prediction = sum(pred * weight for _, pred, weight in predictions) / sum(w for _, _, w in predictions)
-            satis_change = satis_prediction  # 자연스러운 예측값 사용
+            import numpy as np
+            satis_input = np.array(satis_model_features).reshape(1, -1)
+            satis_prediction = xgb_satis.predict(satis_input)[0]
+            satis_change = float(satis_prediction)  # numpy float32 -> Python float 변환
             
-            logger.info(f"시나리오 {scenario_index} 만족도 예측: 원본값={satis_prediction:.6f}, 클리핑후={satis_change:.6f}")
-            logger.info(f"앙상블 세부결과: {[(name, pred, weight) for name, pred, weight in predictions]}")
+            logger.info(f"시나리오 {scenario_index} 만족도 예측 (클리핑 없음): {satis_change:.6f}")
             logger.info(f"만족도 주요 피처값: job_category={satis_row.get('job_category')}, satis_wage={satis_row.get('satis_wage')}, satis_growth={satis_row.get('satis_growth')}, satis_stability={satis_row.get('satis_stability')}, satis_task_content={satis_row.get('satis_task_content')}")
         else:
-            logger.warning("만족도 모델이 없어 기본값 사용")
-            satis_change = 0.0
+            logger.error("만족도 모델을 로드할 수 없습니다")
+            raise RuntimeError("만족도 모델이 로드되지 않았습니다")
         
         logger.info(f"시나리오 {scenario_index} 예측 완료 - 소득변화: {income_change:.4f}, 만족도변화: {satis_change:.4f}")
         return round(income_change, 4), round(satis_change, 4)
@@ -260,27 +228,11 @@ def predict_scenario(row):
     
     # ML 리소스 확인 - 없으면 기본값 반환
     has_ml_models = all(k in ml_resources and ml_resources[k] is not None 
-                       for k in ['lgb_income', 'cat_satis', 'income_features', 'satis_features'])
+                       for k in ['xgb_income', 'xgb_satis', 'income_features', 'satis_features'])
     
     if not has_ml_models:
-        logger.warning(f"ML models not available, using fallback for scenario: {row.get('job_category', 'unknown')}")
-        # 기본 예측값 반환 (직업별로 약간의 차이 적용)
-        job_category = int(row.get('job_category', 1))
-        base_income_change = 0.05
-        base_satis_change = 0.0
-        
-        # 직업별 간단한 휴리스틱 적용
-        if job_category == 2:  # IT 관련직
-            base_income_change = 0.06
-            base_satis_change = 0.1
-        elif job_category == 3:  # 교육/연구
-            base_income_change = 0.03
-            base_satis_change = 0.05
-        elif job_category >= 7:  # 서비스업 등
-            base_income_change = 0.04
-            base_satis_change = -0.05
-            
-        return round(base_income_change, 4), round(base_satis_change, 4)
+        logger.error("ML 모델을 로드할 수 없습니다. 애플리케이션을 다시 시작해주세요.")
+        raise RuntimeError("ML 모델이 로드되지 않았습니다.")
 
     # DataFrame으로 변환 후 피처 순서 맞춤
     scenario_df = pd.DataFrame([row])
@@ -288,7 +240,7 @@ def predict_scenario(row):
     # --- 소득 예측 ---
     try:
         income_features = ml_resources['income_features']
-        lgb_income_model = ml_resources['lgb_income']
+        xgb_income_model = ml_resources['xgb_income']
         
         # 정확한 피처 매칭: 모델이 기대하는 순서대로 피처 준비
         model_features = []
@@ -307,7 +259,7 @@ def predict_scenario(row):
         if len(model_features) == len(income_features):
             import numpy as np
             model_input = np.array(model_features).reshape(1, -1)
-            income_pred = lgb_income_model.predict(model_input)[0]
+            income_pred = float(xgb_income_model.predict(model_input)[0])  # numpy -> Python float 변환
             logger.info(f"소득 모델 예측 성공: {income_pred:.6f}")
         else:
             raise ValueError(f"피처 수 불일치: 예상 {len(income_features)}, 실제 {len(model_features)}")
@@ -388,28 +340,21 @@ def predict_scenario(row):
         # 정확한 만족도 피처 매칭
         satis_model_features = []
         
-        # 모든 필요한 피처를 순서대로 준비
+        # 모든 필요한 피처를 순서대로 준비 (모든 피처를 수치형으로)
         for feature in satis_features:
             if feature in scenario_df.columns:
                 value = scenario_data[feature]
-                # CatBoost categorical 피처를 위해 일부 피처는 문자열로 변환
-                if feature in ['gender', 'education', 'job_category', 'career_stage']:
-                    satis_model_features.append(str(int(float(value))))
-                else:
-                    satis_model_features.append(float(value))
+                satis_model_features.append(float(value))
             else:
                 # 누락된 피처에 대한 기본값 설정
                 logger.warning(f"만족도 모델 피처 누락: {feature}")
-                if feature in ['gender', 'education', 'job_category', 'career_stage']:
-                    satis_model_features.append("0")
-                else:
-                    satis_model_features.append(0.0)
+                satis_model_features.append(0.0)
         
         # 모델 예측 실행
         if len(satis_model_features) == len(satis_features):
             import numpy as np
             satis_input = np.array(satis_model_features).reshape(1, -1)
-            satis_pred = ml_resources['cat_satis'].predict(satis_input)[0]
+            satis_pred = float(ml_resources['xgb_satis'].predict(satis_input)[0])  # numpy -> Python float 변환
             satis_pred_processed = satis_pred  # 자연스러운 예측값 사용
             logger.info(f"만족도 모델 예측 성공: {satis_pred_processed:.6f}")
         else:
@@ -459,17 +404,7 @@ def predict_scenario(row):
             gap_adjustment = satisfaction_gap * 0.3  # 갭의 30% 반영
             
             satis_pred_processed = base_change + gap_adjustment
-        else:
-            # 정확한 피처 순서로 선택
-            satis_df = scenario_df[satis_features].copy()
-            logger.info(f"만족도 모델 피처 개수: {len(satis_df.columns)}, 기대: {len(satis_features)}")
-            logger.info(f"만족도 모델 입력 피처 통계: min={satis_df.min().min():.4f}, max={satis_df.max().max():.4f}")
-            
-            satis_pred = ml_resources['cat_satis'].predict(satis_df)
-            logger.info(f"만족도 모델 원본 예측값: {satis_pred[0]:.4f}")
-            
-            satis_pred_processed = np.clip(satis_pred, MIN_SATISFACTION_CHANGE, MAX_SATISFACTION_CHANGE)[0]
-            logger.info(f"만족도 모델 최종 예측값: {satis_pred_processed:.4f}")
+        # 위의 fallback 로직이 이미 satis_pred_processed를 설정했으므로 추가 처리 불필요
     except Exception as e:
         logger.error(f"만족도 예측 실패: {e}")
         satis_pred_processed = 0.0
