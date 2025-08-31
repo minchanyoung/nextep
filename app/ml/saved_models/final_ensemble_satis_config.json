@@ -1,0 +1,38 @@
+{
+    "weights": {
+        "xgb": 0.34320101140012566,
+        "lgb": 0.312890486235371,
+        "cat": 0.3439085023645033
+    },
+    "features": [
+        "age",
+        "gender",
+        "education",
+        "monthly_income",
+        "job_category",
+        "satis_wage",
+        "satis_stability",
+        "satis_growth",
+        "satis_task_content",
+        "satis_work_env",
+        "satis_work_time",
+        "satis_communication",
+        "satis_fair_eval",
+        "satis_welfare",
+        "prev_job_satisfaction",
+        "satisfaction_lag_1",
+        "income_lag_1",
+        "satisfaction_roll_mean_3",
+        "satisfaction_roll_std_3",
+        "income_roll_mean_3",
+        "career_length",
+        "career_stage",
+        "satisfaction_mean",
+        "satisfaction_std",
+        "satisfaction_range",
+        "age_x_education",
+        "income_x_satisfaction_lag_1",
+        "job_cat_income_avg",
+        "job_cat_satis_avg"
+    ]
+}

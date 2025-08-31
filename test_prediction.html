@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Prediction</title>
+</head>
+<body>
+    <h1>Test ML Prediction</h1>
+    <form action="http://localhost:5000/predict-result" method="post">
+        <label>Age: <input type="number" name="age" value="30" required></label><br><br>
+        <label>Gender (1=Male, 2=Female): <input type="number" name="gender" value="1" required></label><br><br>
+        <label>Education (1-5): <input type="number" name="education" value="3" required></label><br><br>
+        <label>Monthly Income: <input type="number" name="monthly_income" value="300" required></label><br><br>
+        <label>Current Job Category (1-9): <input type="number" name="current_job_category" value="2" required></label><br><br>
+        <label>Job Satisfaction (1-5): <input type="number" name="job_satisfaction" value="3" required></label><br><br>
+        <label>Job A Category: <input type="number" name="job_A_category" value="3" required></label><br><br>
+        <label>Job B Category: <input type="number" name="job_B_category" value="4" required></label><br><br>
+        
+        <h3>Satisfaction Factors (1-5):</h3>
+        <label>Wage: <input type="number" name="satis_wage" value="3" required></label><br>
+        <label>Stability: <input type="number" name="satis_stability" value="3" required></label><br>
+        <label>Growth: <input type="number" name="satis_growth" value="3" required></label><br>
+        <label>Task Content: <input type="number" name="satis_task_content" value="3" required></label><br>
+        <label>Work Environment: <input type="number" name="satis_work_env" value="3" required></label><br>
+        <label>Work Time: <input type="number" name="satis_work_time" value="3" required></label><br>
+        <label>Communication: <input type="number" name="satis_communication" value="3" required></label><br>
+        <label>Fair Evaluation: <input type="number" name="satis_fair_eval" value="3" required></label><br>
+        <label>Welfare: <input type="number" name="satis_welfare" value="3" required></label><br><br>
+        
+        <input type="submit" value="Test Prediction">
+    </form>
+</body>
+</html>

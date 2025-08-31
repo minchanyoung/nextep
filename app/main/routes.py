@@ -226,6 +226,35 @@ def db_test():
         current_app.logger.error(f"DB 테스트 실패: {e}")
         return f"<h1>DB 테스트 실패: {e}</h1>"
 
+@bp.route('/ml-status')
+def ml_status():
+    """ML 모델 상태 확인용 디버그 엔드포인트"""
+    try:
+        ml_resources = current_app.extensions.get('ml_resources', {})
+        
+        status_html = "<h1>ML 모델 상태 확인</h1>"
+        status_html += f"<p>app.extensions 존재: {'ml_resources' in current_app.extensions}</p>"
+        status_html += f"<p>ML resources keys: {list(ml_resources.keys())}</p>"
+        
+        for key in ['lgb_income', 'cat_satis', 'klips_df', 'job_category_stats', 'income_features', 'satis_features']:
+            if key in ml_resources and ml_resources[key] is not None:
+                if key == 'klips_df':
+                    status_html += f"<p>✅ {key}: {len(ml_resources[key])} rows</p>"
+                elif key in ['income_features', 'satis_features']:
+                    status_html += f"<p>✅ {key}: {len(ml_resources[key])} features</p>"
+                elif key == 'job_category_stats':
+                    status_html += f"<p>✅ {key}: {len(ml_resources[key])} categories</p>"
+                else:
+                    status_html += f"<p>✅ {key}: Loaded</p>"
+            else:
+                status_html += f"<p>❌ {key}: Not loaded</p>"
+        
+        return status_html
+        
+    except Exception as e:
+        current_app.logger.error(f"ML 상태 확인 실패: {e}")
+        return f"<h1>ML 상태 확인 실패: {e}</h1>"
+
 @bp.route('/ask-ai', methods=['POST'])
 @handle_api_exception
 def ask_ai():
