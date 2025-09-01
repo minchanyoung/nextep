@@ -54,15 +54,27 @@ def predict():
     # 회원이면서 프로필이 완료된 경우 자동으로 예측 실행
     if user and hasattr(user, 'age') and user.age:
             # 사용자 프로필 데이터를 user_input 형식으로 변환
+            current_job = str(user.job_category)
+            
+            # 현재 직업과 다른 두 개의 인기 직업을 기본값으로 설정
+            if current_job == '2':  # 현재가 전문직이면
+                job_A, job_B = '3', '1'  # 사무직, 관리직
+            elif current_job == '3':  # 현재가 사무직이면
+                job_A, job_B = '2', '4'  # 전문직, 서비스직
+            elif current_job == '1':  # 현재가 관리직이면
+                job_A, job_B = '2', '3'  # 전문직, 사무직
+            else:  # 기타 직업의 경우
+                job_A, job_B = '2', '3'  # 전문직, 사무직
+                
             user_input = {
                 'age': str(user.age),
                 'gender': str(user.gender),
                 'education': str(user.education),
                 'monthly_income': str(user.monthly_income),
-                'current_job_category': str(user.job_category),
+                'current_job_category': current_job,
                 'job_satisfaction': str(user.job_satisfaction),
-                'job_A_category': '2', # 기본값
-                'job_B_category': '3',  # 기본값
+                'job_A_category': job_A,
+                'job_B_category': job_B,
                 # 9개 만족도 요인 추가
                 'satis_wage': str(user.satis_wage or 3),
                 'satis_stability': str(user.satis_stability or 3),
@@ -97,8 +109,23 @@ def predict_result():
 
     if request.method == 'POST':
         user_input = request.form.to_dict()
-        if 'job_A_category' not in user_input: user_input['job_A_category'] = '2'
-        if 'job_B_category' not in user_input: user_input['job_B_category'] = '3'
+        
+        # 직업 A, B는 예측 결과 페이지에서 동적으로 선택하므로 적절한 기본값 설정
+        current_job = user_input.get('current_job_category', '3')
+        
+        # 현재 직업과 다른 두 개의 인기 직업을 기본값으로 설정
+        if current_job == '2':  # 현재가 전문직이면
+            user_input['job_A_category'] = '3'  # 사무직
+            user_input['job_B_category'] = '1'  # 관리직
+        elif current_job == '3':  # 현재가 사무직이면
+            user_input['job_A_category'] = '2'  # 전문직
+            user_input['job_B_category'] = '4'  # 서비스직
+        elif current_job == '1':  # 현재가 관리직이면
+            user_input['job_A_category'] = '2'  # 전문직
+            user_input['job_B_category'] = '3'  # 사무직
+        else:  # 기타 직업의 경우
+            user_input['job_A_category'] = '2'  # 전문직
+            user_input['job_B_category'] = '3'  # 사무직
 
         current_app.logger.info(f"Prediction started with user_input: {user_input}")
 
@@ -147,17 +174,39 @@ def advice():
     
     # POST 요청인 경우 (비회원이 predict_result에서 넘어온 경우)
     if request.method == 'POST':
-        # 폼 데이터에서 예측 정보 가져오기
+        # 폼 데이터에서 현재 직업 가져오기
+        current_job = request.form.get('current_job_category', '3')
+        
+        # 현재 직업과 다른 두 개의 인기 직업을 기본값으로 설정
+        if current_job == '2':  # 현재가 전문직이면
+            job_A, job_B = '3', '1'  # 사무직, 관리직
+        elif current_job == '3':  # 현재가 사무직이면
+            job_A, job_B = '2', '4'  # 전문직, 서비스직
+        elif current_job == '1':  # 현재가 관리직이면
+            job_A, job_B = '2', '3'  # 전문직, 사무직
+        else:  # 기타 직업의 경우
+            job_A, job_B = '2', '3'  # 전문직, 사무직
+        
         user_input = {
             'age': request.form.get('age'),
             'gender': request.form.get('gender'),
             'education': request.form.get('education'),
             'monthly_income': request.form.get('monthly_income'),
-            'current_job_category': request.form.get('current_job_category'),
+            'current_job_category': current_job,
             'job_satisfaction': request.form.get('job_satisfaction'),
             'satis_focus_key': request.form.get('satis_focus_key'),
-            'job_A_category': request.form.get('job_A_category', '2'),
-            'job_B_category': request.form.get('job_B_category', '3')
+            'job_A_category': job_A,
+            'job_B_category': job_B,
+            # 9개 만족도 요인 추가
+            'satis_wage': request.form.get('satis_wage', '3'),
+            'satis_stability': request.form.get('satis_stability', '3'),
+            'satis_growth': request.form.get('satis_growth', '3'),
+            'satis_task_content': request.form.get('satis_task_content', '3'),
+            'satis_work_env': request.form.get('satis_work_env', '3'),
+            'satis_work_time': request.form.get('satis_work_time', '3'),
+            'satis_communication': request.form.get('satis_communication', '3'),
+            'satis_fair_eval': request.form.get('satis_fair_eval', '3'),
+            'satis_welfare': request.form.get('satis_welfare', '3')
         }
         
         # 예측 결과 다시 생성 (비회원의 경우)
