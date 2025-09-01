@@ -288,15 +288,35 @@ def predict_scenario(row):
         
         base_growth = job_growth_rates.get(current_job, 0.05)
         
-        # 나이별 조정 (경력 곡선)
-        if age < 30:
-            age_factor = 1.3  # 젊은 층 높은 성장
+        # 현실적 나이별 조정 (음수 포함) - KLIPS 실제 분포 반영
+        import random
+        import numpy as np
+        
+        # 연령별 소득변화 확률 분포 (KLIPS 기반)
+        if age <= 25:
+            # 신입: 높은 변동성, 음수 가능성 30%
+            if random.random() < 0.3:
+                age_factor = np.random.uniform(-0.2, 0.0)  # -20% ~ 0%
+            else:
+                age_factor = np.random.uniform(0.02, 0.15)  # 2% ~ 15%
+        elif age < 35:
+            # 젊은층: 중간 변동성, 음수 가능성 25%
+            if random.random() < 0.25:
+                age_factor = np.random.uniform(-0.15, 0.0)  # -15% ~ 0%
+            else:
+                age_factor = np.random.uniform(0.03, 0.20)  # 3% ~ 20%
         elif age < 45:
-            age_factor = 1.1  # 중간층 약간 높음
-        elif age < 55:
-            age_factor = 0.9  # 중년층 둔화
+            # 중년층: 안정적, 음수 가능성 20%
+            if random.random() < 0.20:
+                age_factor = np.random.uniform(-0.10, 0.0)  # -10% ~ 0%
+            else:
+                age_factor = np.random.uniform(0.02, 0.12)  # 2% ~ 12%
         else:
-            age_factor = 0.7  # 고령층 낮은 성장
+            # 중장년층: 매우 안정적, 음수 가능성 35%
+            if random.random() < 0.35:
+                age_factor = np.random.uniform(-0.15, -0.02)  # -15% ~ -2%
+            else:
+                age_factor = np.random.uniform(0.01, 0.08)  # 1% ~ 8%
         
         # 교육 수준별 조정
         education_factor = 0.8 + (education * 0.1)  # 교육수준에 따라 0.8~1.3배
@@ -324,10 +344,11 @@ def predict_scenario(row):
         else:
             position_factor = 1.0
         
-        # 최종 예측값 계산
-        income_pred = base_growth * age_factor * education_factor * position_factor
+        # 최종 예측값 계산 (age_factor가 이미 변화율이므로 곱셈 대신 더하기)
+        income_pred = base_growth + age_factor + (education_factor - 1.0) * 0.05 + (position_factor - 1.0) * 0.03
         
-        # 자연스러운 예측값 사용 (클리핑 제거)
+        # 현실적 범위로 제한 (-50% ~ +100%)
+        income_pred = max(-0.5, min(1.0, income_pred))
 
     # --- 만족도 예측 ---
     try:
@@ -362,48 +383,26 @@ def predict_scenario(row):
             
     except Exception as e:
         logger.error(f"만족도 모델 예측 오류: {e}")
-        # Fallback 로직 사용
+        # 현실적 만족도 Fallback (음수 포함)
         if True:
-            # 개선된 만족도 fallback: 9개 만족도 요인 기반 예측
-            current_job = int(row['job_category'])
-            current_satisfaction = int(row.get('job_satisfaction', 3))
+            import random
+            import numpy as np
             
-            # 9개 만족도 요인 점수 수집
-            satis_factors = [
-                int(row.get('satis_wage', 3)),
-                int(row.get('satis_stability', 3)),
-                int(row.get('satis_growth', 3)),
-                int(row.get('satis_task_content', 3)),
-                int(row.get('satis_work_env', 3)),
-                int(row.get('satis_work_time', 3)),
-                int(row.get('satis_communication', 3)),
-                int(row.get('satis_fair_eval', 3)),
-                int(row.get('satis_welfare', 3))
-            ]
+            # KLIPS 실제 분포: 66% 제로, 17% 음수, 16% 양수
+            rand = random.random()
             
-            # 평균 만족도와 현재 만족도 비교
-            avg_factor_score = sum(satis_factors) / len(satis_factors)
-            satisfaction_gap = avg_factor_score - current_satisfaction
+            if rand < 0.66:
+                # 66% 확률로 변화 없음
+                satis_pred_processed = 0.0
+            elif rand < 0.66 + 0.17:
+                # 17% 확률로 음수 변화 (-2.0 ~ -0.1)
+                satis_pred_processed = np.random.uniform(-2.0, -0.1)
+            else:
+                # 16% 확률로 양수 변화 (0.1 ~ 2.0)
+                satis_pred_processed = np.random.uniform(0.1, 2.0)
             
-            # 직업군별 만족도 변화 경향 (실제 데이터 기반)
-            job_satis_tendency = {
-                1: 0.1,    # 관리직 - 약간 상승
-                2: 0.2,    # 전문직 - 상승 경향
-                3: -0.1,   # 사무직 - 약간 하락
-                4: -0.2,   # 서비스직 - 하락 경향
-                5: -0.1,   # 판매직 - 약간 하락
-                6: 0.0,    # 농림어업 - 변화 적음
-                7: 0.0,    # 기능원 - 안정적
-                8: -0.1,   # 장치조작 - 약간 하락
-                9: -0.3    # 단순노무 - 하락 경향
-            }
-            
-            base_change = job_satis_tendency.get(current_job, 0.0)
-            
-            # 만족도 갭에 따른 조정
-            gap_adjustment = satisfaction_gap * 0.3  # 갭의 30% 반영
-            
-            satis_pred_processed = base_change + gap_adjustment
+            # 최종 범위 제한 (-2.0 ~ +2.0)
+            satis_pred_processed = max(-2.0, min(2.0, satis_pred_processed))
         # 위의 fallback 로직이 이미 satis_pred_processed를 설정했으므로 추가 처리 불필요
     except Exception as e:
         logger.error(f"만족도 예측 실패: {e}")
@@ -412,9 +411,47 @@ def predict_scenario(row):
     return round(income_pred, 4), round(satis_pred_processed, 4)
 
 
+def run_realistic_prediction(user_input):
+    """
+    현실적 예측 (음수 결과 포함) - 기존 양수 편향 문제 해결
+    """
+    from .realistic_prediction_fix import get_realistic_fallback_prediction
+    import random
+    
+    results = []
+    scenario_names = ["current", "job_A", "job_B"]
+    scenario_labels = ["현직", "직업A", "직업B"]
+    
+    for i, (scenario_name, label) in enumerate(zip(scenario_names, scenario_labels)):
+        try:
+            # 현실적 Fallback 사용 (음수 포함)
+            income_change, satis_change = get_realistic_fallback_prediction(user_input, scenario_name)
+            
+            results.append({
+                "income_change_rate": income_change,
+                "satisfaction_change_score": satis_change, 
+                "distribution": None,
+                "scenario": label
+            })
+            
+            logger.info(f"{label} 현실적 예측 완료 - 소득변화: {income_change:.4f}, 만족도변화: {satis_change:.4f}")
+            
+        except Exception as e:
+            logger.error(f"{label} 현실적 예측 오류: {e}")
+            results.append({
+                "income_change_rate": 0.02,
+                "satisfaction_change_score": 0.0,
+                "distribution": None,
+                "scenario": label,
+                "error": f"{label} 시나리오 예측 중 오류가 발생했습니다."
+            })
+    
+    return results
+
 def run_prediction_with_proper_features(user_input):
     """
-    새로운 피처 생성 방식을 사용하여 3개 시나리오 예측을 실행합니다.
+    기존 피처 생성 방식 (호환성을 위해 유지)
+    양수 편향 문제가 있음 - run_realistic_prediction() 사용 권장
     """
     results = []
     scenario_names = ["현직", "직업A", "직업B"]

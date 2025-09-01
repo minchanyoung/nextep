@@ -80,15 +80,17 @@ def prepare_income_model_features(user_input, ml_predictor):
     df['satisfaction_trend'] = 0.0  
     df['satisfaction_volatility'] = 0.3  
     
-    # 경력 관련 피처
-    df['career_length'] = (df['age'] - 22).clip(lower=1)
+    # 경력 관련 피처 (23세 이하 보정)
+    df['career_length'] = (df['age'] - 18).clip(lower=1)  # 고졸 기준으로 변경
     df['job_stability'] = 1
     
     # 경제 사이클
     df['economic_cycle'] = 0.5
     
-    # 소득-연령 비율
-    df['income_age_ratio'] = df['monthly_income'] / df['age']
+    # 소득-연령 비율 (23세 이하 보정)
+    # 나이가 너무 어릴 때 비율이 과도하게 높아지는 것을 방지
+    age_adjusted = df['age'].clip(lower=25)  # 최소 25세로 보정
+    df['income_age_ratio'] = df['monthly_income'] / age_adjusted
     
     # 소득 정점 연령대
     df['peak_earning_years'] = ((df['age'] >= 40) & (df['age'] <= 55)).astype(int)
@@ -107,8 +109,8 @@ def prepare_income_model_features(user_input, ml_predictor):
     df['job_category_change'] = 0
     df['potential_promotion'] = ((df['job_satisfaction'] > 3) & (df['satis_growth'] >= 4)).astype(int)
     
-    # 경력 단계
-    df['career_stage'] = pd.cut(df['age'], bins=[0, 25, 35, 45, 55, 100], labels=[1, 2, 3, 4, 5]).astype(int)
+    # 경력 단계 (23세 이하 세분화)
+    df['career_stage'] = pd.cut(df['age'], bins=[0, 23, 28, 35, 45, 55, 100], labels=[1, 2, 3, 4, 5, 6]).fillna(1).astype(int).clip(upper=5)
     
     # 동료 대비 소득
     if ml_predictor.job_category_stats is not None:
@@ -116,9 +118,9 @@ def prepare_income_model_features(user_input, ml_predictor):
     else:
         df['income_vs_peers'] = 0
 
-    # 피처 값 범위 제한
+    # 피처 값 범위 제한 (23세 이하 특별 처리)
     feature_limits = {
-        'income_age_ratio': (2, 50),
+        'income_age_ratio': (3, 15),  # 범위 축소로 극단값 방지
         'education_roi': (5, 1000),
         'monthly_income': (10, 2000),
         'satisfaction_income_gap': (-10, 10),
@@ -274,7 +276,7 @@ def prepare_satisfaction_model_features(user_input, ml_predictor):
     df['satisfaction_roll_mean_3'] = int(user_input["job_satisfaction"])
     df['satisfaction_roll_std_3'] = 0  # 단일 값이므로 변동성은 0
     df['income_roll_mean_3'] = df['monthly_income']
-    df['career_length'] = (df['age'] - 22).clip(lower=1)
+    df['career_length'] = (df['age'] - 18).clip(lower=1)  # 고졸 기준으로 변경
     df['career_stage'] = pd.cut(df['age'], bins=[0, 25, 35, 45, 55, 100], labels=[1, 2, 3, 4, 5]).astype(int)
     df['age_x_education'] = df['age'] * df['education']
     df['income_x_satisfaction_lag_1'] = df['income_lag_1'] * df['satisfaction_lag_1']

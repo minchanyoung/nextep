@@ -65,14 +65,16 @@ def prepare_prediction_features(user_input, ml_predictor):
     df['satisfaction_volatility'] = 0.3  # 만족도 변동성 (기본값)
     
     # 경력 관련 피처
-    df['career_length'] = (df['age'] - 22).clip(lower=1)  # 경력 연수
+    df['career_length'] = (df['age'] - 18).clip(lower=1)  # 경력 연수 (고졸 기준)
     df['job_stability'] = 1  # 직장 안정성 (예측시에는 1)
     
     # 경제 사이클 (연도별 - 2023년 기준)
     df['economic_cycle'] = 0.5
     
     # 소득-연령 비율
-    df['income_age_ratio'] = df['monthly_income'] / df['age']
+    # 소득-연령 비율 (23세 이하 보정)
+    age_adjusted = df['age'].clip(lower=25)  # 최소 25세로 보정
+    df['income_age_ratio'] = df['monthly_income'] / age_adjusted
     
     # 소득 정점 연령대 (40-55세)
     df['peak_earning_years'] = ((df['age'] >= 40) & (df['age'] <= 55)).astype(int)
@@ -126,7 +128,7 @@ def prepare_prediction_features(user_input, ml_predictor):
     
     # 예측 정확도를 위해 피처 범위를 더 넓게 설정
     feature_limits = {
-        'income_age_ratio': (2, 50),      # 더 넓은 범위 허용
+        'income_age_ratio': (3, 15),      # 범위 축소로 극단값 방지
         'education_roi': (5, 1000),       # 극단적 경우도 허용
         'monthly_income': (10, 2000),     # 소득 범위 확대
         'satisfaction_income_gap': (-10, 10), # 범위 확대
