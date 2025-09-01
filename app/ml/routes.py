@@ -529,46 +529,77 @@ def generate_distribution_data(user_input, scenario_type, income_change, satis_c
 
 def run_prediction_with_proper_features(user_input):
     """
-    기존 피처 생성 방식 (호환성을 위해 유지)
-    양수 편향 문제가 있음 - run_realistic_prediction() 사용 권장
+    Refactored prediction function to correctly handle dynamic scenarios.
     """
+    from app.ml.preprocessing_fixed import prepare_income_model_features, prepare_satisfaction_model_features
+
+    def _get_change_class(value):
+        if not isinstance(value, (int, float)): return 'no-change'
+        if value > 0: return 'positive-change'
+        if value < 0: return 'negative-change'
+        return 'no-change'
+
     results = []
     scenario_names = ["현직", "직업A", "직업B"]
     scenario_types = ["current", "jobA", "jobB"]
     
-    for i, (scenario_name, scenario_type) in enumerate(zip(scenario_names, scenario_types)):
-        try:
-            logger.info(f"{scenario_name} 예측 시작...")
-            income_change, satis_change = predict_scenario_with_proper_features(user_input, i)
+    try:
+        # --- Feature Preparation (do this only ONCE) ---
+        ml_resources = current_app.extensions.get('ml_resources', {})
+        class TempPredictor:
+            def __init__(self):
+                self.job_category_stats = ml_resources.get('job_category_stats')
+        temp_predictor = TempPredictor()
+
+        income_df = prepare_income_model_features(user_input, temp_predictor)
+        satis_df = prepare_satisfaction_model_features(user_input, temp_predictor)
+        
+        income_features = ml_resources.get('income_features', [])
+        satis_features = ml_resources.get('satis_features', [])
+        xgb_income_model = ml_resources.get('xgb_income')
+        xgb_satis_model = ml_resources.get('xgb_satis')
+
+        if not all([income_features, satis_features, xgb_income_model, xgb_satis_model]):
+            raise RuntimeError("ML models or features not loaded.")
+
+        # --- Prediction Loop ---
+        for i, (scenario_name, scenario_type) in enumerate(zip(scenario_names, scenario_types)):
+            income_row = income_df.iloc[i].to_dict()
+            satis_row = satis_df.iloc[i].to_dict()
+
+            # --- Income Prediction ---
+            income_model_features = [income_row.get(f, 0.0) for f in income_features]
+            income_input = np.array(income_model_features).reshape(1, -1)
+            income_change = float(xgb_income_model.predict(income_input)[0])
+
+            # --- Satisfaction Prediction ---
+            satis_model_features = [float(satis_row.get(f, 0.0)) for f in satis_features]
+            satis_input = np.array(satis_model_features).reshape(1, -1)
+            satis_change = float(xgb_satis_model.predict(satis_input)[0])
             
-            # 분포 데이터 생성
+            logger.info(f"{scenario_name} 예측 완료 - 소득변화: {income_change:.4f}, 만족도변화: {satis_change:.4f}")
+
             distribution = generate_distribution_data(user_input, scenario_type, income_change, satis_change)
             
             results.append({
-                "income_change_rate": income_change,
-                "satisfaction_change_score": satis_change,
+                "income_change_rate": round(income_change, 4),
+                "satisfaction_change_score": round(satis_change, 4),
+                "income_class": _get_change_class(income_change),
+                "satisfaction_class": _get_change_class(satis_change),
                 "distribution": distribution,
                 "scenario": scenario_name
             })
-            
-            logger.info(f"{scenario_name} 예측 완료 - 소득변화: {income_change:.4f}, 만족도변화: {satis_change:.4f}")
-            
-        except Exception as e:
-            logger.error(f"{scenario_name} 예측 중 오류 발생: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # 오류 시에도 기본 분포 데이터 제공
-            fallback_distribution = generate_distribution_data(user_input, scenario_type, 0.02, 0.0)
-            
-            results.append({
-                "income_change_rate": 0.02,
-                "satisfaction_change_score": 0.0,
-                "distribution": fallback_distribution,
-                "scenario": scenario_name,
-                "error": f"{scenario_name} 시나리오 예측 중 오류가 발생했습니다."
-            })
-    
+
+    except Exception as e:
+        logger.error(f"Prediction failed: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return a default error structure
+        return [
+            {"income_change_rate": 0.0, "satisfaction_change_score": 0.0, "distribution": {}, "scenario": name, "error": str(e)}
+            for name in scenario_names
+        ]
+        
     return results
 
 

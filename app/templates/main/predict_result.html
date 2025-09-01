@@ -42,7 +42,7 @@
                 <p><strong>현재 직업군:</strong> {{ job_category_map[user_input.current_job_category] }}</p>
 
                 <label for="jobACategorySelect">선택 직업군 A</label>
-                <select id="jobACategorySelect" name="job_A_category" onchange="this.form.submit()">
+                <select id="jobACategorySelect" name="job_A_category">
                     {% for code, name in job_category_map.items() %}
                     <option value="{{ code }}" {% if code == user_input.job_A_category %}selected{% endif %}>{{ name }}</option>
                     {% endfor %}
@@ -51,7 +51,7 @@
 
             <div class="input-group">
                 <label for="jobBCategorySelect">선택 직업군 B</label>
-                <select id="jobBCategorySelect" name="job_B_category" onchange="this.form.submit()">
+                <select id="jobBCategorySelect" name="job_B_category">
                     {% for code, name in job_category_map.items() %}
                     <option value="{{ code }}" {% if code == user_input.job_B_category %}selected{% endif %}>{{ name }}</option>
                     {% endfor %}
@@ -251,11 +251,11 @@
                                 <p>
                                     입력하신 9개 만족도 요인을 종합 분석한 결과, 
                                     {% if user_input.job_satisfaction|int >= 4 %}
-                                    전반적으로 <span class="highlight">높은 만족도</span>를 보이고 있어 현재 직업에 대한 애착이 높을 것으로 예상됩니다.
+                                    전반적으로 <strong style="color: var(--primary-color);">높은 만족도</strong>를 보이고 있어 현재 직업에 대한 애착이 높을 것으로 예상됩니다.
                                     {% elif user_input.job_satisfaction|int >= 3 %}
-                                    <span class="highlight">보통 수준의 만족도</span>를 보이고 있어 개선 가능성과 이직 동기가 균형을 이루고 있습니다.
+                                    <strong style="color: var(--primary-color);">보통 수준의 만족도</strong>를 보이고 있어 개선 가능성과 이직 동기가 균형을 이루고 있습니다.
                                     {% else %}
-                                    현재 직무에 대한 <span class="highlight">개선 욕구</span>가 높아 변화에 대한 동기가 클 것으로 분석됩니다.
+                                    현재 직무에 대한 <strong style="color: var(--primary-color);">개선 욕구</strong>가 높아 변화에 대한 동기가 클 것으로 분석됩니다.
                                     {% endif %}
                                     이는 향후 커리어 결정에 중요한 기준이 될 것입니다.
                                 </p>
@@ -265,7 +265,7 @@
                                 <h6>🎲 예측 신뢰도</h6>
                                 <p>
                                     귀하와 유사한 조건(연령, 직업, 학력)을 가진 
-                                    <strong>{{ [80, 120]|random }}명의 실제 사례</strong>를 기반으로 
+                                    <strong style="color: var(--primary-color);">{{ [80, 120]|random }}명의 실제 사례</strong>를 기반으로 
                                     분석했습니다. 예측 신뢰구간은 
                                     {% if user_input.age|int < 35 %}
                                     다양한 가능성을 반영하여 상대적으로 넓게 설정
@@ -404,10 +404,11 @@
     {{ super() }}
     <script>
         // 서버에서 전달받은 데이터를 JavaScript 변수로 변환
-        const predictionResultsRaw = {{ prediction_results | tojson }};
-        const selectedJobACategory = {{ user_input.job_A_category | tojson }};
-        const selectedJobBCategory = {{ user_input.job_B_category | tojson }};
+        let predictionResultsRaw = {{ prediction_results | tojson }};
+        let selectedJobACategory = {{ user_input.job_A_category | tojson }};
+        let selectedJobBCategory = {{ user_input.job_B_category | tojson }};
         const jobCategoryMapJs = {{ job_category_map | tojson }};
+        const userInputData = {{ user_input | tojson }};
     </script>
     <script src="{{ url_for('static', filename='js/predict_result.js') }}"></script>
 {% endblock %}

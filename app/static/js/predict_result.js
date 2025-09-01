@@ -1,355 +1,386 @@
-const ResultPageManager = {
-    init: function () {
-        this.cacheDOMElements();
-        this.setupInitialData();
-        this.createCharts();
-        this.createDistributionCharts();
-        this.updateRecommendation();
-        this.bindEventListeners();
-        this.initTabs(); // 탭 초기화 함수 호출
-    },
+document.addEventListener('DOMContentLoaded', function () {
+    // Initial data from the server (already in the HTML script block)
+    let predictionResults = predictionResultsRaw;
 
-    cacheDOMElements: function () {
-        this.elements = {
-            prioritySlider: document.getElementById("prioritySlider"),
-            priorityLabel: document.getElementById("priorityLabel"),
-            recommendedJobName: document.getElementById("recommendedJobName"),
-            recommendationReason: document.getElementById("recommendationReason"),
-            incomeChartCanvas: document.getElementById('incomeChart'),
-            satisfactionChartCanvas: document.getElementById('satisfactionChart'),
-            incomeDistributionChartCanvas: document.getElementById('incomeDistributionChart'),
-            satisfactionDistributionChartCanvas: document.getElementById('satisfactionDistributionChart'),
-            distributionChartTitle: document.getElementById('distributionChartTitle'),
-            adviceForm: document.querySelector('.advice-form'),
-            // 탭 관련 요소 추가
-            tabButtons: document.querySelectorAll('.tab-button'),
-            tabContents: document.querySelectorAll('.tab-content')
-        };
-    },
+    // DOM Elements
+    const jobASelect = document.getElementById('jobACategorySelect');
+    const jobBSelect = document.getElementById('jobBCategorySelect');
+    const prioritySlider = document.getElementById('prioritySlider');
+    const priorityLabel = document.getElementById('priorityLabel');
+    const form = document.getElementById('predictionForm');
+    const container = document.getElementById('predictionResultsContainer');
 
-    initTabs: function() {
-        this.elements.tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // 모든 버튼과 컨텐츠에서 active 클래스 제거
-                this.elements.tabButtons.forEach(btn => btn.classList.remove('active'));
-                this.elements.tabContents.forEach(content => content.classList.remove('active'));
+    // Chart instances
+    let incomeChart, satisfactionChart, incomeDistributionChart, satisfactionDistributionChart;
 
-                // 클릭된 버튼과 해당 컨텐츠에 active 클래스 추가
-                button.classList.add('active');
-                const activeTab = document.getElementById(button.dataset.tab);
-                if (activeTab) {
-                    activeTab.classList.add('active');
+    // Helper functions to format data (replicating Jinja2 filters)
+    const formatIncomeChange = (rate) => {
+        if (rate == null) return 'N/A';
+        const arrow = rate > 0 ? '▲ ' : (rate < 0 ? '▼ ' : '');
+        return `${arrow}${(rate * 100).toFixed(2)}%`;
+    };
+
+    const formatSatisfactionChange = (score) => {
+        if (score == null) return 'N/A';
+        const arrow = score > 0 ? '▲ ' : (score < 0 ? '▼ ' : '');
+        return `${arrow}${score.toFixed(2)}점`;
+    };
+
+    
+
+    // Function to update a single result card
+    const updateCard = (scenarioId, resultData, jobName) => {
+        const card = container.querySelector(`.result-card[data-scenario-id="${scenarioId}"]`);
+        if (!card || !resultData) return;
+
+        const nameEl = card.querySelector('h4');
+        const resultItems = card.querySelectorAll('.result-item');
+
+        if (jobName && nameEl) {
+            nameEl.textContent = jobName;
+        }
+
+        if (resultItems.length > 0) {
+            const incomeEl = resultItems[0].querySelector('.value');
+            if (incomeEl) {
+                incomeEl.textContent = formatIncomeChange(resultData.income_change_rate);
+                // Use class from server response
+                incomeEl.className = `value ${resultData.income_class || 'neutral'}`;
+            }
+        }
+
+        if (resultItems.length > 1) {
+            const satisEl = resultItems[1].querySelector('.value');
+            if (satisEl) {
+                satisEl.textContent = formatSatisfactionChange(resultData.satisfaction_change_score);
+                // Use class from server response
+                satisEl.className = `value ${resultData.satisfaction_class || 'neutral'}`;
+            }
+        }
+    };
+
+    // Function to update all summary cards
+    const updateAllCards = (results) => {
+        updateCard('current', results[0]);
+        updateCard('jobA', results[1], jobCategoryMapJs[jobASelect.value]);
+        
+        const jobBCard = container.querySelector('.result-card[data-scenario-id="jobB"]');
+        if (results.length > 2 && results[2]) {
+            updateCard('jobB', results[2], jobCategoryMapJs[jobBSelect.value]);
+            jobBCard.style.display = '';
+        } else {
+            jobBCard.style.display = 'none';
+        }
+    };
+
+    // Function to update charts
+    const updateCharts = (results) => {
+        const labels = [
+            '현직 유지',
+            jobCategoryMapJs[jobASelect.value],
+            jobCategoryMapJs[jobBSelect.value]
+        ].slice(0, results.length);
+
+        const incomeData = results.map(r => (r.income_change_rate * 100).toFixed(1));
+        const satisfactionData = results.map(r => r.satisfaction_change_score.toFixed(2));
+
+        // Update Income Chart
+        incomeChart.data.labels = labels;
+        incomeChart.data.datasets[0].data = incomeData;
+        incomeChart.update();
+
+        // Update Satisfaction Chart
+        satisfactionChart.data.labels = labels;
+        satisfactionChart.data.datasets[0].data = satisfactionData;
+        satisfactionChart.update();
+    };
+    
+    // Function to update AI recommendation
+    const updateRecommendation = (results) => {
+        const priority = prioritySlider.value / 100; // 0 for satisfaction, 1 for income
+        const weightSatis = 1 - priority;
+        const weightIncome = priority;
+
+        // Normalize scores to be comparable (simple min-max scaling)
+        const incomeRates = results.map(r => r.income_change_rate);
+        const satisScores = results.map(r => r.satisfaction_change_score);
+
+        const minIncome = Math.min(...incomeRates);
+        const maxIncome = Math.max(...incomeRates);
+        const minSatis = Math.min(...satisScores);
+        const maxSatis = Math.max(...satisScores);
+
+        const normalizedScores = results.map((r, i) => {
+            const normIncome = (maxIncome - minIncome) === 0 ? 0.5 : (r.income_change_rate - minIncome) / (maxIncome - minIncome);
+            const normSatis = (maxSatis - minSatis) === 0 ? 0.5 : (r.satisfaction_change_score - minSatis) / (maxSatis - minSatis);
+            return (normIncome * weightIncome) + (normSatis * weightSatis);
+        });
+
+        const bestIndex = normalizedScores.indexOf(Math.max(...normalizedScores));
+        
+        const scenarioNames = [
+            '현직 유지',
+            jobCategoryMapJs[jobASelect.value],
+            jobCategoryMapJs[jobBSelect.value]
+        ];
+        const recommendedJobName = scenarioNames[bestIndex];
+        const recommendedResult = results[bestIndex];
+
+        document.getElementById('recommendedJobName').textContent = recommendedJobName;
+        
+        let reason = `<strong>${recommendedJobName}</strong> 선택 시, `;
+        reason += `소득 ${formatIncomeChange(recommendedResult.income_change_rate)} 및 `;
+        reason += `만족도 ${formatSatisfactionChange(recommendedResult.satisfaction_change_score)}의 변화가 예상됩니다.`;
+        document.getElementById('recommendationReason').innerHTML = reason;
+
+        // Update recommendation badges on cards
+        document.querySelectorAll('.result-card').forEach((card, i) => {
+            const badge = card.querySelector('.recommend-badge');
+            if (i === bestIndex) {
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+        
+        // Update distribution chart title
+        document.getElementById('distributionChartTitle').textContent = recommendedJobName;
+    };
+
+
+    // Main function to handle dynamic updates
+    const handleUpdate = async () => {
+        const mainContent = document.querySelector('.main-content');
+        mainContent.classList.add('loading'); // Add loading overlay
+
+        const formData = new FormData(form);
+        // Ensure the latest dropdown values are in the form data
+        formData.set('job_A_category', jobASelect.value);
+        formData.set('job_B_category', jobBSelect.value);
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // Important for server to know it's an AJAX call
+                },
+                body: new URLSearchParams(formData) // Send as form data
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const newResults = await response.json();
+            console.log('Server response:', JSON.stringify(newResults)); // For debugging
+            predictionResults = newResults.prediction_results; // Update global results
+            
+            // Update UI components with new data
+            updateAllCards(predictionResults);
+            updateCharts(predictionResults);
+            updateRecommendation(predictionResults);
+            // Note: Distribution charts would also need an update mechanism if their data changes.
+            // This would require another AJAX call or for the initial call to return more data.
+            // For now, we just update the title.
+
+        } catch (error) {
+            console.error('Error updating prediction:', error);
+            // Optionally, display an error message to the user
+        } finally {
+            mainContent.classList.remove('loading'); // Remove loading overlay
+        }
+    };
+
+    // --- Event Listeners ---
+    jobASelect.addEventListener('change', handleUpdate);
+    jobBSelect.addEventListener('change', handleUpdate);
+    prioritySlider.addEventListener('input', () => {
+        const satisPercent = 100 - prioritySlider.value;
+        const incomePercent = prioritySlider.value;
+        priorityLabel.textContent = `균형 (${satisPercent}:${incomePercent})`;
+        updateRecommendation(predictionResults); // Re-calculate recommendation without a server call
+    });
+
+    // --- Tab switching logic ---
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.dataset.tab;
+            
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            tabContents.forEach(content => {
+                if (content.id === tabId) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
                 }
             });
         });
-        // 기본으로 첫 번째 탭을 활성화
-        if (this.elements.tabButtons.length > 0) {
-            this.elements.tabButtons[0].click();
-        }
-    },
+    });
+    // Activate the first tab by default
+    if(tabButtons.length > 0) {
+        tabButtons[0].classList.add('active');
+        tabContents[0].classList.add('active');
+    }
 
-    setupInitialData: function () {
-        this.scenarios = [
-            {
-                id: "current",
-                name: "현직 유지",
-                income: predictionResultsRaw[0].income_change_rate,
-                satisfaction: predictionResultsRaw[0].satisfaction_change_score,
-                distribution: predictionResultsRaw[0].distribution
+
+    // --- Chart.js Initialization ---
+    const createChart = (ctx, type, labels, data, label, backgroundColor) => {
+        return new Chart(ctx, {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    backgroundColor: backgroundColor,
+                    borderColor: backgroundColor.map(c => c.replace('0.6', '1')),
+                    borderWidth: 1
+                }]
             },
-            {
-                id: "jobA",
-                name: jobCategoryMapJs[selectedJobACategory] || "직업 A",
-                income: predictionResultsRaw[1].income_change_rate,
-                satisfaction: predictionResultsRaw[1].satisfaction_change_score,
-                distribution: predictionResultsRaw[1].distribution
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        formatter: (value) => value,
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    };
+    
+    const createDistributionChart = (ctx, data, label) => {
+        return new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.range),
+                datasets: [{
+                    label: label,
+                    data: data.map(d => d.count),
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: { display: false }
+                },
+                scales: {
+                    y: {
+                        title: { display: true, text: '사례 수' }
+                    }
+                }
             }
+        });
+    };
+
+    const initCharts = () => {
+        const initialLabels = [
+            '현직 유지',
+            jobCategoryMapJs[selectedJobACategory],
+            jobCategoryMapJs[selectedJobBCategory]
+        ].slice(0, predictionResults.length);
+
+        const incomeData = predictionResults.map(r => (r.income_change_rate * 100).toFixed(1));
+        const satisfactionData = predictionResults.map(r => r.satisfaction_change_score.toFixed(2));
+        
+        const chartColors = [
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(75, 192, 192, 0.6)'
         ];
 
-        if (predictionResultsRaw.length > 2 && predictionResultsRaw[2]) {
-            this.scenarios.push({
-                id: "jobB",
-                name: jobCategoryMapJs[selectedJobBCategory] || "직업 B",
-                income: predictionResultsRaw[2].income_change_rate,
-                satisfaction: predictionResultsRaw[2].satisfaction_change_score,
-                distribution: predictionResultsRaw[2].distribution
-            });
-        }
+        // Scenario Comparison Charts
+        incomeChart = createChart(
+            document.getElementById('incomeChart').getContext('2d'),
+            'bar',
+            initialLabels,
+            incomeData,
+            '월 소득 변화율 (%)',
+            chartColors
+        );
 
-        this.generateUniqueScenarioNames();
-    },
+        satisfactionChart = createChart(
+            document.getElementById('satisfactionChart').getContext('2d'),
+            'bar',
+            initialLabels,
+            satisfactionData,
+            '직무 만족도 변화 (점)',
+            chartColors
+        );
 
-    generateUniqueScenarioNames: function () {
-        const nameCount = {};
-        this.scenarios = this.scenarios.map((s) => {
-            const base = s.name;
-            nameCount[base] = (nameCount[base] || 0) + 1;
-            const newName = nameCount[base] > 1 ? `${base} #${nameCount[base]}` : base;
-            return { ...s, name: newName };
-        });
-    },
+        // Distribution Charts (using dummy data for now, as it's not provided dynamically)
+        // In a real scenario, this data would come from an AJAX call
+        const dummyDistData = [
+            { range: '-20% 이상', count: 15 },
+            { range: '-20% ~ -10%', count: 25 },
+            { range: '-10% ~ 0%', count: 40 },
+            { range: '0% ~ 10%', count: 50 },
+            { range: '10% ~ 20%', count: 30 },
+            { range: '20% 이상', count: 20 }
+        ];
+        incomeDistributionChart = createDistributionChart(
+            document.getElementById('incomeDistributionChart').getContext('2d'),
+            dummyDistData,
+            '소득 변화율 분포'
+        );
+        satisfactionDistributionChart = createDistributionChart(
+            document.getElementById('satisfactionDistributionChart').getContext('2d'),
+            dummyDistData.map(d => ({...d, range: d.range.replace('%', '점')})),
+            '만족도 변화 분포'
+        );
+    };
 
-    bindEventListeners: function () {
-        this.elements.prioritySlider.addEventListener("input", () => this.updateRecommendation());
-        if (this.elements.adviceForm) {
-            this.elements.adviceForm.addEventListener("submit", (e) => {
-                this.prepareAdviceData();
-            });
-        }
-    },
+    // --- Initial UI setup ---
+    initCharts();
+    updateRecommendation(predictionResults); // Set initial recommendation
+});
 
-    prepareAdviceData: function () {
-        document.getElementById('hiddenRecommendedJobName').value = this.elements.recommendedJobName.textContent;
-        document.getElementById('hiddenRecommendationReason').value = this.elements.recommendationReason.textContent;
-    },
-
-    updateRecommendation: function () {
-        const incomeWeight = this.elements.prioritySlider.value / 100;
-        const satisfactionWeight = 1 - incomeWeight;
-
-        this.elements.priorityLabel.textContent = `소득 ${Math.round(incomeWeight * 100)}% : 만족도 ${Math.round(satisfactionWeight * 100)}%`;
-
-        const minIncome = Math.min(...this.scenarios.map(s => s.income));
-        const maxIncome = Math.max(...this.scenarios.map(s => s.income));
-        const minSatisfaction = Math.min(...this.scenarios.map(s => s.satisfaction));
-        const maxSatisfaction = Math.max(...this.scenarios.map(s => s.satisfaction));
-
-        let bestScenario = null;
-        let maxScore = -Infinity;
-
-        this.scenarios.forEach(scenario => {
-            const normalizedIncome = this.normalize(scenario.income, minIncome, maxIncome);
-            const normalizedSatisfaction = this.normalize(scenario.satisfaction, minSatisfaction, maxSatisfaction);
-            const score = (normalizedIncome * incomeWeight) + (normalizedSatisfaction * satisfactionWeight);
-
-            if (score > maxScore) {
-                maxScore = score;
-                bestScenario = scenario;
-            }
-        });
-
-        this.elements.recommendedJobName.textContent = bestScenario.name;
-        this.updateRecommendationReason(bestScenario, incomeWeight);
-
-        // 모든 카드에서 recommended 클래스 제거
-        document.querySelectorAll('.result-card').forEach(card => {
-            card.classList.remove('recommended');
-        });
-
-        // 추천된 시나리오에 해당하는 카드에 recommended 클래스 추가
-        const recommendedCard = document.querySelector(`.result-card[data-scenario-id="${bestScenario.id}"]`);
-        if (recommendedCard) {
-            recommendedCard.classList.add('recommended');
-        }
-
-        this.updateDistributionCharts(bestScenario);
-    },
-
-    updateRecommendationReason: function (bestScenario, incomeWeight) {
-        const incomeText = `<strong>${(bestScenario.income * 100).toFixed(2)}%</strong>`;
-        const satisText = `<strong>${bestScenario.satisfaction.toFixed(2)}점</strong>`;
-        let reason = "";
-
-        if (incomeWeight > 0.7) {
-            reason = `소득 상승(${incomeText})을 가장 중요하게 고려했을 때 가장 유리한 선택입니다. 이때 예상되는 만족도 변화는 ${satisText}입니다.`;
-        } else if (incomeWeight < 0.3) {
-            reason = `직무 만족도 향상(${satisText})을 가장 중요하게 고려했을 때 가장 적합한 선택입니다. 이때 예상되는 소득 변화율은 ${incomeText}입니다.`;
-        } else {
-            reason = `소득과 만족도의 균형을 고려했을 때, 소득(${incomeText}), 만족도(${satisText}) 양쪽에서 가장 안정적인 결과를 보여줍니다.`;
-        }
-        this.elements.recommendationReason.innerHTML = reason; // innerHTML을 사용하여 strong 태그 렌더링
-    },
-
-    normalize: function (value, min, max) {
-        if (max === min) return 0.5;
-        return (value - min) / (max - min);
-    },
-
-    createCharts: function () {
-        // 1. 플러그인 등록
-        Chart.register(ChartDataLabels);
-        Chart.defaults.font.family = "'Pretendard', sans-serif";
-        Chart.defaults.plugins.datalabels.anchor = 'end';
-        Chart.defaults.plugins.datalabels.align = 'top';
-        Chart.defaults.plugins.datalabels.font = { weight: 'bold' };
-
-        const labels = this.scenarios.map(s => s.name);
-        const incomeData = this.scenarios.map(s => s.income * 100);
-        const satisfactionData = this.scenarios.map(s => s.satisfaction);
-        const count = this.scenarios.length;
-
-        // 2. 세련된 컬러 팔레트 정의 (개선안)
-        const bgColors = ['rgba(96, 165, 250, 0.6)', 'rgba(74, 222, 128, 0.6)', 'rgba(250, 204, 21, 0.6)'].slice(0, count);
-        const borderColors = ['rgba(96, 165, 250, 1)', 'rgba(74, 222, 128, 1)', 'rgba(250, 204, 21, 1)'].slice(0, count);
-
-        const createChart = (canvas, chartLabel, data, unit) => {
-            if (!canvas) return;
-
-            const dataMax = Math.max(...data, 0);
-            const suggestedMax = dataMax > 0 ? dataMax * 1.2 : 1;
-
-            new Chart(canvas, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: chartLabel,
-                        data: data,
-                        backgroundColor: bgColors,
-                        borderColor: borderColors,
-                        borderWidth: 2,
-                        borderRadius: 8,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: {
-                        padding: { top: 30 }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            color: '#444',
-                            formatter: function(value) {
-                                return value.toFixed(2) + unit;
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                font: { size: 13 },
-                                callback: function (value) {
-                                    const label = this.getLabelForValue(value);
-                                    return label.split(' ').join('\n');
-                                }
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            suggestedMax: suggestedMax,
-                            grid: {
-                                // 5. 그리드 라인 스타일 개선
-                                color: '#e9e9e9',
-                                borderDash: [5, 5], // 점선으로 변경
-                                drawBorder: false, // 축 경계선 제거
-                            },
-                            ticks: {
-                                font: { size: 13 },
-                                callback: function (value) {
-                                    return `${value.toFixed(1)} ${unit}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        };
-
-        createChart(this.elements.incomeChartCanvas, '월 소득 변화율', incomeData, '%');
-        createChart(this.elements.satisfactionChartCanvas, '직무 만족도 변화', satisfactionData, '점');
-    },
-
-    createDistributionCharts: function () {
-        this.distributionCharts = {};
-        const createChart = (canvas, label) => {
-            if (!canvas) return null;
-            return new Chart(canvas, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: label,
-                        data: [],
-                        backgroundColor: 'rgba(124, 185, 232, 0.7)',
-                        borderColor: 'rgba(124, 185, 232, 1)',
-                        borderWidth: 2,
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: {
-                        padding: { top: 30 }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            color: '#555',
-                            font: { weight: '500' },
-                            formatter: function(value, context) {
-                                return value > 0 ? value : ''; // 0보다 클 때만 라벨 표시
-                            },
-                            // 동적 위치 조정 로직
-                            align: function(context) {
-                                const chart = context.chart;
-                                const area = chart.chartArea;
-                                const value = context.dataset.data[context.dataIndex];
-                                const topValue = chart.scales.y.max;
-                                // 막대 높이가 전체의 85% 이상이면 라벨을 안쪽으로
-                                return (value / topValue) > 0.85 ? 'bottom' : 'top';
-                            },
-                            anchor: 'end'
-                        }
-                    },
-                    scales: {
-                        y: { 
-                            title: { display: true, text: '사례 수 (명)' },
-                            grid: { color: '#e9e9e9', drawBorder: false },
-                            ticks: { font: { size: 13 } }
-                        },
-                        x: { 
-                            title: { display: true, text: '변화량 구간' },
-                            grid: { display: false },
-                            ticks: { font: { size: 12 } }
-                        }
-                    }
-                }
-            });
-        };
-        this.distributionCharts.income = createChart(this.elements.incomeDistributionChartCanvas, '소득 변화율 분포');
-        this.distributionCharts.satisfaction = createChart(this.elements.satisfactionDistributionChartCanvas, '만족도 변화 분포');
-    },
-
-    updateDistributionCharts: function (scenario) {
-        if (!this.elements.distributionChartTitle) return;
-        const distributionData = scenario.distribution;
-        this.elements.distributionChartTitle.textContent = scenario.name;
-
-        if (!distributionData) {
-            this.clearDistributionChart('income', '유사 사례가 부족하여 분포를 표시할 수 없습니다.');
-            this.clearDistributionChart('satisfaction', '유사 사례가 부족하여 분포를 표시할 수 없습니다.');
-            return;
-        }
-
-        this.updateSingleDistributionChart(this.distributionCharts.income, distributionData.income, '%');
-        this.updateSingleDistributionChart(this.distributionCharts.satisfaction, distributionData.satisfaction, '점');
-    },
-
-    updateSingleDistributionChart: function (chart, data, unit) {
-        if (!chart) return;
-        const labels = data.bins.slice(0, -1).map((bin, i) => {
-            const nextBin = data.bins[i + 1];
-            // 소득 변화율(%)은 소수점 1자리까지, 만족도(점)는 소수점 1자리까지 표시
-            const start = unit === '%' ? (bin * 100).toFixed(1) : bin.toFixed(1);
-            const end = unit === '%' ? (nextBin * 100).toFixed(1) : nextBin.toFixed(1);
-            return `${start}~${end}${unit}`;
-        });
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = data.counts;
-        chart.update();
-    },
-
-    clearDistributionChart: function (chartKey, message) {
-        const chart = this.distributionCharts[chartKey];
-        if (!chart) return;
-        chart.data.labels = [message];
-        chart.data.datasets[0].data = [0];
-        chart.update();
-    }
-};
-
-document.addEventListener("DOMContentLoaded", () => ResultPageManager.init());
+// Add some CSS for the loading state
+const style = document.createElement('style');
+style.innerHTML = `
+.main-content.loading {
+    position: relative;
+    pointer-events: none;
+}
+.main-content.loading::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 1000;
+}
+.main-content.loading::after {
+    content: '업데이트 중...';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+`;
+document.head.appendChild(style);

@@ -1,5 +1,5 @@
 import traceback
-from flask import render_template, request, redirect, url_for, flash, session, current_app
+from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from app import services
 from app.constants import (
     JOB_CATEGORY_MAP, SATIS_FACTOR_MAP, EDUCATION_MAP,
@@ -110,22 +110,22 @@ def predict_result():
     if request.method == 'POST':
         user_input = request.form.to_dict()
         
-        # 직업 A, B는 예측 결과 페이지에서 동적으로 선택하므로 적절한 기본값 설정
-        current_job = user_input.get('current_job_category', '3')
-        
-        # 현재 직업과 다른 두 개의 인기 직업을 기본값으로 설정
-        if current_job == '2':  # 현재가 전문직이면
-            user_input['job_A_category'] = '3'  # 사무직
-            user_input['job_B_category'] = '1'  # 관리직
-        elif current_job == '3':  # 현재가 사무직이면
-            user_input['job_A_category'] = '2'  # 전문직
-            user_input['job_B_category'] = '4'  # 서비스직
-        elif current_job == '1':  # 현재가 관리직이면
-            user_input['job_A_category'] = '2'  # 전문직
-            user_input['job_B_category'] = '3'  # 사무직
-        else:  # 기타 직업의 경우
-            user_input['job_A_category'] = '2'  # 전문직
-            user_input['job_B_category'] = '3'  # 사무직
+        # AJAX 업데이트가 아닌, 최초 POST 요청 시에만 기본 직업군 A/B를 설정합니다.
+        if 'job_A_category' not in user_input or not user_input.get('job_A_category'):
+            current_job = user_input.get('current_job_category', '3')
+            
+            if current_job == '2':  # 현재가 전문직이면
+                user_input['job_A_category'] = '3'  # 사무직
+                user_input['job_B_category'] = '1'  # 관리직
+            elif current_job == '3':  # 현재가 사무직이면
+                user_input['job_A_category'] = '2'  # 전문직
+                user_input['job_B_category'] = '4'  # 서비스직
+            elif current_job == '1':  # 현재가 관리직이면
+                user_input['job_A_category'] = '2'  # 전문직
+                user_input['job_B_category'] = '3'  # 사무직
+            else:  # 기타 직업의 경우
+                user_input['job_A_category'] = '2'  # 전문직
+                user_input['job_B_category'] = '3'  # 사무직
 
         current_app.logger.info(f"Prediction started with user_input: {user_input}")
 
@@ -140,6 +140,7 @@ def predict_result():
             current_app.logger.error(f"An error occurred during prediction: {e}\n{tb_str}")
             prediction_results = DEFAULT_PREDICTION_RESULTS
             error_message = "예측 중 오류가 발생했습니다. 입력값을 확인하거나 잠시 후 다시 시도해주세요."
+
     elif request.method == 'GET':
         # GET 요청은 회원만 가능 (세션 데이터 사용)
         if is_guest:
@@ -154,6 +155,12 @@ def predict_result():
             flash("예측 데이터가 없습니다. 다시 예측을 시도해주세요.")
             return redirect(url_for('main.predict'))
 
+    # AJAX 요청인 경우 JSON을 반환합니다.
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        current_app.logger.info(f"AJAX request detected. Returning JSON for: {user_input}")
+        return jsonify(prediction_results=prediction_results)
+    
+    # 일반 요청인 경우 전체 페이지를 렌더링합니다.
     return render_template(
         'main/predict_result.html',
         user_input=user_input,
@@ -163,8 +170,9 @@ def predict_result():
         error_message=error_message,
         education=EDUCATION_MAP,
         satis_focus_key=SATIS_FACTOR_MAP,
-        is_guest=is_guest  # 템플릿에서 사용할 수 있도록 전달
+        is_guest=is_guest
     )
+
 
 
 @bp.route('/advice', methods=['GET', 'POST'])
