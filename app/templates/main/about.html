@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
 {% endblock %}
 
 {% block header %}
@@ -14,75 +16,168 @@
 {% endblock %}
 
 {% block content %}
+<div class="about-hero">
+    <div class="hero-background">
+        <div class="hero-pattern"></div>
+        <div class="floating-elements">
+            <div class="floating-icon" data-aos="fade-up" data-aos-delay="100"><i class="fas fa-chart-line"></i></div>
+            <div class="floating-icon" data-aos="fade-up" data-aos-delay="300"><i class="fas fa-brain"></i></div>
+            <div class="floating-icon" data-aos="fade-up" data-aos-delay="500"><i class="fas fa-target"></i></div>
+            <div class="floating-icon" data-aos="fade-up" data-aos-delay="700"><i class="fas fa-rocket"></i></div>
+        </div>
+    </div>
+    <div class="hero-content" data-aos="fade-up">
+        <h1><i class="fas fa-lightbulb"></i> 당신의 커리어 고민, 데이터로 답을 찾다</h1>
+        <p class="hero-subtitle">미래를 예측하고 최적의 커리어 경로를 찾아보세요</p>
+    </div>
+</div>
+
 <div class="wrapper">
-    <div class="section">
-        <h1>당신의 커리어 고민, 데이터로 답을 찾다</h1>
-        <p>
-            중요한 커리어 선택의 순간, 수많은 정보와 불확실성 속에서 고민하고 계신가요? <strong>NEXTEP.AI</strong>는 바로 그 지점에서 당신의 든든한 나침반이 되어주는 AI 커리어 파트너입니다. 저희는 막연한 추측이 아닌, <span class="highlight">나와 비슷한 사람들의 실제 데이터</span>와 <span class="highlight">정교한 AI 기술</span>을 결합하여 후회 없는 선택을 할 수 있도록 돕습니다.
-        </p>
+    <div class="section intro-section" data-aos="fade-up">
+        <div class="intro-card">
+            <div class="card-icon">
+                <i class="fas fa-compass"></i>
+            </div>
+            <p>
+                <strong>NEXTEP.AI</strong>는 개인의 커리어 선택을 지원하는 AI 기반 예측 서비스입니다. <span class="highlight">한국노동패널(KLIPS) 117,397건의 실증 데이터</span>와 <span class="highlight">LightGBM, XGBoost, CatBoost 앙상블 모델</span>을 활용하여 소득 변화율과 직무 만족도 변화를 과학적으로 예측합니다. 막연한 추측이 아닌, 실제 검증된 데이터에 근거한 커리어 인사이트를 제공합니다.
+            </p>
+        </div>
     </div>
 
-    <div class="section how-it-works-section">
-        <h2>NEXTEP.AI는 어떻게 미래를 예측하나요?</h2>
+    <div class="section how-it-works-section" data-aos="fade-up">
+        <div class="section-header">
+            <i class="fas fa-cogs"></i>
+            <h2>NEXTEP.AI는 어떻게 미래를 예측하나요?</h2>
+            <p class="section-subtitle">과학적인 데이터 분석과 AI 기술의 융합</p>
+        </div>
         <div class="steps-container">
-            <div class="step">
-                <div class="step-icon">📊</div>
-                <h3>1. 실제 데이터 기반</h3>
-                <p>공신력 있는 <strong>한국노동패널(KLIPS)</strong>의 방대한 데이터를 기반으로, 당신과 가장 유사한 사람들의 실제 경력 변화를 분석합니다.</p>
+            <div class="step" data-aos="fade-right" data-aos-delay="100">
+                <div class="step-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="step-content">
+                    <h3>1. 실제 데이터 기반</h3>
+                    <p>공신력 있는 <strong>한국노동패널(KLIPS) 22차년도 데이터</strong>를 기반으로, 당신과 가장 유사한 사람들의 실제 경력 변화를 분석합니다. 데이터 누수 방지를 위한 엄격한 전처리와 2023년 데이터로 실제 검증을 거쳤습니다.</p>
+                    <div class="step-features">
+                        <span class="feature-tag"><i class="fas fa-users"></i> 117,397건 기록</span>
+                        <span class="feature-tag"><i class="fas fa-calendar"></i> 25년간 추적</span>
+                    </div>
+                </div>
             </div>
             <div class="step-separator"></div>
-            <div class="step">
-                <div class="step-icon">🧠</div>
-                <h3>2. 정교한 AI 모델</h3>
-                <p><strong>CatBoost와 XGBoost 앙상블 모델</strong>을 사용하여 소득과 만족도의 미묘한 변화까지 예측하고, 숨겨진 패턴을 발견합니다.</p>
+            <div class="step" data-aos="fade-up" data-aos-delay="200">
+                <div class="step-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="step-content">
+                    <h3>2. 정교한 AI 모델</h3>
+                    <p><strong>LightGBM, XGBoost, CatBoost 앙상블 목</strong>을 사용하여 소득과 만족도의 미묘한 변화까지 예측하고, 숨겨진 패턴을 발견합니다. TimeSeriesSplit 교차 검증과 조기 종료로 과적합을 방지했습니다.</p>
+                    <div class="step-features">
+                        <span class="feature-tag"><i class="fas fa-chart-line"></i> R² 75.8% 성능</span>
+                        <span class="feature-tag"><i class="fas fa-shield-alt"></i> 실제 검증</span>
+                    </div>
+                </div>
             </div>
             <div class="step-separator"></div>
-            <div class="step">
-                <div class="step-icon">✨</div>
-                <h3>3. 깊이 있는 개인화</h3>
-                <p><strong>상호작용 특성(Interaction Features)</strong>을 직접 설계하여, 개인의 특성과 직업의 특성이 만났을 때의 시너지까지 분석합니다.</p>
+            <div class="step" data-aos="fade-left" data-aos-delay="300">
+                <div class="step-icon">
+                    <i class="fas fa-user-cog"></i>
+                </div>
+                <div class="step-content">
+                    <h3>3. 깊이 있는 개인화</h3>
+                    <p><strong>29개의 고급 피처 엔지니어링</strong>을 통해 시계열 이력, 상대적 위치, 상호작용 특성 등 다차원 분석을 수행합니다. 9개 만족도 요인과 개인 이력을 종합하여 정밀한 예측을 제공합니다.</p>
+                    <div class="step-features">
+                        <span class="feature-tag"><i class="fas fa-crosshairs"></i> 개인화 분석</span>
+                        <span class="feature-tag"><i class="fas fa-magic"></i> 패턴 발견</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="wrapper">
-    <div class="tabs">
-        <button class="tab-link active" onclick="openTab(event, 'service-intro')">커리어 예측</button>
-        <button class="tab-link" onclick="openTab(event, 'industry-analysis')">산업 구조 분석</button>
-    </div>
+    <div class="services-section" data-aos="fade-up">
+        <div class="tabs">
+            <button class="tab-link active" onclick="openTab(event, 'service-intro')">
+                <i class="fas fa-crystal-ball"></i> 커리어 예측
+            </button>
+            <button class="tab-link" onclick="openTab(event, 'industry-analysis')">
+                <i class="fas fa-industry"></i> 산업 분석
+            </button>
+        </div>
 
-    <div id="service-intro" class="tab-content" style="display: block;">
-        <div class="section">
-            <h1>NEXTEP.AI 커리어 선택 예측 서비스</h1>
-            <ul>
-                <li><strong>데이터 기반의 투명성:</strong> 저희는 'AI니까 무조건 믿으세요'라고 말하지 않습니다. 예측의 근거가 되는 데이터 소스와 모델의 성능(R², MAE)을 투명하게 공개하여, 당신이 직접 결과의 신뢰도를 판단할 수 있도록 돕습니다.</li>
-                <li><strong>진정한 의미의 개인화:</strong> 당신의 나이, 학력뿐만 아니라 '무엇을 중요하게 생각하는지'까지 예측에 반영합니다. 당신이 설정한 가치관에 따라 동적으로 변하는 추천 결과를 통해 최적의 경로를 탐색할 수 있습니다.</li>
-                <li><strong>당신의 선택을 위한 도구:</strong> NEXTEP.AI는 정답을 정해주는 서비스가 아닙니다. 복잡한 현실을 더 잘 이해하고, 정보에 기반한 결정을 내릴 수 있도록 돕는 강력한 '정보 분석 도구'입니다. 최종 결정의 주체는 언제나 당신입니다.</li>
-            </ul>
+        <div id="service-intro" class="tab-content" style="display: block;">
+            <div class="service-card">
+                <div class="service-header">
+                    <i class="fas fa-chart-line"></i>
+                    <h2>AI 커리어 선택 예측 서비스</h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-item" data-aos="zoom-in" data-aos-delay="100">
+                        <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
+                        <h4>데이터 기반 예측</h4>
+                        <p>25년간 축적된 한국노동패널(KLIPS) 117,397건 데이터를 기반으로 합니다. 소득 예측 R² 75.8%, 만족도 예측 R² 64.0%의 성능 지표를 투명하게 공개하여 신뢰성을 보장합니다.
+                    </div>
+                    <div class="feature-item" data-aos="zoom-in" data-aos-delay="200">
+                        <div class="feature-icon"><i class="fas fa-user-cog"></i></div>
+                        <h4>개인 맞춤형 분석</h4>
+                        <p>나이, 학력, 직업군 등 기본 정보와 함께 9개 만족도 요인, 시계열 이력, 상대적 소득 위치 등을 종합 분석합니다. 소득-만족도 우선순위 설정으로 개인 맞춤형 추천을 제공하며, 데이터 누수 방지 기법으로 신뢰도를 보장합니다.
+                    </div>
+                    <div class="feature-item" data-aos="zoom-in" data-aos-delay="300">
+                        <div class="feature-icon"><i class="fas fa-compass"></i></div>
+                        <h4>의사결정 지원 도구</h4>
+                        <p>NEXTEP.AI는 정답을 제시하는 것이 아닌, 실제 검증된 데이터에 기반한 객관적 인사이트를 제공하는 의사결정 지원 도구입니다. 시나리오 비교 차트, 유사 사례 분포, 상세 분석 리포트를 통해 정보에 기반한 커리어 선택을 지원합니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="industry-analysis" class="tab-content">
+            <div class="service-card">
+                <div class="service-header">
+                    <i class="fas fa-industry"></i>
+                    <h2>산업 구조 분석 서비스</h2>
+                </div>
+                <div class="tech-specs">
+                    <h3><i class="fas fa-microscope"></i> NEXTEP.AI의 예측 기술, 더 깊이 알아보기</h3>
+                    <p>NEXTEP.AI의 예측은 세 가지 핵심 기술 요소 위에 세워져 있습니다.</p>
+                    
+                    <div class="tech-item" data-aos="fade-right">
+                        <div class="tech-icon"><i class="fas fa-database"></i></div>
+                        <div class="tech-content">
+                            <h4>신뢰할 수 있는 데이터 소스 (KLIPS)</h4>
+                            <p>저희는 1998년부터 2023년까지 25년간 수집된 한국노동패널 22차년도 데이터를 사용합니다. 이는 117,397건의 개인별 경력 변화 기록이 축적된 귀중한 자산이며, 데이터 누수 방지와 2023년 데이터로의 실제 검증을 통해 예측의 현실성을 담보합니다.
+                        </div>
+                    </div>
+                    
+                    <div class="tech-item" data-aos="fade-left">
+                        <div class="tech-icon"><i class="fas fa-layer-group"></i></div>
+                        <div class="tech-content">
+                            <h4>강력한 앙상블 예측 모델</h4>
+                            <p>복잡한 소득과 만족도 변화를 정밀하게 예측하기 위해, 저희는 세 개의 최신 모델(LightGBM, XGBoost, CatBoost)을 결합한 '성능 기반 앙상블' 기법을 사용합니다. 소득 예측에는 LightGBM(60%) + XGBoost(40%) 조합을, 만족도 예측에는 세 모델의 R² 성능 비례 가중치를 적용하여 최적의 예측 정확도를 달성했습니다.
+                        </div>
+                    </div>
+                    
+                    <div class="tech-item" data-aos="fade-right">
+                        <div class="tech-icon"><i class="fas fa-cogs"></i></div>
+                        <div class="tech-content">
+                            <h4>정교한 피처 엔지니어링</h4>
+                            <p>저희는 29개의 고급 피처 엔지니어링을 통해 모델의 예측 능력을 극대화했습니다. 시계열 이력(1-3년 전 데이터), 상대적 위치(직업군 대비 개인 소득 순위), 상호작용 특성(나이×교육, 소득×만족도) 등을 직접 설계했습니다. 또한 9개 만족도 요인의 과거 패턴과 변동성을 분석하여 개인별 만족도 변화 성향을 정밀하게 파악하는 시스템을 구축했습니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="how-we-predict" class="tab-content">
-        <div class="section">
-            <h2>NEXTEP.AI의 예측 기술, 더 깊이 알아보기</h2>
-            <p>NEXTEP.AI의 예측은 세 가지 핵심 기술 요소 위에 세워져 있습니다.</p>
-            <ul>
-                <li>
-                    <strong>신뢰할 수 있는 데이터 소스 (KLIPS):</strong> 저희는 1998년부터 매년 수집된 한국노동패널 데이터를 사용합니다. 이는 수많은 개인의 실제 소득, 직업 이동, 만족도 변화가 기록된 귀중한 자산이며, 예측의 현실성을 담보하는 가장 중요한 기반입니다.
-                </li>
-                <li>
-                    <strong>강력한 앙상블 예측 모델:</strong> 직무 만족도와 같이 복잡하고 미묘한 감정 변화를 예측하기 위해, 저희는 두 개의 강력한 모델(CatBoost, XGBoost)을 결합한 'Soft-Blending 앙상블' 기법을 사용합니다. 이는 한 명의 전문가가 아닌, 여러 전문가가 함께 진단하여 더 안정적이고 정확한 결론을 내리는 것과 같습니다.
-                </li>
-                <li>
-                    <strong>정교한 피처 엔지니어링:</strong> 저희는 단순히 주어진 정보만 사용하지 않습니다. '개인의 소득 수준'과 '직업군의 평균 소득'을 비교하는 '상대적 위치' 변수나, '나이'와 '직업군'의 특성을 곱하여 새로운 의미를 찾는 '상호작용 특성'을 직접 설계하여 모델에 반영했습니다. 이는 모델이 데이터의 표면 아래에 있는 더 깊은 관계를 학습하게 하여, 예측의 정확도를 높이는 핵심적인 과정입니다.
-                </li>
-            </ul>
+    <div class="cta-section" data-aos="fade-up">
+        <div class="cta-card">
+            <i class="fas fa-rocket"></i>
+            <h2>이제, 당신의 미래를 직접 예측해 보세요.</h2>
+            <p>데이터 기반의 정확한 예측으로 최적의 커리어 경로를 찾아보세요</p>
+            <a href="{{ url_for('main.predict') }}" class="cta-button">
+                <i class="fas fa-play"></i> 내 커리어 예측하기
+            </a>
         </div>
-    </div>
-
-    <div class="section" style="text-align:center; margin-top: 60px;">
-        <h2>이제, 당신의 미래를 직접 예측해 보세요.</h2>
-        <a href="{{ url_for('main.predict') }}" class="btn btn-primary" style="margin-top: 20px; padding: 15px 30px; font-size: 1.2rem;">내 커리어 예측하기</a>
     </div>
 </div>
 {% endblock %}
@@ -93,7 +188,15 @@
 
 {% block scripts %}
     {{ super() }}
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100
+        });
+
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
@@ -107,9 +210,31 @@
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.className += " active";
         }
-        // 기본으로 첫 번째 탭 활성화
+
+        // Enhanced interactions
         document.addEventListener("DOMContentLoaded", function() {
-            document.querySelector(".tab-link").click();
+            // Add parallax effect to floating elements
+            window.addEventListener('scroll', function() {
+                const scrolled = window.pageYOffset;
+                const floatingElements = document.querySelectorAll('.floating-icon');
+                
+                floatingElements.forEach((el, index) => {
+                    const speed = 0.5 + (index * 0.1);
+                    el.style.transform = `translateY(${scrolled * speed}px)`;
+                });
+            });
+
+            // Add hover effects to feature items
+            const featureItems = document.querySelectorAll('.feature-item');
+            featureItems.forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-10px)';
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
         });
     </script>
 {% endblock %}

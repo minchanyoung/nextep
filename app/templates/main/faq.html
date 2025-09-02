@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/faq.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock %}
 
 {% block header %}
@@ -14,14 +15,57 @@
 {% endblock %}
 
 {% block content %}
+<div class="faq-hero">
+    <div class="hero-background">
+        <div class="floating-icons">
+            <i class="fas fa-question-circle"></i>
+            <i class="fas fa-lightbulb"></i>
+            <i class="fas fa-chart-line"></i>
+            <i class="fas fa-brain"></i>
+            <i class="fas fa-user-tie"></i>
+        </div>
+    </div>
+    <div class="hero-content">
+        <h1><i class="fas fa-comments"></i> 자주 묻는 질문</h1>
+        <p>NEXTEP.AI에 대한 궁금한 점들을 한 곳에서 해결하세요</p>
+    </div>
+</div>
+
 <div class="wrapper">
-    <h1>자주 묻는 질문 (FAQ)</h1>
+    <div class="search-container">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="faq-search" placeholder="궁금한 내용을 검색해보세요...">
+        </div>
+    </div>
+
+    <div class="faq-categories">
+        <button class="category-btn active" data-category="all">
+            <i class="fas fa-th"></i> 전체
+        </button>
+        <button class="category-btn" data-category="prediction">
+            <i class="fas fa-crystal-ball"></i> 예측 서비스
+        </button>
+        <button class="category-btn" data-category="data">
+            <i class="fas fa-database"></i> 데이터 & 보안
+        </button>
+        <button class="category-btn" data-category="service">
+            <i class="fas fa-cog"></i> 서비스 이용
+        </button>
+    </div>
+    
     <div class="accordion">
-        <div class="accordion-item">
-            <button class="accordion-header">Q. 이 서비스의 예측 결과는 믿을만한가요? 어떤 데이터로 만들어졌나요?</button>
+        <div class="accordion-item" data-category="prediction">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-database"></i></div>
+                    <span class="question-text">Q. NEXTEP.AI의 예측은 어떤 데이터를 기반으로 하나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
             <div class="accordion-body">
-                <p>A. 저희 예측 모델은 대한민국 국민 2만여 명을 20년간 추적 조사한 국가 공인 통계 데이터, <strong>'한국노동패널(KLIPS)'</strong>을 기반으로 학습되었습니다. 이는 개인의 실제 경험에 기반한 데이터이므로, 통계적으로 신뢰도 높은 예측을 제공합니다.</p>
-                <p>다만, 예측은 개인의 모든 변수를 반영할 수 없으므로, 커리어 결정을 위한 참고 자료로 활용하시는 것을 권장합니다.</p>
+                <p><strong>NEXTEP.AI는 한국노동패널(KLIPS) 22차년도 데이터를 기반으로 합니다.</strong> 한국노동연구원에서 1998년부터 매년 수집하고 있는 이 데이터는 개인과 가구의 경제활동 및 노동시장 이동을 추적한 종단면 데이터입니다.</p>
+                <p>우리 서비스는 이 방대한 데이터 중 <strong>117,397건의 개인별 경력 변화 기록</strong>을 활용하여 소득 변화율과 직무 만족도 변화를 예측합니다. 최신 2023년 데이터를 테스트 세트로 활용하여 실제 예측 성능을 검증했으며, 데이터 누수 방지를 위한 엄격한 전처리 과정을 거쳤습니다.</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
                     <div class="feedback-buttons">
@@ -32,11 +76,18 @@
                 </div>
             </div>
         </div>
-        <div class="accordion-item">
-            <button class="accordion-header">Q. 예측 결과의 '소득 변화율'과 '만족도 변화'는 무엇을 의미하나요?</button>
+        <div class="accordion-item" data-category="prediction">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-chart-line"></i></div>
+                    <span class="question-text">Q. NEXTEP.AI는 어떤 AI 모델을 사용하나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
             <div class="accordion-body">
-                <p>A. <strong>'소득 변화율'</strong>은 현재 소득 대비 1년 후 예상되는 소득의 상승 또는 하락 비율(%)입니다. <strong>'만족도 변화'</strong>는 현재 직무 만족도 점수를 기준으로, 1년 후 만족도가 얼마나 변할지(-4점 ~ +3점)를 나타냅니다.</p>
-                <p>예측 결과와 함께 제공되는 '유사 사례 분포' 차트를 보시면, 나와 비슷한 사람들의 실제 변화가 어땠는지 참고하실 수 있습니다.</p>
+                <p><strong>소득 예측에는 LightGBM, XGBoost, CatBoost 앙상블 모델을 사용합니다.</strong> 최적화된 앙상블 가중치(LightGBM 60%, XGBoost 40%)로 구성되며, 현재 최고 성능 모델인 LightGBM이 핵심 역할을 담당합니다.</p>
+                <p><strong>만족도 예측에는 XGBoost, LightGBM, CatBoost의 성능 기반 가중 앙상블</strong>을 사용합니다. CatBoost는 범주형 변수(직업, 학력 등)를 자동으로 처리하여 복합적인 만족도 변화를 더 정확하게 예측합니다.</p>
+                <p>모든 모델은 TimeSeriesSplit 교차 검증으로 최적화되었으며, 조기 종료(Early Stopping)를 통해 과적합을 방지합니다.</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
                     <div class="feedback-buttons">
@@ -47,11 +98,28 @@
                 </div>
             </div>
         </div>
-        <div class="accordion-item">
-            <button class="accordion-header">Q. 'AI 추천'은 어떤 기준으로 정해지나요?</button>
+        <div class="accordion-item" data-category="prediction">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-brain"></i></div>
+                    <span class="question-text">Q. 예측 모델의 성능은 어느 정도인가요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
             <div class="accordion-body">
-                <p>A. 'AI 추천'은 사용자가 직접 설정한 우선순위에 따라 결정됩니다. 예측 결과 페이지의 <strong>'결과 추천 기준' 슬라이더</strong>를 '소득 우선' 또는 '만족도 우선'으로 조절해 보세요.</p>
-                <p>AI는 설정된 가중치에 따라 세 가지 시나리오(현직 유지, 직업 A, 직업 B)의 점수를 실시간으로 계산하여 가장 높은 점수를 받은 선택지를 추천합니다.</p>
+                <p><strong>소득 변화율 예측 모델:</strong></p>
+                <ul>
+                    <li>R² Score: 75.8% (최고 성능 모델 기준)</li>
+                    <li>RMSE: 0.186 (실제 검증 결과)</li>
+                    <li>주요 피처: 개인별 소득 이력, 경력 단계, 교육 투자 수익률, 직업별 상대 위치</li>
+                </ul>
+                <p><strong>직무 만족도 변화 예측 모델:</strong></p>
+                <ul>
+                    <li>R² Score: 64.0% (앙상블 모델 기준)</li>
+                    <li>RMSE: 0.394 (실제 검증 결과)</li>
+                    <li>주요 피처: 9개 만족도 요인, 만족도 이력 패턴, 직업-개인 특성 상호작용</li>
+                </ul>
+                <p>이러한 성능 지표는 2022-2023년 실제 데이터로 검증된 결과이며, 시계열 피처 엔지니어링이 성능 향상에 결정적 역할을 했습니다.</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
                     <div class="feedback-buttons">
@@ -62,11 +130,32 @@
                 </div>
             </div>
         </div>
-        <div class="accordion-item">
-            <button class="accordion-header">Q. 이직 시나리오에서 제 실제 소득이 아닌 '직업군 평균 소득'을 기준으로 예측하는 이유가 무엇인가요?</button>
+        <div class="accordion-item" data-category="prediction">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <span class="question-text">Q. NEXTEP.AI는 어떤 피처(변수)를 사용하여 예측하나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
             <div class="accordion-body">
-                <p>A. 좋은 질문입니다. 이는 더 현실적인 예측을 위한 핵심 로직입니다. 일반적으로 다른 직업으로 이직할 경우, 개인의 기존 소득보다는 <strong>해당 직업 시장의 평균적인 소득 수준에서 새로운 연봉이 결정될 확률이 높습니다.</strong></p>
-                <p>저희 모델은 이러한 현실을 반영하여, '만약 당신이 그 직업을 가졌다면'이라는 가정 하에 예상되는 소득과 만족도 변화를 시뮬레이션합니다.</p>
+                <p>각 모델별로 최적화된 피처 세트를 사용합니다:</p>
+                
+                <p><strong>소득 예측 모델 (21개 피처):</strong></p>
+                <ul>
+                    <li><strong>기본 변수:</strong> 연령, 성별, 학력, 현재 소득, 직업군, 만족도 요인들</li>
+                    <li><strong>시계열 이력:</strong> 1-2년 전 소득, 소득 변화 추세, 소득 변동성</li>
+                    <li><strong>고급 파생 변수:</strong> 소득/나이 비율, 교육 투자 수익률, 경력 단계별 세분화</li>
+                    <li><strong>상대적 위치:</strong> 직업군 대비 개인 소득 위치, 동료 대비 만족도</li>
+                </ul>
+                
+                <p><strong>만족도 예측 모델 (29개 피처):</strong></p>
+                <ul>
+                    <li><strong>9개 세부 만족도:</strong> 임금, 안정성, 성장성, 업무내용, 근무환경 등</li>
+                    <li><strong>만족도 패턴:</strong> 과거 만족도 변화, 3년 이동평균, 변동성 지표</li>
+                    <li><strong>상호작용 특성:</strong> 나이×교육, 소득×과거만족도 등 복합 변수</li>
+                    <li><strong>직업별 통계:</strong> 직업군별 평균 소득/만족도 (데이터 누수 방지 적용)</li>
+                </ul>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
                     <div class="feedback-buttons">
@@ -77,11 +166,20 @@
                 </div>
             </div>
         </div>
-        <div class="accordion-item">
-            <button class="accordion-header">Q. 제 개인정보는 안전하게 관리되나요?</button>
+        <div class="accordion-item" data-category="data">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-user-shield"></i></div>
+                    <span class="question-text">Q. 개인정보 보호는 어떻게 이루어지나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
             <div class="accordion-body">
-                <p>A. 네, 그럼요. 회원가입 시 입력하신 정보는 암호화되어 안전하게 저장됩니다. 예측 시 사용하는 나이, 성별 등의 정보는 서버에 저장되지 않고 오직 예측 목적으로만 실시간으로 사용된 후 즉시 폐기됩니다.</p>
-                <p>저희는 사용자의 개인정보 보호를 최우선으로 생각합니다.</p>
+                <p>A. NEXTEP.AI는 <strong>프라이버시 우선 설계(Privacy by Design)</strong>를 적용합니다:</p>
+                <p><strong>• 최소 정보 수집</strong>: 예측에 필요한 최소한의 정보만 수집</p>
+                <p><strong>• 실시간 처리</strong>: 예측용 데이터는 서버에 저장되지 않고 실시간 처리 후 즉시 폐기</p>
+                <p><strong>• 암호화 저장</strong>: 회원가입 정보는 암호화되어 안전하게 보관</p>
+                <p><strong>• 익명화 처리</strong>: 모든 분석 데이터는 개인 식별이 불가능하도록 익명화 처리</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
                     <div class="feedback-buttons">
@@ -92,11 +190,88 @@
                 </div>
             </div>
         </div>
-        <div class="accordion-item">
-            <button class="accordion-header">Q. 이 서비스는 계속 무료로 이용할 수 있나요?</button>
+        <div class="accordion-item" data-category="service">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-heart"></i></div>
+                    <span class="question-text">Q. 9개 만족도 요인은 어떻게 분석되나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
             <div class="accordion-body">
-                <p>A. 네, 현재 제공되는 모든 핵심 예측 기능은 앞으로도 계속 무료로 제공될 예정입니다. 사용자의 커리어 성장을 돕는 것이 저희의 최우선 목표이기 때문입니다.</p>
-                <p>추후 더 전문적인 분석이나 컨설팅 기능이 추가될 경우, 별도의 유료 플랜이 생길 수 있습니다.</p>
+                <p><strong>9개의 세부 만족도 요인을 개별 분석 후 종합합니다:</strong></p>
+                <ul>
+                    <li><strong>임금 만족도</strong> - 소득 예측과 연계하여 분석</li>
+                    <li><strong>직업 안정성</strong> - 산업별, 직업별 안정성 통계 반영</li>
+                    <li><strong>성장 가능성</strong> - 연령대별 경력 발전 패턴 분석</li>
+                    <li><strong>업무 내용, 근무 환경, 근무 시간</strong> - 직무 특성과 개인 성향 매칭</li>
+                    <li><strong>의사소통, 공정한 평가, 복리후생</strong> - 조직 문화 적합성 분석</li>
+                </ul>
+                <p>각 요인의 <strong>과거 변화 패턴</strong>(1-3년 이동평균, 변동성)을 학습하여 개인별 만족도 변화 성향을 파악합니다. 또한 <strong>만족도 요인 간 상관관계</strong>와 <strong>개인-직업 특성 상호작용</strong>을 통해 숨겨진 패턴을 발견합니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item" data-category="service">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-chart-pie"></i></div>
+                    <span class="question-text">Q. 예측 결과는 어떤 형태로 제공되나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
+            <div class="accordion-body">
+                <p><strong>종합 대시보드 형태로 다각도 분석 결과를 제공합니다:</strong></p>
+                
+                <p><strong>📊 시나리오 비교 차트:</strong></p>
+                <ul>
+                    <li>현직 유지 vs 직업 A vs 직업 B의 소득/만족도 변화 비교</li>
+                    <li>사용자가 설정한 우선순위(소득:만족도 비율)에 따른 AI 추천</li>
+                </ul>
+                
+                <p><strong>📈 유사 사례 분포 차트:</strong></p>
+                <ul>
+                    <li>동일 조건(연령, 직업, 학력)을 가진 80-120명의 실제 결과 분포</li>
+                    <li>히스토그램으로 예측 신뢰구간과 리스크 범위 시각화</li>
+                </ul>
+                
+                <p><strong>📋 상세 분석 리포트:</strong></p>
+                <ul>
+                    <li><strong>개인 프로필 요약:</strong> 입력 정보 기반 현재 위치 분석</li>
+                    <li><strong>AI 방법론 설명:</strong> 모델 성능 지표 및 신뢰도</li>
+                    <li><strong>개인화 분석:</strong> 연령대별 커리어 특성, 만족도 패턴 해석</li>
+                    <li><strong>기술적 세부사항:</strong> 데이터 처리 과정, 모델 검증 결과</li>
+                </ul>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item" data-category="service">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-heart"></i></div>
+                    <span class="question-text">Q. NEXTEP.AI 서비스는 계속 무료인가요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
+            <div class="accordion-body">
+                <p>A. <strong>핵심 예측 기능은 계속 무료</strong>로 제공됩니다:</p>
+                <p><strong>• 커리어 예측</strong>: 소득변화율, 만족도변화 예측</p>
+                <p><strong>• 산업 분석</strong>: 직업군별 성장률 및 시장 전망</p>
+                <p><strong>• AI 조언</strong>: 기본적인 커리어 방향 제시</p>
+                <p>향후 <strong>프리미엄 기능</strong> (1:1 전문가 상담, 심화 분석 리포트 등)이 추가될 경우 별도 요금제가 도입될 수 있으나, 기본 서비스는 계속 무료입니다.</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
                     <div class="feedback-buttons">
@@ -123,4 +298,101 @@
 {% block scripts %}
     {{ super() }}
     <script src="{{ url_for('static', filename='js/faq.js') }}"></script>
+    <script>
+        // Enhanced FAQ functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            const searchInput = document.getElementById('faq-search');
+            const accordionItems = document.querySelectorAll('.accordion-item');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                accordionItems.forEach(item => {
+                    const questionText = item.querySelector('.question-text').textContent.toLowerCase();
+                    const answerText = item.querySelector('.accordion-body').textContent.toLowerCase();
+                    
+                    if (questionText.includes(searchTerm) || answerText.includes(searchTerm)) {
+                        item.style.display = 'block';
+                        if (searchTerm && questionText.includes(searchTerm)) {
+                            item.querySelector('.accordion-header').click();
+                        }
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Category filtering
+            const categoryBtns = document.querySelectorAll('.category-btn');
+            categoryBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Update active category
+                    categoryBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const category = this.dataset.category;
+                    
+                    accordionItems.forEach(item => {
+                        if (category === 'all' || item.dataset.category === category) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            });
+            
+            // Accordion functionality
+            const accordionHeaders = document.querySelectorAll('.accordion-header');
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const accordionItem = this.parentElement;
+                    const accordionBody = accordionItem.querySelector('.accordion-body');
+                    const arrow = this.querySelector('.accordion-arrow');
+                    const isOpen = accordionBody.style.display === 'block';
+                    
+                    // Close all other accordion items
+                    document.querySelectorAll('.accordion-item').forEach(item => {
+                        const body = item.querySelector('.accordion-body');
+                        const header = item.querySelector('.accordion-header');
+                        const otherArrow = header.querySelector('.accordion-arrow');
+                        
+                        body.style.display = 'none';
+                        header.classList.remove('active');
+                        if (otherArrow) {
+                            otherArrow.style.transform = 'rotate(0deg)';
+                        }
+                    });
+                    
+                    // If this accordion wasn't open, open it
+                    if (!isOpen) {
+                        accordionBody.style.display = 'block';
+                        this.classList.add('active');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
+                    }
+                });
+            });
+            
+            // Feedback button functionality
+            const feedbackBtns = document.querySelectorAll('.feedback-btn');
+            feedbackBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const widget = this.closest('.feedback-widget');
+                    const buttons = widget.querySelector('.feedback-buttons');
+                    const thanks = widget.querySelector('.feedback-thanks');
+                    
+                    buttons.style.display = 'none';
+                    thanks.style.display = 'block';
+                });
+            });
+            
+            // Floating icons animation
+            const icons = document.querySelectorAll('.floating-icons i');
+            icons.forEach((icon, index) => {
+                icon.style.animationDelay = `${index * 0.5}s`;
+            });
+        });
+    </script>
 {% endblock %}
