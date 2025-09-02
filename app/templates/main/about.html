@@ -39,7 +39,7 @@
                 <i class="fas fa-compass"></i>
             </div>
             <p>
-                <strong>NEXTEP.AI</strong>는 개인의 커리어 선택을 지원하는 AI 기반 예측 서비스입니다. <span class="highlight">한국노동패널(KLIPS) 117,397건의 실증 데이터</span>와 <span class="highlight">LightGBM, XGBoost, CatBoost 앙상블 모델</span>을 활용하여 소득 변화율과 직무 만족도 변화를 과학적으로 예측합니다. 막연한 추측이 아닌, 실제 검증된 데이터에 근거한 커리어 인사이트를 제공합니다.
+                <strong>NEXTEP.AI</strong>는 개인의 커리어 선택을 지원하는 AI 기반 예측 서비스입니다. <span class="highlight">한국노동패널(KLIPS) 117,397건의 실증 데이터</span>와 <span class="highlight">고성능 XGBoost 예측 모델</span>을 활용하여 소득 변화율과 직무 만족도 변화를 과학적으로 예측합니다. 막연한 추측이 아닌, 실제 검증된 데이터에 근거한 커리어 인사이트를 제공합니다.
             </p>
         </div>
     </div>
@@ -71,9 +71,10 @@
                 </div>
                 <div class="step-content">
                     <h3>2. 정교한 AI 모델</h3>
-                    <p><strong>LightGBM, XGBoost, CatBoost 앙상블 목</strong>을 사용하여 소득과 만족도의 미묘한 변화까지 예측하고, 숨겨진 패턴을 발견합니다. TimeSeriesSplit 교차 검증과 조기 종료로 과적합을 방지했습니다.</p>
+                    <p><strong>고성능 XGBoost(eXtreme Gradient Boosting) 예측 모델</strong>을 사용하여 소득과 만족도의 미묘한 변화까지 예측하고, 숨겨진 패턴을 발견합니다. TimeSeriesSplit 교차 검증과 조기 종료로 과적합을 방지했습니다.</p>
                     <div class="step-features">
-                        <span class="feature-tag"><i class="fas fa-chart-line"></i> R² 75.8% 성능</span>
+                        <!-- TODO: 단일 XGBoost 모델 기준 R² 성능 지표 업데이트 필요 -->
+                        <span class="feature-tag"><i class="fas fa-chart-line"></i> 검증된 예측 성능</span>
                         <span class="feature-tag"><i class="fas fa-shield-alt"></i> 실제 검증</span>
                     </div>
                 </div>
@@ -115,17 +116,17 @@
                     <div class="feature-item" data-aos="zoom-in" data-aos-delay="100">
                         <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
                         <h4>데이터 기반 예측</h4>
-                        <p>25년간 축적된 한국노동패널(KLIPS) 117,397건 데이터를 기반으로 합니다. 소득 예측 R² 75.8%, 만족도 예측 R² 64.0%의 성능 지표를 투명하게 공개하여 신뢰성을 보장합니다.
+                        <p>25년간 축적된 한국노동패널(KLIPS) 117,397건 데이터를 기반으로 합니다. 높은 예측 성능 지표를 투명하게 공개하여 신뢰성을 보장합니다. <!-- TODO: 단일 XGBoost 모델 기준 R² 성능 지표 업데이트 필요 --></p>
                     </div>
                     <div class="feature-item" data-aos="zoom-in" data-aos-delay="200">
                         <div class="feature-icon"><i class="fas fa-user-cog"></i></div>
                         <h4>개인 맞춤형 분석</h4>
-                        <p>나이, 학력, 직업군 등 기본 정보와 함께 9개 만족도 요인, 시계열 이력, 상대적 소득 위치 등을 종합 분석합니다. 소득-만족도 우선순위 설정으로 개인 맞춤형 추천을 제공하며, 데이터 누수 방지 기법으로 신뢰도를 보장합니다.
+                        <p>나이, 학력, 직업군 등 기본 정보와 함께 9개 만족도 요인, 시계열 이력, 상대적 소득 위치 등을 종합 분석합니다. 소득-만족도 우선순위 설정으로 개인 맞춤형 추천을 제공하며, 데이터 누수 방지 기법으로 신뢰도를 보장합니다.</p>
                     </div>
                     <div class="feature-item" data-aos="zoom-in" data-aos-delay="300">
                         <div class="feature-icon"><i class="fas fa-compass"></i></div>
                         <h4>의사결정 지원 도구</h4>
-                        <p>NEXTEP.AI는 정답을 제시하는 것이 아닌, 실제 검증된 데이터에 기반한 객관적 인사이트를 제공하는 의사결정 지원 도구입니다. 시나리오 비교 차트, 유사 사례 분포, 상세 분석 리포트를 통해 정보에 기반한 커리어 선택을 지원합니다.
+                        <p>NEXTEP.AI는 정답을 제시하는 것이 아닌, 실제 검증된 데이터에 기반한 객관적 인사이트를 제공하는 의사결정 지원 도구입니다. 시나리오 비교 차트, 유사 사례 분포, 상세 분석 리포트를 통해 정보에 기반한 커리어 선택을 지원합니다.</p>
                     </div>
                 </div>
             </div>
@@ -145,15 +146,15 @@
                         <div class="tech-icon"><i class="fas fa-database"></i></div>
                         <div class="tech-content">
                             <h4>신뢰할 수 있는 데이터 소스 (KLIPS)</h4>
-                            <p>저희는 1998년부터 2023년까지 25년간 수집된 한국노동패널 22차년도 데이터를 사용합니다. 이는 117,397건의 개인별 경력 변화 기록이 축적된 귀중한 자산이며, 데이터 누수 방지와 2023년 데이터로의 실제 검증을 통해 예측의 현실성을 담보합니다.
+                            <p>저희는 1998년부터 2023년까지 25년간 수집된 한국노동패널 22차년도 데이터를 사용합니다. 이는 117,397건의 개인별 경력 변화 기록이 축적된 귀중한 자산이며, 데이터 누수 방지와 2023년 데이터로의 실제 검증을 통해 예측의 현실성을 담보합니다.</p>
                         </div>
                     </div>
                     
                     <div class="tech-item" data-aos="fade-left">
                         <div class="tech-icon"><i class="fas fa-layer-group"></i></div>
                         <div class="tech-content">
-                            <h4>강력한 앙상블 예측 모델</h4>
-                            <p>복잡한 소득과 만족도 변화를 정밀하게 예측하기 위해, 저희는 세 개의 최신 모델(LightGBM, XGBoost, CatBoost)을 결합한 '성능 기반 앙상블' 기법을 사용합니다. 소득 예측에는 LightGBM(60%) + XGBoost(40%) 조합을, 만족도 예측에는 세 모델의 R² 성능 비례 가중치를 적용하여 최적의 예측 정확도를 달성했습니다.
+                            <h4>강력한 XGBoost 예측 모델</h4>
+                            <p>복잡한 소득과 만족도 변화를 정밀하게 예측하기 위해, 저희는 검증된 **XGBoost 예측 모델**을 사용합니다. 각 예측 목표(소득, 만족도)에 최적화된 별도의 모델을 활용하여 높은 예측 정확도를 달성했습니다. <!-- TODO: 단일 XGBoost 모델 기준 R² 성능 지표 업데이트 필요 --></p>
                         </div>
                     </div>
                     
@@ -161,7 +162,7 @@
                         <div class="tech-icon"><i class="fas fa-cogs"></i></div>
                         <div class="tech-content">
                             <h4>정교한 피처 엔지니어링</h4>
-                            <p>저희는 29개의 고급 피처 엔지니어링을 통해 모델의 예측 능력을 극대화했습니다. 시계열 이력(1-3년 전 데이터), 상대적 위치(직업군 대비 개인 소득 순위), 상호작용 특성(나이×교육, 소득×만족도) 등을 직접 설계했습니다. 또한 9개 만족도 요인의 과거 패턴과 변동성을 분석하여 개인별 만족도 변화 성향을 정밀하게 파악하는 시스템을 구축했습니다.
+                            <p>저희는 29개의 고급 피처 엔지니어링을 통해 모델의 예측 능력을 극대화했습니다. 시계열 이력(1-3년 전 데이터), 상대적 위치(직업군 대비 개인 소득 순위), 상호작용 특성(나이×교육, 소득×만족도) 등을 직접 설계했습니다. 또한 9개 만족도 요인의 과거 패턴과 변동성을 분석하여 개인별 만족도 변화 성향을 정밀하게 파악하는 시스템을 구축했습니다.</p>
                         </div>
                     </div>
                 </div>

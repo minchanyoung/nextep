@@ -141,7 +141,7 @@
             <div class="accordion-body">
                 <p>각 모델별로 최적화된 피처 세트를 사용합니다:</p>
                 
-                <p><strong>소득 예측 모델 (21개 피처):</strong></p>
+                <p><strong>소득 예측 모델 (29개 피처):</strong></p>
                 <ul>
                     <li><strong>기본 변수:</strong> 연령, 성별, 학력, 현재 소득, 직업군, 만족도 요인들</li>
                     <li><strong>시계열 이력:</strong> 1-2년 전 소득, 소득 변화 추세, 소득 변동성</li>
@@ -297,7 +297,7 @@
 
 {% block scripts %}
     {{ super() }}
-    <script src="{{ url_for('static', filename='js/faq.js') }}"></script>
+    
     <script>
         // Enhanced FAQ functionality
         document.addEventListener('DOMContentLoaded', function() {

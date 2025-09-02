@@ -341,8 +341,8 @@
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    background: white;
-    color: #1e293b;
+    background: var(--primary-color);
+    color: white;
     border-radius: 8px;
     font-size: 1rem;
     font-weight: 600;
@@ -350,12 +350,13 @@
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     font-family: 'Inter', sans-serif;
+    border: none;
 }
 
 .email-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    color: #1e293b;
+    background: var(--primary-color-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 184, 148, 0.2);
 }
 
 .email-btn i {
