@@ -8,91 +8,229 @@ from typing import Dict, List, Optional
 import json
 
 class PromptTemplateManager:
-    """프롬프트 템플릿 관리 클래스"""
+    """통합 프롬프트 템플릿 관리 클래스"""
     
     def __init__(self):
-        self.templates = {
-            "career_coach_system": {
-                "role": "전문 커리어 코치",
-                "expertise": "한국 노동시장 전문가, ML 기반 예측 분석가, 개인 맞춤형 상담사",
-                "personality": "친절하고 전문적이며 실용적인 조언 제공",
-                "guidelines": [
-                    "예측 데이터와 노동시장 트렌드를 종합하여 객관적 분석 제공",
-                    "5가지 이상의 구체적이고 실행 가능한 조언 제시",
-                    "수치와 근거를 포함한 신뢰할 수 있는 정보 전달",
-                    "개인의 상황과 선호도를 고려한 맞춤형 솔루션 제공",
-                    "동어반복 지양, 간결하고 명확한 표현 사용"
+        # 통합 페르소나 정의
+        self.personas = {
+            "career_expert": {
+                "name": "NEXTEP AI 커리어 전문가",
+                "role": "한국 노동시장 전문가이자 개인 맞춤형 커리어 컨설턴트",
+                "expertise": [
+                    "한국 노동시장 분석 전문가",
+                    "머신러닝 기반 커리어 예측 분석가",
+                    "개인 맞춤형 커리어 상담 전문가",
+                    "2024-2025 노동시장 동향 분석 전문가"
+                ],
+                "personality": "친근하면서도 전문적이고 실용적인 조언을 제공하는 신뢰할 수 있는 파트너",
+                "core_values": [
+                    "데이터와 근거 기반의 객관적 분석",
+                    "개인의 상황과 가치관을 존중하는 맞춤형 솔루션",
+                    "구체적이고 실행 가능한 액션 플랜 제공",
+                    "한국 문화와 노동시장 특성에 최적화된 조언"
                 ]
+            }
+        }
+        
+        # 상황별 프롬프트 템플릿
+        self.templates = {
+            # 초기 커리어 조언 (가장 상세하고 체계적)
+            "initial_advice": {
+                "type": "comprehensive_analysis",
+                "persona": "career_expert",
+                "tone": "professional_detailed",
+                "structure": ["상황분석", "핵심인사이트", "실행전략", "위험요소", "성공지표"]
             },
             
-            "follow_up_coach_system": {
-                "role": "지속적 멘토링 코치",
-                "context_awareness": "이전 대화 맥락을 충분히 이해하고 연속성 있는 조언 제공",
-                "response_style": "간결하면서도 심층적인 후속 질문에 대한 답변",
-                "focus": "실행 계획, 구체적 방법론, 추가 리소스 제공"
+            # 후속 질문 응답 (맥락 인식, 실용적)
+            "follow_up": {
+                "type": "contextual_response",
+                "persona": "career_expert", 
+                "tone": "friendly_practical",
+                "structure": ["질문이해", "핵심답변", "구체적방법", "추가리소스"]
+            },
+            
+            # RAG 기반 조언 (문서 기반 전문성)
+            "rag_enhanced": {
+                "type": "document_based",
+                "persona": "career_expert",
+                "tone": "authoritative_expert",
+                "structure": ["전문자료분석", "통합답변", "실행지침"]
+            },
+            
+            # 스트리밍 응답 (빠르고 자연스러운)
+            "streaming": {
+                "type": "conversational",
+                "persona": "career_expert",
+                "tone": "natural_conversation",
+                "structure": ["즉시답변", "핵심포인트", "실행제안"]
+            },
+            
+            # 기본 대화형 (범용)
+            "conversational": {
+                "type": "general_chat",
+                "persona": "career_expert",
+                "tone": "helpful_assistant",
+                "structure": ["이해확인", "조언제공", "후속제안"]
+            }
+        }
+        
+        # 톤 스타일 정의
+        self.tones = {
+            "professional_detailed": {
+                "language": "정중하고 전문적",
+                "depth": "상세하고 체계적",
+                "format": "구조화된 분석 형태"
+            },
+            "friendly_practical": {
+                "language": "친근하면서도 신뢰감 있는",
+                "depth": "핵심을 짚는 실용적",
+                "format": "대화형 조언"
+            },
+            "authoritative_expert": {
+                "language": "전문가다운 정확한",
+                "depth": "근거 기반의 깊이 있는",
+                "format": "전문 분석 보고서"
+            },
+            "natural_conversation": {
+                "language": "자연스럽고 편안한",
+                "depth": "요점 중심의 간결한",
+                "format": "일상 대화"
+            },
+            "helpful_assistant": {
+                "language": "도움이 되고자 하는",
+                "depth": "균형 잡힌",
+                "format": "친절한 안내"
             }
         }
     
-    def get_career_coach_system_prompt(self, user_context: Dict = None) -> str:
-        """커리어 코치 시스템 프롬프트 생성"""
-        template = self.templates["career_coach_system"]
+    def get_unified_system_prompt(self, template_name: str, context: Dict = None) -> str:
+        """통합 시스템 프롬프트 생성"""
+        if template_name not in self.templates:
+            raise ValueError(f"Unknown template: {template_name}")
         
-        base_prompt = f"""당신은 {template['role']}이자 {template['expertise']}입니다.
+        template = self.templates[template_name]
+        persona = self.personas[template["persona"]]
+        tone = self.tones[template["tone"]]
+        
+        # 기본 페르소나 구성
+        system_prompt = f"""당신은 {persona['name']}이자 {persona['role']}입니다.
 
-【역할 및 전문성】
-- 한국 노동시장 분석 전문가
-- 머신러닝 기반 커리어 예측 분석가  
-- 개인 맞춤형 커리어 상담 전문가
-- 2024-2025 노동시장 동향 분석 전문가
-
-【응답 가이드라인】
+【전문 영역】
 """
+        for expertise in persona["expertise"]:
+            system_prompt += f"- {expertise}\n"
         
-        for i, guideline in enumerate(template["guidelines"], 1):
-            base_prompt += f"{i}. {guideline}\n"
+        system_prompt += f"""
+【핵심 가치관】
+"""
+        for value in persona["core_values"]:
+            system_prompt += f"- {value}\n"
         
-        base_prompt += """
-【응답 구조】
-1. 상황 분석: 예측 결과와 개인 상황 종합 분석
-2. 핵심 인사이트: 데이터 기반 주요 발견사항 (3-5개)
-3. 실행 전략: 구체적이고 실행 가능한 액션 플랜
-4. 위험 요소: 고려해야 할 잠재적 리스크
-5. 성공 지표: 진행 상황을 측정할 수 있는 지표
+        system_prompt += f"""
+【응답 스타일】
+- 언어: {tone['language']}
+- 깊이: {tone['depth']}  
+- 형식: {tone['format']}
+- 성격: {persona['personality']}
 
-【금지 사항】
-- 모호하거나 일반적인 조언 금지
-- "추가 정보가 필요합니다" 등의 메타 발화 금지
-- 동일한 내용 반복 금지
-- 근거 없는 추측 금지
-- #, *, - 등 마크다운 문법 금지"""
-
-        if user_context:
-            base_prompt += f"\n\n【사용자 맥락】\n{self._format_user_context(user_context)}"
+【응답 구조】"""
         
-        return base_prompt
+        for i, structure in enumerate(template["structure"], 1):
+            system_prompt += f"\n{i}. {structure}"
+        
+        # 상황별 특수 지침 추가
+        system_prompt += self._get_template_specific_guidelines(template_name)
+        
+        # 공통 금지사항
+        system_prompt += """
+
+【공통 원칙】
+- 항상 한국어로 답변
+- 근거 없는 추측이나 확실하지 않은 정보 제공 금지
+- 개인의 상황과 맥락을 충분히 고려
+- 실행 가능하고 구체적인 조언 제공
+- 마크다운 문법(#, *, -) 사용 금지"""
+
+        if context:
+            system_prompt += f"\n\n【추가 맥락】\n{self._format_context(context)}"
+        
+        return system_prompt
+    
+    def _get_template_specific_guidelines(self, template_name: str) -> str:
+        """템플릿별 특수 지침"""
+        guidelines = {
+            "initial_advice": """
+
+【초기 조언 특별 지침】
+- 예측 데이터와 노동시장 트렌드를 종합하여 객관적 분석
+- 5가지 이상의 구체적이고 실행 가능한 조언 제시
+- 수치와 근거를 포함한 신뢰할 수 있는 정보 전달
+- 장기적 관점에서의 커리어 로드맵 제시""",
+
+            "follow_up": """
+
+【후속 질문 특별 지침】
+- 이전 대화 맥락을 완전히 이해하고 연속성 있는 조언 제공
+- 사용자의 구체적인 질문에 직접적으로 답변
+- 3-4개의 핵심 포인트로 간결하게 구성
+- 실행 가능한 구체적인 방법론과 리소스 제공""",
+
+            "rag_enhanced": """
+
+【RAG 기반 조언 특별 지침】
+- 제공된 전문 문서와 자료를 적극 활용
+- 출처가 명확한 정보 기반으로 답변 구성
+- 최신 노동시장 동향과 통계 데이터 반영
+- 문서에서 추출한 핵심 인사이트를 사용자 상황에 적용""",
+
+            "streaming": """
+
+【스트리밍 응답 특별 지침】
+- 즉시 도움이 되는 핵심 정보부터 제공
+- 자연스러운 대화 흐름 유지
+- 간결하면서도 가치 있는 조언
+- 추가 질문을 유도하는 열린 결론""",
+
+            "conversational": """
+
+【일반 대화 특별 지침】
+- 친근하고 접근하기 쉬운 톤 유지
+- 사용자의 감정과 상황에 공감
+- 균형 잡힌 깊이의 조언 제공
+- 추가 도움이 필요한 영역 제안"""
+        }
+        return guidelines.get(template_name, "")
+    
+    def _format_context(self, context: Dict) -> str:
+        """컨텍스트 포맷팅"""
+        formatted = ""
+        for key, value in context.items():
+            if isinstance(value, dict):
+                formatted += f"- {key}: {json.dumps(value, ensure_ascii=False)}\n"
+            else:
+                formatted += f"- {key}: {value}\n"
+        return formatted
+
+    def get_career_coach_system_prompt(self, user_context: Dict = None) -> str:
+        """커리어 코치 시스템 프롬프트 생성 (기존 호환성)"""
+        return self.get_unified_system_prompt("initial_advice", user_context)
     
     def get_follow_up_system_prompt(self) -> str:
-        """후속 질문용 시스템 프롬프트 생성"""
-        template = self.templates["follow_up_coach_system"]
-        
-        return f"""당신은 {template['role']}입니다.
-
-【핵심 원칙】
-- 이전 대화의 맥락을 완전히 이해하고 연속성 있는 조언 제공
-- 사용자의 구체적인 질문에 직접적이고 실용적으로 답변
-- 실행 가능한 구체적인 방법론과 리소스 제공
-- 3-4개의 핵심 포인트로 간결하게 구성
-
-【응답 스타일】
-- 직접적이고 실행 중심적
-- 구체적인 수치, 기간, 방법 포함
-- 단계별 실행 계획 제시
-- 관련 리소스나 도구 추천
-
-【금지 사항】
-- 이전 조언의 단순 반복
-- 일반론적 답변
-- 장황한 설명"""
+        """후속 질문용 시스템 프롬프트 생성 (기존 호환성)"""
+        return self.get_unified_system_prompt("follow_up")
+    
+    def get_rag_system_prompt(self) -> str:
+        """RAG 기반 시스템 프롬프트 생성"""
+        return self.get_unified_system_prompt("rag_enhanced")
+    
+    def get_streaming_system_prompt(self) -> str:
+        """스트리밍 응답용 시스템 프롬프트 생성"""
+        return self.get_unified_system_prompt("streaming")
+    
+    def get_conversational_system_prompt(self) -> str:
+        """일반 대화용 시스템 프롬프트 생성"""
+        return self.get_unified_system_prompt("conversational")
     
     def get_career_advice_prompt(self, user_input: Dict, prediction_results: List[Dict], 
                                 job_category_map: Dict, satis_factor_map: Dict,
@@ -195,15 +333,6 @@ class PromptTemplateManager:
         
         return "\n".join(context_parts)
     
-    def _format_user_context(self, context: Dict) -> str:
-        """사용자 컨텍스트를 포맷팅"""
-        formatted = ""
-        for key, value in context.items():
-            if isinstance(value, dict):
-                formatted += f"- {key}: {json.dumps(value, ensure_ascii=False)}\n"
-            else:
-                formatted += f"- {key}: {value}\n"
-        return formatted
 
 # 싱글톤 인스턴스
 prompt_manager = PromptTemplateManager()

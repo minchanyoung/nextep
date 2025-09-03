@@ -105,15 +105,17 @@ class RAGManager:
                 logger.warning("LLM 서비스를 사용할 수 없어 RAG 체인 초기화를 건너뜁니다.")
                 return
             
-            # RAG 프롬프트 템플릿
-            rag_prompt = ChatPromptTemplate.from_template("""
-            당신은 한국의 노동시장 및 커리어 전문가입니다. 
-            제공된 문서 정보를 바탕으로 사용자의 질문에 정확하고 도움이 되는 답변을 제공해주세요.
+            # 통합 RAG 프롬프트 템플릿 사용
+            from app.prompt_templates import prompt_manager
+            rag_system_prompt = prompt_manager.get_rag_system_prompt()
+            
+            rag_prompt = ChatPromptTemplate.from_template(f"""
+            {rag_system_prompt}
 
             관련 문서:
-            {context}
+            {{context}}
 
-            질문: {question}
+            질문: {{question}}
 
             답변:
             """)

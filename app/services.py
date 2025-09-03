@@ -293,24 +293,25 @@ def generate_follow_up_advice(user_message: str, chat_history: List[Dict], conte
                 content = msg.get("content", "")
                 history_text += f"{role}: {content}\n"
         
+        # 통합 시스템 프롬프트 사용
+        system_prompt = prompt_manager.get_follow_up_system_prompt()
+        
         # LangChain 프롬프트 템플릿
-        template = """당신은 친근하고 전문적인 커리어 컨설턴트입니다. 
-사용자의 추가 질문에 대해 맥락을 고려하여 도움이 되는 답변을 제공해주세요.
+        template = f"""{system_prompt}
 
 ## 대화 맥락
-{context_summary}
+{{context_summary}}
 
 ## 최근 대화 기록
-{chat_history}
+{{chat_history}}
 
 ## 관련 참고 정보
-{additional_context}
+{{additional_context}}
 
 ## 사용자의 현재 질문
-{user_question}
+{{user_question}}
 
-위 정보들을 종합하여 사용자의 질문에 대해 구체적이고 실용적인 조언을 제공해주세요. 
-한국어로 자연스럽게 답변하며, 가능한 한 실행 가능한 구체적인 방향을 제시해주세요."""
+위 정보들을 종합하여 사용자의 질문에 대해 구체적이고 실용적인 조언을 제공해주세요."""
 
         prompt = ChatPromptTemplate.from_template(template)
         
@@ -357,11 +358,14 @@ def generate_follow_up_advice_stream(user_message: str, chat_history: List[Dict]
                 content = msg.get("content", "")
                 history_text += f"{role}: {content}\n"
         
+        # 통합 시스템 프롬프트 사용
+        system_prompt = prompt_manager.get_streaming_system_prompt()
+        
         # 스트리밍용 메시지 구성
         messages = [
             {
                 "role": "system", 
-                "content": f"""당신은 친근하고 전문적인 커리어 컨설턴트입니다.
+                "content": f"""{system_prompt}
 
 대화 맥락: {context_summary or "없음"}
 최근 대화: {history_text or "없음"}
@@ -411,15 +415,17 @@ def get_enhanced_career_advice(user_message: str, rag_results: List[Dict]) -> st
         # RAG 결과 포맷팅
         context = prompt_manager.get_rag_enhanced_context(user_message, rag_results)
         
+        # 통합 RAG 시스템 프롬프트 사용
+        system_prompt = prompt_manager.get_rag_system_prompt()
+        
         # 향상된 조언 생성 프롬프트
-        template = """당신은 한국의 전문 커리어 컨설턴트입니다.
-아래 전문 자료들을 참고하여 사용자의 질문에 대해 구체적이고 실용적인 조언을 제공해주세요.
+        template = f"""{system_prompt}
 
-{context}
+{{context}}
 
-사용자 질문: {question}
+사용자 질문: {{question}}
 
-전문 자료를 바탕으로 3-5개의 구체적인 조언을 제공해주세요:"""
+전문 자료를 바탕으로 구체적이고 실용적인 조언을 제공해주세요:"""
 
         prompt = ChatPromptTemplate.from_template(template)
         chain = prompt | llm_service.chat_model | StrOutputParser()

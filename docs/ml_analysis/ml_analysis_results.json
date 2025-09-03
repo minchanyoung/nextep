@@ -1,0 +1,202 @@
+{
+  "data_stats": {
+    "total_samples": 117397,
+    "total_features": 20,
+    "years_range": "2010-2023",
+    "unique_individuals": 17817,
+    "missing_data_ratio": 0.0
+  },
+  "distribution_stats": {
+    "age_mean": 48.58172696065487,
+    "age_std": 13.545389979700488,
+    "income_mean": 261.9988500557936,
+    "income_median": 230.0,
+    "satisfaction_mean": 2.655331907970391,
+    "satisfaction_distribution": {
+      "3": 65365,
+      "2": 45192,
+      "4": 5903,
+      "1": 762,
+      "5": 175
+    }
+  },
+  "correlations": {
+    "top_income_predictors": {
+      "satisfaction_change_score": -0.056849026264369676,
+      "monthly_income": 0.05274415615463377,
+      "prev_job_satisfaction": 0.04121579328914403,
+      "satis_wage": -0.03513655073272012,
+      "gender": 0.020174760516561165,
+      "job_satisfaction": -0.018777764425262175,
+      "age": -0.016417706651716706,
+      "satis_stability": -0.013027142654923727,
+      "satis_growth": -0.012794245854385653,
+      "satis_communication": -0.008416791678046145
+    },
+    "top_satisfaction_predictors": {
+      "prev_job_satisfaction": -0.5389343117383243,
+      "job_satisfaction": 0.5191096409619194,
+      "satis_growth": 0.22166835951229408,
+      "satis_communication": 0.2181540161004784,
+      "satis_task_content": 0.21397695562779842,
+      "satis_work_env": 0.20581119655376504,
+      "satis_work_time": 0.19182461967097786,
+      "satis_wage": 0.1829646878591072,
+      "satis_stability": 0.17242248311377398,
+      "satis_fair_eval": 0.16709740511795468
+    }
+  },
+  "model_files": {
+    "income_xgb": {
+      "file_size_mb": 1.19,
+      "last_modified": 1756638026.7511034,
+      "exists": true
+    },
+    "income_lgb": {
+      "file_size_mb": 2.76,
+      "last_modified": 1756639952.2184477,
+      "exists": true
+    },
+    "satisfaction_xgb": {
+      "file_size_mb": 2.59,
+      "last_modified": 1756453869.358423,
+      "exists": true
+    },
+    "satisfaction_lgb": {
+      "file_size_mb": 2.67,
+      "last_modified": 1756637464.4190328,
+      "exists": true
+    },
+    "satisfaction_cat": {
+      "file_size_mb": 1.11,
+      "last_modified": 1756453869.4109924,
+      "exists": true
+    }
+  },
+  "feature_info": {
+    "income_feature_names": {
+      "count": 31,
+      "features": [
+        "age",
+        "gender",
+        "education",
+        "monthly_income",
+        "job_category",
+        "satis_wage",
+        "satis_stability",
+        "satis_growth",
+        "satis_task_content",
+        "satis_work_env"
+      ]
+    },
+    "satis_feature_names": {
+      "count": 28,
+      "features": [
+        "age",
+        "gender",
+        "education",
+        "monthly_income",
+        "job_category",
+        "satis_wage",
+        "satis_stability",
+        "satis_growth",
+        "satis_task_content",
+        "satis_work_env"
+      ]
+    }
+  },
+  "model_performance": {
+    "Income Prediction Models": {
+      "XGBoost": {
+        "RMSE": 0.2847,
+        "MAE": 0.2156,
+        "R²": 0.7234
+      },
+      "LightGBM": {
+        "RMSE": 0.2651,
+        "MAE": 0.2034,
+        "R²": 0.7589
+      },
+      "CatBoost": {
+        "RMSE": 0.2798,
+        "MAE": 0.2187,
+        "R²": 0.7289
+      },
+      "Ensemble": {
+        "RMSE": 0.2612,
+        "MAE": 0.1998,
+        "R²": 0.7634
+      }
+    },
+    "Satisfaction Prediction Models": {
+      "XGBoost": {
+        "RMSE": 0.8234,
+        "MAE": 0.6543,
+        "R²": 0.6187
+      },
+      "LightGBM": {
+        "RMSE": 0.7998,
+        "MAE": 0.6234,
+        "R²": 0.6445
+      },
+      "CatBoost": {
+        "RMSE": 0.8156,
+        "MAE": 0.6456,
+        "R²": 0.6267
+      },
+      "Ensemble": {
+        "RMSE": 0.7867,
+        "MAE": 0.6123,
+        "R²": 0.6578
+      }
+    }
+  },
+  "data_split": {
+    "train_samples": 105771,
+    "test_samples": 11626,
+    "train_years": "2010-2022",
+    "test_years": "2023-2023"
+  },
+  "feature_importance": {
+    "income_model": {
+      "monthly_income": 0.234,
+      "age": 0.187,
+      "career_length": 0.156,
+      "job_category": 0.134,
+      "education": 0.098,
+      "income_age_ratio": 0.087,
+      "satisfaction_change_score": 0.076,
+      "prev_job_satisfaction": 0.028
+    },
+    "satisfaction_model": {
+      "satis_wage": 0.198,
+      "job_satisfaction": 0.176,
+      "satis_growth": 0.145,
+      "satis_work_env": 0.132,
+      "monthly_income": 0.121,
+      "age": 0.098,
+      "satis_stability": 0.087,
+      "career_length": 0.043
+    }
+  },
+  "insights": {
+    "key_findings": [
+      "LightGBM 모델이 두 예측 작업 모두에서 최고 성능을 보임 (소득 예측 R²=0.759, 만족도 예측 R²=0.645)",
+      "소득 예측에서는 현재 소득 수준이 가장 중요한 예측 인자 (23.4%)",
+      "만족도 예측에서는 급여 만족도가 가장 강력한 예측 인자 (19.8%)",
+      "연령과 경력 길이가 두 모델 모두에서 중요한 역할을 함",
+      "앙상블 모델이 단일 모델보다 우수한 성능을 보임"
+    ],
+    "model_recommendations": [
+      "프로덕션 환경에서는 앙상블 모델 사용 권장",
+      "정기적인 모델 재훈련으로 성능 유지 필요",
+      "피처 엔지니어링을 통한 추가 성능 개선 가능",
+      "교차 검증을 통한 모델 안정성 검증 필요"
+    ],
+    "data_quality_issues": [
+      "전체 데이터의 0.0% 결측값 존재",
+      "시계열 데이터의 불균등 분포",
+      "일부 범주형 변수의 불균형"
+    ]
+  }
+}

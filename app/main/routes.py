@@ -260,9 +260,13 @@ def advice():
             chat_session.add_message("assistant", context_summary, {"type": "context_summary"})
             chat_session.add_message("assistant", ai_advice, {"type": "initial_advice"})
             
+            # 통합 시스템 프롬프트 사용
+            from app.prompt_templates import prompt_manager
+            system_prompt = prompt_manager.get_conversational_system_prompt()
+            
             # 기존 호환성을 위한 세션 저장
             chat_messages = [
-                {"role": "system", "content": "당신은 친절한 커리어 코치다. 한국어로 간결하고 실용적으로 답한다."},
+                {"role": "system", "content": system_prompt},
                 {"role": "assistant", "content": context_summary},
                 {"role": "assistant", "content": ai_advice}
             ]

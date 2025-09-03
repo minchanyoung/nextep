@@ -33,10 +33,71 @@
     color: #666;
 }
 
+/* 채팅 윈도우 래퍼 */
+.chat-window-wrapper {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+/* 채팅 윈도우 헤더 */
+.chat-window-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* 대화기록 초기화 버튼 */
+.clear-chat-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+}
+
+.clear-chat-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.clear-chat-btn:active {
+    transform: translateY(0);
+}
+
+.clear-chat-btn i {
+    font-size: 0.8rem;
+}
+
+.clear-chat-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 .chat-window {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    padding: 20px;
+    min-height: 400px;
+    max-height: 600px;
+    overflow-y: auto;
 }
 
 .chat-message {
@@ -206,4 +267,78 @@
     background: #ffffff;
     border: 1px solid #e5e5e5;
     animation: none;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .advice-container {
+        margin: 100px 20px 40px;
+        padding: 15px;
+    }
+
+    .advice-header h1 {
+        font-size: 2rem;
+    }
+
+    .advice-header p {
+        font-size: 1rem;
+    }
+
+    /* 모바일에서 대화기록 초기화 버튼 조정 */
+    .chat-window-header {
+        padding: 10px 12px;
+    }
+
+    .clear-chat-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+
+    .clear-chat-btn i {
+        font-size: 0.75rem;
+    }
+
+    .chat-window {
+        padding: 15px;
+        min-height: 350px;
+        max-height: 500px;
+    }
+
+    .chat-input-area {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .chat-input-area textarea {
+        font-size: 14px;
+    }
+
+    .chat-input-area button {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+    }
+
+    .chat-message .avatar {
+        width: 35px;
+        height: 35px;
+        font-size: 1.2rem;
+    }
+
+    .message-bubble {
+        padding: 12px 15px;
+        font-size: 14px;
+        max-width: calc(100vw - 120px);
+    }
+}
+
+@media (max-width: 480px) {
+    /* 매우 작은 화면에서는 버튼 텍스트 줄이기 */
+    .clear-chat-btn {
+        padding: 6px 8px;
+        font-size: 0.75rem;
+    }
+
+    .clear-chat-btn i {
+        font-size: 0.7rem;
+    }
 }

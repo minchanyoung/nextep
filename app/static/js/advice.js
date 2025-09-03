@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiFullResponse = document.getElementById('aiFullResponse').textContent.trim();
     const userInput = document.getElementById('userInput');
     const sendButton = document.getElementById('sendButton');
+    const clearChatButton = document.getElementById('clearChatButton');
 
     let chatHistory = []; // 대화 내역을 저장할 배열
 
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chatHistory.push({ sender: 'ai', text: fullText });
             userInput.disabled = false;
             sendButton.disabled = false;
+            updateClearButtonState();
             userInput.focus();
         });
     }
@@ -112,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addMessageToChat('user', message);
         chatHistory.push({ sender: 'user', text: message });
+        updateClearButtonState();
         userInput.value = '';
         userInput.style.height = 'auto';
         
@@ -175,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 chatHistory.push({ sender: 'ai', text: finalContent });
                                 userInput.disabled = false; // 입력 활성화
                                 sendButton.disabled = false; // 버튼 활성화
+                                updateClearButtonState();
                                 userInput.focus();
                                 return;
                             }
@@ -244,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addMessageToChat('user', message);
         chatHistory.push({ sender: 'user', text: message });
+        updateClearButtonState();
         userInput.value = '';
         userInput.style.height = 'auto'; // 높이 초기화
         showTypingIndicator();
@@ -274,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chatHistory.push({ sender: 'ai', text: data.reply });
             userInput.disabled = false; // 입력 활성화
             sendButton.disabled = false; // 버튼 활성화
+            updateClearButtonState();
             userInput.focus();
 
         } catch (error) {
@@ -315,9 +321,83 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
+    /**
+     * 대화기록 초기화 함수
+     */
+    const clearChatHistory = () => {
+        // 확인 대화상자 표시
+        if (confirm('정말로 대화기록을 초기화하시겠습니까?\n\n현재까지의 모든 대화 내용이 삭제되고 AI가 처음 조언을 다시 생성합니다.')) {
+            // 채팅 내역 초기화
+            chatHistory = [];
+            
+            // 화면 초기화
+            chatWindow.innerHTML = '';
+            
+            // 버튼 상태 초기화
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            clearChatButton.disabled = true;
+            
+            // 서버에 새 채팅 세션 요청
+            startNewChatSession();
+        }
+    };
+
+    /**
+     * 새로운 채팅 세션 시작
+     */
+    const startNewChatSession = async () => {
+        try {
+            // 서버에 새 채팅 세션 시작 요청
+            const response = await fetch('/chat/new', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                // 타이핑 인디케이터 표시
+                showTypingIndicator();
+                
+                // 초기 AI 조언을 다시 표시 (약간의 지연 후)
+                setTimeout(() => {
+                    if (aiFullResponse) {
+                        showInitialMessageWithTyping();
+                    } else {
+                        removeTypingIndicator();
+                        addMessageToChat('ai', '새로운 상담을 시작합니다. 궁금한 점이 있으시면 언제든 말씀해 주세요!');
+                        userInput.disabled = false;
+                        sendButton.disabled = false;
+                        clearChatButton.disabled = false;
+                        userInput.focus();
+                    }
+                }, 1000);
+            } else {
+                throw new Error('서버 통신 실패');
+            }
+        } catch (error) {
+            console.error('새 채팅 세션 시작 실패:', error);
+            removeTypingIndicator();
+            addMessageToChat('ai', '죄송합니다. 새로운 상담 시작 중 오류가 발생했습니다. 페이지를 새로고침해 주세요.');
+            clearChatButton.disabled = false;
+        }
+    };
+
+    /**
+     * 대화기록이 있는지 확인하여 버튼 상태 업데이트
+     */
+    const updateClearButtonState = () => {
+        clearChatButton.disabled = chatHistory.length === 0;
+    };
+
+    // 대화기록 초기화 버튼 이벤트 리스너
+    clearChatButton.addEventListener('click', clearChatHistory);
+
     // 초기화 및 첫 메시지 표시 시작
     userInput.disabled = true;
     sendButton.disabled = true;
+    clearChatButton.disabled = true; // 초기에는 대화 내용이 없으므로 비활성화
     showTypingIndicator();
     
     // AI 조언을 타이핑 효과로 점진적으로 표시
@@ -328,8 +408,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // AI 조언이 없는 경우, 기본 인사말 표시
             removeTypingIndicator();
             addMessageToChat('ai', '안녕하세요! 커리어 관련 질문이 있으신가요?');
+            chatHistory.push({ sender: 'ai', text: '안녕하세요! 커리어 관련 질문이 있으신가요?' });
             userInput.disabled = false;
             sendButton.disabled = false;
+            updateClearButtonState();
             userInput.focus();
         }
     }, 1500);

@@ -276,8 +276,11 @@ class LLMService:
     def create_conversational_chain(self):
         """대화형 체인 생성"""
         try:
+            from app.prompt_templates import prompt_manager
+            system_prompt = prompt_manager.get_conversational_system_prompt()
+            
             prompt = ChatPromptTemplate.from_messages([
-                ("system", "당신은 친절하고 전문적인 AI 어시스턴트입니다. 한국어로 답변해주세요."),
+                ("system", system_prompt),
                 MessagesPlaceholder(variable_name="history"),
                 ("human", "{input}")
             ])

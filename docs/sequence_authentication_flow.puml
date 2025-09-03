@@ -1,0 +1,144 @@
+@startuml NEXTEP_AI_Authentication_Sequence
+
+title NEXTEP.AI 사용자 인증 시스템 - Sequence Diagram
+
+actor "사용자" as User
+participant "웹 브라우저" as Browser
+participant "Flask App" as App
+participant "Auth Routes" as AuthRoutes
+participant "Auth Utils" as AuthUtils
+participant "User Model" as UserModel
+participant "Oracle DB" as Database
+participant "Session" as Session
+participant "BCrypt" as BCrypt
+
+== 회원가입 플로우 ==
+User -> Browser: 회원가입 페이지 방문
+Browser -> App: GET /auth/signup
+App -> AuthRoutes: signup()
+AuthRoutes -> App: render signup.html
+App -> Browser: 회원가입 폼
+Browser --> User: 회원가입 폼 표시
+
+User -> Browser: 회원정보 입력 및 제출
+Browser -> App: POST /auth/signup
+App -> AuthRoutes: signup()
+AuthRoutes -> AuthRoutes: request.form 검증
+
+AuthRoutes -> AuthUtils: validate_signup_data()
+AuthUtils -> AuthUtils: 이메일/사용자명 형식 검증
+AuthUtils -> Database: 중복 사용자 확인
+Database --> AuthUtils: 중복 여부
+AuthUtils --> AuthRoutes: 검증 결과
+
+alt 검증 실패
+    AuthRoutes -> App: flash error message
+    App -> Browser: 에러 메시지와 폼
+    Browser --> User: 에러 표시
+else 검증 성공
+    AuthRoutes -> BCrypt: generate_password_hash()
+    BCrypt --> AuthRoutes: 암호화된 비밀번호
+    
+    AuthRoutes -> UserModel: User() 생성
+    AuthRoutes -> Database: db.session.add()
+    AuthRoutes -> Database: db.session.commit()
+    Database --> AuthRoutes: 성공
+    
+    AuthRoutes -> App: flash success message
+    AuthRoutes -> App: redirect to login
+    App -> Browser: 302 Redirect
+    Browser --> User: 로그인 페이지로 이동
+end
+
+== 로그인 플로우 ==
+User -> Browser: 로그인 페이지 방문
+Browser -> App: GET /auth/login
+App -> AuthRoutes: login()
+AuthRoutes -> App: render login.html
+App -> Browser: 로그인 폼
+Browser --> User: 로그인 폼 표시
+
+User -> Browser: 로그인 정보 입력 및 제출
+Browser -> App: POST /auth/login
+App -> AuthRoutes: login()
+AuthRoutes -> AuthRoutes: request.form 추출
+
+AuthRoutes -> Database: User.query.filter_by(username)
+Database --> AuthRoutes: User 객체 또는 None
+
+alt 사용자 없음
+    AuthRoutes -> App: flash error message
+    App -> Browser: 로그인 실패 메시지
+    Browser --> User: 에러 표시
+else 사용자 존재
+    AuthRoutes -> BCrypt: check_password_hash()
+    BCrypt --> AuthRoutes: 비밀번호 일치 여부
+    
+    alt 비밀번호 불일치
+        AuthRoutes -> App: flash error message
+        App -> Browser: 로그인 실패 메시지
+        Browser --> User: 에러 표시
+    else 비밀번호 일치
+        AuthRoutes -> Session: session['user_id'] = user.id
+        AuthRoutes -> Session: session['username'] = user.username
+        Session --> AuthRoutes: 세션 설정 완료
+        
+        AuthRoutes -> App: flash success message
+        AuthRoutes -> App: redirect to main page
+        App -> Browser: 302 Redirect
+        Browser --> User: 메인 페이지로 이동 (로그인 상태)
+    end
+end
+
+== 로그아웃 플로우 ==
+User -> Browser: 로그아웃 버튼 클릭
+Browser -> App: GET /auth/logout
+App -> AuthRoutes: logout()
+AuthRoutes -> Session: session.clear()
+Session --> AuthRoutes: 세션 초기화 완료
+AuthRoutes -> App: flash success message
+AuthRoutes -> App: redirect to main page
+App -> Browser: 302 Redirect
+Browser --> User: 메인 페이지로 이동 (로그아웃 상태)
+
+== 프로필 관리 플로우 ==
+User -> Browser: 프로필 페이지 방문
+Browser -> App: GET /profile
+App -> App: @login_required 데코레이터 검증
+App -> AuthUtils: get_current_user()
+AuthUtils -> Session: session.get('user_id')
+Session --> AuthUtils: user_id
+AuthUtils -> Database: User.query.get(user_id)
+Database --> AuthUtils: User 객체
+AuthUtils --> App: current_user
+
+App -> App: render profile.html
+App -> Browser: 프로필 폼 (기존 정보 포함)
+Browser --> User: 프로필 정보 표시
+
+User -> Browser: 프로필 정보 수정 및 제출
+Browser -> App: POST /profile
+App -> AuthUtils: get_current_user()
+AuthUtils --> App: current_user
+App -> App: request.form에서 업데이트 데이터 추출
+
+App -> Services: update_user_profile()
+Services -> Database: User 객체 업데이트
+Services -> Database: db.session.commit()
+Database --> Services: 업데이트 완료
+Services --> App: 성공/실패
+
+alt 업데이트 성공
+    App -> App: flash success message
+    App -> App: redirect to profile
+    App -> Browser: 프로필 업데이트 성공
+    Browser --> User: 성공 메시지 표시
+else 업데이트 실패
+    App -> App: flash error message
+    App -> Browser: 에러 메시지
+    Browser --> User: 실패 메시지 표시
+end
+
+note over User, Database: 모든 비밀번호는 BCrypt로 암호화 저장\n세션 기반 인증으로 상태 유지
+
+@enduml
