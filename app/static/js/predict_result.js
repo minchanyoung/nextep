@@ -202,6 +202,207 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- 5. 이벤트 리스너 및 초기화 --- //
 
+    /**
+     * 드롭다운 변경 시 서버에 새로운 예측 요청을 보내는 함수
+     */
+    const updatePredictionResults = async () => {
+        try {
+            // 로딩 상태 표시
+            showLoadingState(true);
+            
+            // 폼 데이터 수집
+            const formData = new FormData(form);
+            
+            // AJAX 요청
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('서버 응답 오류');
+            }
+            
+            const data = await response.json();
+            predictionResults = data.prediction_results;
+            
+            // UI 업데이트
+            updateResultCards();
+            updateCharts();
+            updateRecommendation();
+            
+        } catch (error) {
+            console.error('예측 결과 업데이트 실패:', error);
+            showErrorMessage('예측 결과를 업데이트하는 중 오류가 발생했습니다. 다시 시도해주세요.');
+        } finally {
+            // 로딩 상태 해제
+            showLoadingState(false);
+        }
+    };
+
+    /**
+     * 로딩 상태를 표시/숨기는 함수
+     */
+    const showLoadingState = (isLoading) => {
+        const resultCards = document.querySelectorAll('.result-card');
+        const charts = document.querySelectorAll('.chart-container');
+        
+        if (isLoading) {
+            // 결과 카드에 로딩 오버레이 추가
+            resultCards.forEach(card => {
+                if (!card.querySelector('.loading-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'loading-overlay';
+                    overlay.innerHTML = '<div class="loading-spinner"></div>';
+                    card.style.position = 'relative';
+                    card.appendChild(overlay);
+                }
+            });
+            
+            // 차트에 로딩 상태 추가
+            charts.forEach(chart => {
+                chart.style.opacity = '0.5';
+            });
+        } else {
+            // 로딩 오버레이 제거
+            document.querySelectorAll('.loading-overlay').forEach(overlay => {
+                overlay.remove();
+            });
+            
+            // 차트 투명도 복원
+            charts.forEach(chart => {
+                chart.style.opacity = '1';
+            });
+        }
+    };
+
+    /**
+     * 에러 메시지를 표시하는 함수
+     */
+    const showErrorMessage = (message) => {
+        // 기존 에러 메시지 제거
+        const existingError = document.querySelector('.error-message-dynamic');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // 새 에러 메시지 생성
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message-dynamic';
+        errorDiv.style.cssText = `
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border: 1px solid #f5c6cb;
+            text-align: center;
+        `;
+        errorDiv.textContent = message;
+        
+        // 결과 카드 컨테이너 위에 삽입
+        const container = document.querySelector('.result-cards-container');
+        container.parentNode.insertBefore(errorDiv, container);
+        
+        // 3초 후 자동으로 제거
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.remove();
+            }
+        }, 3000);
+    };
+
+    /**
+     * 결과 카드 내용을 업데이트하는 함수
+     */
+    const updateResultCards = () => {
+        const currentResult = predictionResults[0];
+        const jobAResult = predictionResults[1];
+        const jobBResult = predictionResults.length > 2 ? predictionResults[2] : null;
+        
+        // 직업군 A 카드 업데이트
+        const jobAName = document.getElementById('jobAName');
+        const jobAIncome = document.getElementById('jobAIncome');
+        const jobASatis = document.getElementById('jobASatis');
+        
+        if (jobAName && jobAResult) {
+            jobAName.textContent = jobCategoryMapJs[jobASelect.value];
+            jobAIncome.textContent = formatIncomeChange(jobAResult.income_change_rate);
+            jobAIncome.className = `value ${getChangeClass(jobAResult.income_change_rate)}`;
+            jobASatis.textContent = formatSatisfactionChange(jobAResult.satisfaction_change_score);
+            jobASatis.className = `value ${getChangeClass(jobAResult.satisfaction_change_score)}`;
+        }
+        
+        // 직업군 B 카드 업데이트
+        const jobBCard = document.querySelector('.result-card[data-scenario-id="jobB"]');
+        const jobBName = document.getElementById('jobBName');
+        const jobBIncome = document.getElementById('jobBIncome');
+        const jobBSatis = document.getElementById('jobBSatis');
+        
+        if (jobBResult && jobBCard) {
+            jobBCard.style.display = 'block';
+            if (jobBName) jobBName.textContent = jobCategoryMapJs[jobBSelect.value];
+            if (jobBIncome) {
+                jobBIncome.textContent = formatIncomeChange(jobBResult.income_change_rate);
+                jobBIncome.className = `value ${getChangeClass(jobBResult.income_change_rate)}`;
+            }
+            if (jobBSatis) {
+                jobBSatis.textContent = formatSatisfactionChange(jobBResult.satisfaction_change_score);
+                jobBSatis.className = `value ${getChangeClass(jobBResult.satisfaction_change_score)}`;
+            }
+        } else if (jobBCard) {
+            jobBCard.style.display = 'none';
+        }
+    };
+
+    /**
+     * 차트 데이터를 업데이트하는 함수
+     */
+    const updateCharts = () => {
+        const labels = [
+            '현직 유지',
+            jobCategoryMapJs[jobASelect.value],
+            jobCategoryMapJs[jobBSelect.value]
+        ].slice(0, predictionResults.length);
+        
+        // 소득 차트 업데이트
+        incomeChart.data.labels = labels;
+        incomeChart.data.datasets[0].data = predictionResults.map(r => (r.income_change_rate * 100).toFixed(1));
+        incomeChart.update();
+        
+        // 만족도 차트 업데이트
+        satisfactionChart.data.labels = labels;
+        satisfactionChart.data.datasets[0].data = predictionResults.map(r => r.satisfaction_change_score.toFixed(2));
+        satisfactionChart.update();
+    };
+
+    // 헬퍼 함수들 (백엔드와 일치)
+    const formatIncomeChange = (value) => {
+        value = parseFloat(value);
+        const icon = value > 0.001 ? "▲" : (value < -0.001 ? "▼" : "―");
+        return `${icon} ${(value * 100).toFixed(2)}%`;
+    };
+
+    const formatSatisfactionChange = (value) => {
+        value = parseFloat(value);
+        const icon = value > 0.001 ? "▲" : (value < -0.001 ? "▼" : "―");
+        return `${icon} ${value.toFixed(2)}점`;
+    };
+
+    const getChangeClass = (value) => {
+        value = parseFloat(value);
+        if (value > 0.001) return 'positive-change';
+        if (value < -0.001) return 'negative-change';
+        return 'no-change';
+    };
+
+    // 드롭다운 변경 이벤트 리스너
+    jobASelect.addEventListener('change', updatePredictionResults);
+    jobBSelect.addEventListener('change', updatePredictionResults);
+
     // 슬라이더 이벤트
     prioritySlider.addEventListener('input', () => {
         priorityLabel.textContent = `균형 (${100 - prioritySlider.value}:${prioritySlider.value})`;
