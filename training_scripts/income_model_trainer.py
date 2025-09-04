@@ -120,13 +120,13 @@ def prepare_features_and_target(df):
 
 def split_data_by_year(df, X, y):
     """시계열 데이터에 적합한 분할을 수행합니다."""
-    # 결측값이 있는 행 제거 (lag 피처로 인한)
+    # 결측값이 있는 행 제거
     valid_mask = ~(X.isnull().any(axis=1) | y.isnull())
     X_clean = X[valid_mask]
     y_clean = y[valid_mask]
     df_clean = df[valid_mask]
     
-    # 최근 2년을 테스트로 사용 (더 많은 테스트 데이터)
+    # 최근 2년을 테스트로 사용
     test_years = [2022, 2023]
     train_mask = ~df_clean["year"].isin(test_years)
     test_mask = df_clean["year"].isin(test_years)
