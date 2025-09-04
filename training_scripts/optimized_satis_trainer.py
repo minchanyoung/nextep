@@ -110,7 +110,33 @@ def main():
     cat_features = ['gender', 'education', 'job_category', 'career_stage']
     cat_model = ctb.CatBoostRegressor(iterations=1000, learning_rate=0.05, depth=6, l2_leaf_reg=3, loss_function='RMSE', random_state=42)
     models['cat'], r2_scores['cat'] = train_model(cat_model, X_train, y_train, X_val, y_val, 'CatBoost', cat_features=cat_features)
-    print("\n[STEP 5] Ensemble and Final Evaluation...")
+    print("\n[STEP 5] Individual Model Test Performance...")
+    # 개별 모델들의 Test 성능 측정
+    pred_xgb = models['xgb'].predict(X_test)
+    pred_lgb = models['lgb'].predict(X_test)
+    pred_cat = models['cat'].predict(X_test)
+    
+    test_r2_xgb = r2_score(y_test, pred_xgb)
+    test_r2_lgb = r2_score(y_test, pred_lgb)
+    test_r2_cat = r2_score(y_test, pred_cat)
+    
+    test_rmse_xgb = np.sqrt(mean_squared_error(y_test, pred_xgb))
+    test_rmse_lgb = np.sqrt(mean_squared_error(y_test, pred_lgb))
+    test_rmse_cat = np.sqrt(mean_squared_error(y_test, pred_cat))
+    
+    print("Individual Model Test Performance:")
+    print(f"  XGBoost Test - R2: {test_r2_xgb:.4f}, RMSE: {test_rmse_xgb:.4f}")
+    print(f"  LightGBM Test - R2: {test_r2_lgb:.4f}, RMSE: {test_rmse_lgb:.4f}")
+    print(f"  CatBoost Test - R2: {test_r2_cat:.4f}, RMSE: {test_rmse_cat:.4f}")
+    
+    # 최고 성능 모델 찾기
+    test_scores = {'XGBoost': test_r2_xgb, 'LightGBM': test_r2_lgb, 'CatBoost': test_r2_cat}
+    best_model_name = max(test_scores.keys(), key=lambda x: test_scores[x])
+    best_r2 = test_scores[best_model_name]
+    
+    print(f"\nBest Individual Model: {best_model_name} (R2: {best_r2:.4f})")
+    
+    print("\n[STEP 6] Ensemble Comparison...")
     weights = np.array(list(r2_scores.values()))
     weights[weights < 0] = 0
     if weights.sum() == 0:
@@ -118,18 +144,27 @@ def main():
     else:
         weights /= weights.sum()
     print(f"Ensemble Weights: XGB={weights[0]:.3f}, LGB={weights[1]:.3f}, CAT={weights[2]:.3f}")
-    pred_xgb = models['xgb'].predict(X_test)
-    pred_lgb = models['lgb'].predict(X_test)
-    pred_cat = models['cat'].predict(X_test)
+    
     y_pred_ensemble = pred_xgb * weights[0] + pred_lgb * weights[1] + pred_cat * weights[2]
-    final_r2 = r2_score(y_test, y_pred_ensemble)
-    final_rmse = np.sqrt(mean_squared_error(y_test, y_pred_ensemble))
+    ensemble_r2 = r2_score(y_test, y_pred_ensemble)
+    ensemble_rmse = np.sqrt(mean_squared_error(y_test, y_pred_ensemble))
+    
     print("-" * 50)
-    print(f"Final Ensemble Model Performance on Test Set:")
-    print(f"  R2 Score: {final_r2:.4f}")
-    print(f"  RMSE: {final_rmse:.4f}")
+    print(f"Ensemble Model Performance on Test Set:")
+    print(f"  R2 Score: {ensemble_r2:.4f}")
+    print(f"  RMSE: {ensemble_rmse:.4f}")
     print("-" * 50)
-    print("\n[STEP 6] Saving final models and feature list...")
+    
+    # 최종 모델 선택
+    if best_r2 > ensemble_r2:
+        print(f"\nRECOMMENDATION: Use {best_model_name} (R2: {best_r2:.4f} > Ensemble R2: {ensemble_r2:.4f})")
+        final_model_choice = best_model_name
+        final_r2 = best_r2
+    else:
+        print(f"\nRECOMMENDATION: Use Ensemble (R2: {ensemble_r2:.4f} > Best Individual: {best_r2:.4f})")
+        final_model_choice = "Ensemble"
+        final_r2 = ensemble_r2
+    print("\n[STEP 7] Saving final models and feature list...")
     output_dir = "app/ml/saved_models"
     os.makedirs(output_dir, exist_ok=True)
     joblib.dump(models['xgb'], os.path.join(output_dir, "final_xgb_satis_model.pkl"))
@@ -139,7 +174,7 @@ def main():
     with open(os.path.join(output_dir, "final_ensemble_satis_config.json"), "w") as f:
         json.dump(ensemble_config, f, indent=4)
     print("Models and config saved successfully.")
-    print("\n[STEP 7] Generating feature importance plots...")
+    print("\n[STEP 8] Generating feature importance plots...")
     plot_feature_importance(models['xgb'], feature_cols, 'XGBoost')
     plot_feature_importance(models['lgb'], feature_cols, 'LightGBM')
     cat_fi = models['cat'].get_feature_importance(prettified=True)
