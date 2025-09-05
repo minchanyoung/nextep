@@ -1,15 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-optimized_satis_trainer_like_income.py
-
-- 목표(Target): satisfaction_change_score (만족도 변화량)
-- 분할(네 기존 로직 유지): Test = 최신 연도(연도 max), Train/Val = 나머지 8:2 (연도 기준 stratify)
-- 누수 방지: 직군 통계(job_category 별 평균) 등은 'train'에서만 산출 후 val/test에 merge
-- 모델: XGBoost / LightGBM / CatBoost
-- 비교: 각 모델 Test 성능(R2, RMSE) + 가중 앙상블 (val R2 기반)
-- 산출물: 저장된 모델 + 앙상블 설정(JSON) + 중요도 PNG
-"""
-
 import os, json, warnings
 warnings.filterwarnings('ignore')
 
@@ -27,7 +15,7 @@ import seaborn as sns
 import joblib
 
 # =============================================================================
-# 1) 고급 피처 엔지니어링 (네 기존 로직 유지)
+# 1) 고급 피처 엔지니어링
 # =============================================================================
 def create_advanced_features_satis(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values(['pid', 'year']).reset_index(drop=True)
@@ -62,7 +50,7 @@ def create_advanced_features_satis(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # =============================================================================
-# 2) 분할 + 누수 방지용 통계 피처 (네 기존 전략 유지)
+# 2) 분할 + 누수 방지용 통계 피처
 #    - Test: 최신 연도(연도 max)
 #    - Train/Val: 나머지에서 8:2, stratify by year
 # =============================================================================
@@ -101,7 +89,7 @@ def split_and_add_stats(df: pd.DataFrame):
     return train_df, val_df, test_df, latest_year
 
 # =============================================================================
-# 3) 학습/평가 & 시각화 유틸 (소득 스크립트 형식)
+# 3) 학습/평가 & 시각화 유틸
 # =============================================================================
 def train_one(model, X_tr, y_tr, X_val, y_val, name, cat_features_idx=None):
     print(f"--- Training {name} ---")
@@ -138,7 +126,7 @@ def plot_feature_importance(model, features, model_name, save_dir):
     print(f"[저장] {path}")
 
 # =============================================================================
-# 4) 메인: 학습 → 평가 → 저장 (소득 스크립트 포맷)
+# 4) 메인: 학습 → 평가 → 저장
 # =============================================================================
 def main():
     print("="*80)

@@ -290,7 +290,7 @@ def tune_catboost(X_train, y_train):
     return search.best_estimator_
 
 def tune_lightgbm(X_train, y_train):
-
+    """속도/안정성 고려 버전: RandomizedSearch + TSCV"""
     tscv = TimeSeriesSplit(n_splits=3)
 
     base = lgb.LGBMRegressor(
@@ -305,14 +305,13 @@ def tune_lightgbm(X_train, y_train):
     )
 
     param_dist = {
-        "num_leaves": [95, 127, 255],
-        "max_depth": [10, 30, 50],
-        "learning_rate": [0.05, 0.1, 0.2],
-        "subsample": [0.7, 0.8, 0.9],
-        "colsample_bytree": [0.7, 0.8, 1.0],
+        "num_leaves": [31, 63, 95],
+        "max_depth": [-1, 6, 10],
+        "subsample": [0.8, 1.0],
+        "colsample_bytree": [0.8, 1.0],
         "min_child_samples": [20, 40, 60],
-        "reg_alpha": [0.3, 0.4, 0.5],
-        "reg_lambda": [0.3, 0.4, 0.5],
+        "reg_alpha": [0.0, 0.1, 0.3],
+        "reg_lambda": [0.0, 0.1, 0.3],
     }
 
     search = RandomizedSearchCV(
