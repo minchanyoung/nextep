@@ -186,10 +186,11 @@ class Settings:
     
     def _validate_settings(self):
         """설정 검증"""
-        if not self.security.secret_key:
+        if not self.security.secret_key or len(self.security.secret_key) < 32:
             print("=" * 80, file=sys.stderr)
-            print("FATAL: SECRET_KEY is not configured in the .env file or environment variables.", file=sys.stderr)
-            print("Please set a strong, unique SECRET_KEY.", file=sys.stderr)
+            print("FATAL: SECRET_KEY is not configured or too weak.", file=sys.stderr)
+            print("SECRET_KEY must be at least 32 characters long.", file=sys.stderr)
+            print("Please set a strong, unique SECRET_KEY in .env file.", file=sys.stderr)
             print("=" * 80, file=sys.stderr)
             sys.exit(1)
     

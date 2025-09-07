@@ -63,7 +63,7 @@ def check_ml_setup():
         }
         
         try:
-            from app.ml.routes import run_prediction_with_proper_features
+            from app.ml.routes import run_prediction
             results = run_prediction_with_proper_features(user_input)
             print(f"✓ 예측 성공: {results}")
             

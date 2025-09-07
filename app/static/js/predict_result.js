@@ -132,19 +132,23 @@ document.addEventListener('DOMContentLoaded', function () {
         // 소득 비교 차트
         incomeChart = createScenarioChart(document.getElementById('incomeChart').getContext('2d'), {
             labels: initialLabels,
-            data: predictionResults.map(r => (r.income_change_rate * 100).toFixed(1))
+            data: predictionResults.map(r => r && r.income_change_rate !== undefined ? (r.income_change_rate * 100).toFixed(1) : '0.0')
         }, '월 소득 변화율 (%)');
 
         // 만족도 비교 차트
         satisfactionChart = createScenarioChart(document.getElementById('satisfactionChart').getContext('2d'), {
             labels: initialLabels,
-            data: predictionResults.map(r => r.satisfaction_change_score.toFixed(2))
+            data: predictionResults.map(r => r && r.satisfaction_change_score !== undefined ? r.satisfaction_change_score.toFixed(2) : '0.00')
         }, '직무 만족도 변화 (점)');
 
         // 분포 차트 (첫 번째 추천 결과 기준)
         const recommendedResult = predictionResults[0]; // 초기값
-        incomeDistributionChart = createDistributionChart(document.getElementById('incomeDistributionChart').getContext('2d'), recommendedResult.distribution.income, '소득 변화율 (%)');
-        satisfactionDistributionChart = createDistributionChart(document.getElementById('satisfactionDistributionChart').getContext('2d'), recommendedResult.distribution.satisfaction, '만족도 변화 (점)');
+        if (recommendedResult && recommendedResult.distribution && recommendedResult.distribution.income) {
+            incomeDistributionChart = createDistributionChart(document.getElementById('incomeDistributionChart').getContext('2d'), recommendedResult.distribution.income, '소득 변화율 (%)');
+        }
+        if (recommendedResult && recommendedResult.distribution && recommendedResult.distribution.satisfaction) {
+            satisfactionDistributionChart = createDistributionChart(document.getElementById('satisfactionDistributionChart').getContext('2d'), recommendedResult.distribution.satisfaction, '만족도 변화 (점)');
+        }
     };
 
     /**
@@ -155,20 +159,27 @@ document.addEventListener('DOMContentLoaded', function () {
         const weightIncome = priority / 100;
         const weightSatis = 1 - weightIncome;
 
-        const incomeRates = predictionResults.map(r => r.income_change_rate);
-        const satisScores = predictionResults.map(r => r.satisfaction_change_score);
+        const incomeRates = predictionResults.map(r => r && r.income_change_rate !== undefined ? r.income_change_rate : 0);
+        const satisScores = predictionResults.map(r => r && r.satisfaction_change_score !== undefined ? r.satisfaction_change_score : 0);
         const minIncome = Math.min(...incomeRates), maxIncome = Math.max(...incomeRates);
         const minSatis = Math.min(...satisScores), maxSatis = Math.max(...satisScores);
 
         const normalizedScores = predictionResults.map(r => {
-            const normIncome = (maxIncome - minIncome) === 0 ? 0.5 : (r.income_change_rate - minIncome) / (maxIncome - minIncome);
-            const normSatis = (maxSatis - minSatis) === 0 ? 0.5 : (r.satisfaction_change_score - minSatis) / (maxSatis - minSatis);
+            if (!r) return 0;
+            const income = r.income_change_rate !== undefined ? r.income_change_rate : 0;
+            const satisfaction = r.satisfaction_change_score !== undefined ? r.satisfaction_change_score : 0;
+            const normIncome = (maxIncome - minIncome) === 0 ? 0.5 : (income - minIncome) / (maxIncome - minIncome);
+            const normSatis = (maxSatis - minSatis) === 0 ? 0.5 : (satisfaction - minSatis) / (maxSatis - minSatis);
             return (normIncome * weightIncome) + (normSatis * weightSatis);
         });
 
         const bestIndex = normalizedScores.indexOf(Math.max(...normalizedScores));
-        const scenarioNames = ['현직 유지', jobCategoryMapJs[jobASelect.value], jobCategoryMapJs[jobBSelect.value]];
-        const recommendedJobName = scenarioNames[bestIndex];
+        const scenarioNames = [
+            '현직 유지', 
+            jobCategoryMapJs[jobASelect?.value] || '직업군 A', 
+            jobCategoryMapJs[jobBSelect?.value] || '직업군 B'
+        ];
+        const recommendedJobName = scenarioNames[bestIndex] || '현직 유지';
 
         // 추천 사유 동적 생성
         let reason = '';
@@ -189,15 +200,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // 분포 차트 제목 및 데이터 업데이트
-        document.getElementById('distributionChartTitle').textContent = recommendedJobName;
-        const recommendedDist = predictionResults[bestIndex].distribution;
-        incomeDistributionChart.data.labels = recommendedDist.income.bins.slice(0, -1).map((b, i) => `${(b*100).toFixed(0)}~${(recommendedDist.income.bins[i+1]*100).toFixed(0)}%`);
-        incomeDistributionChart.data.datasets[0].data = recommendedDist.income.counts;
-        incomeDistributionChart.update();
+        const distributionChartTitleEl = document.getElementById('distributionChartTitle');
+        if (distributionChartTitleEl) {
+            distributionChartTitleEl.textContent = recommendedJobName;
+        }
+        
+        const recommendedDist = predictionResults[bestIndex]?.distribution;
+        if (recommendedDist && recommendedDist.income && incomeDistributionChart) {
+            incomeDistributionChart.data.labels = recommendedDist.income.bins.slice(0, -1).map((b, i) => `${(b*100).toFixed(0)}~${(recommendedDist.income.bins[i+1]*100).toFixed(0)}%`);
+            incomeDistributionChart.data.datasets[0].data = recommendedDist.income.counts;
+            incomeDistributionChart.update();
+        }
 
-        satisfactionDistributionChart.data.labels = recommendedDist.satisfaction.bins.slice(0, -1).map((b, i) => `${b.toFixed(1)}~${recommendedDist.satisfaction.bins[i+1].toFixed(1)}점`);
-        satisfactionDistributionChart.data.datasets[0].data = recommendedDist.satisfaction.counts;
-        satisfactionDistributionChart.update();
+        if (recommendedDist && recommendedDist.satisfaction && satisfactionDistributionChart) {
+            satisfactionDistributionChart.data.labels = recommendedDist.satisfaction.bins.slice(0, -1).map((b, i) => `${b.toFixed(1)}~${recommendedDist.satisfaction.bins[i+1].toFixed(1)}점`);
+            satisfactionDistributionChart.data.datasets[0].data = recommendedDist.satisfaction.counts;
+            satisfactionDistributionChart.update();
+        }
     };
 
     // --- 5. 이벤트 리스너 및 초기화 --- //
@@ -328,12 +347,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const jobAIncome = document.getElementById('jobAIncome');
         const jobASatis = document.getElementById('jobASatis');
         
-        if (jobAName && jobAResult) {
-            jobAName.textContent = jobCategoryMapJs[jobASelect.value];
-            jobAIncome.textContent = formatIncomeChange(jobAResult.income_change_rate);
-            jobAIncome.className = `value ${getChangeClass(jobAResult.income_change_rate)}`;
-            jobASatis.textContent = formatSatisfactionChange(jobAResult.satisfaction_change_score);
-            jobASatis.className = `value ${getChangeClass(jobAResult.satisfaction_change_score)}`;
+        if (jobAName && jobAResult && jobASelect) {
+            jobAName.textContent = jobCategoryMapJs[jobASelect.value] || '직업군 A';
+            if (jobAIncome && jobAResult.income_change_rate !== undefined) {
+                jobAIncome.textContent = formatIncomeChange(jobAResult.income_change_rate);
+                jobAIncome.className = `value ${getChangeClass(jobAResult.income_change_rate)}`;
+            }
+            if (jobASatis && jobAResult.satisfaction_change_score !== undefined) {
+                jobASatis.textContent = formatSatisfactionChange(jobAResult.satisfaction_change_score);
+                jobASatis.className = `value ${getChangeClass(jobAResult.satisfaction_change_score)}`;
+            }
         }
         
         // 직업군 B 카드 업데이트
@@ -344,12 +367,14 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (jobBResult && jobBCard) {
             jobBCard.style.display = 'block';
-            if (jobBName) jobBName.textContent = jobCategoryMapJs[jobBSelect.value];
-            if (jobBIncome) {
+            if (jobBName && jobBSelect) {
+                jobBName.textContent = jobCategoryMapJs[jobBSelect.value] || '직업군 B';
+            }
+            if (jobBIncome && jobBResult.income_change_rate !== undefined) {
                 jobBIncome.textContent = formatIncomeChange(jobBResult.income_change_rate);
                 jobBIncome.className = `value ${getChangeClass(jobBResult.income_change_rate)}`;
             }
-            if (jobBSatis) {
+            if (jobBSatis && jobBResult.satisfaction_change_score !== undefined) {
                 jobBSatis.textContent = formatSatisfactionChange(jobBResult.satisfaction_change_score);
                 jobBSatis.className = `value ${getChangeClass(jobBResult.satisfaction_change_score)}`;
             }
@@ -364,19 +389,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const updateCharts = () => {
         const labels = [
             '현직 유지',
-            jobCategoryMapJs[jobASelect.value],
-            jobCategoryMapJs[jobBSelect.value]
+            jobCategoryMapJs[jobASelect?.value] || '직업군 A',
+            jobCategoryMapJs[jobBSelect?.value] || '직업군 B'
         ].slice(0, predictionResults.length);
         
         // 소득 차트 업데이트
-        incomeChart.data.labels = labels;
-        incomeChart.data.datasets[0].data = predictionResults.map(r => (r.income_change_rate * 100).toFixed(1));
-        incomeChart.update();
+        if (incomeChart && predictionResults && predictionResults.length > 0) {
+            incomeChart.data.labels = labels;
+            incomeChart.data.datasets[0].data = predictionResults.map(r => 
+                r && r.income_change_rate !== undefined ? (r.income_change_rate * 100).toFixed(1) : '0.0'
+            );
+            incomeChart.update();
+        }
         
         // 만족도 차트 업데이트
-        satisfactionChart.data.labels = labels;
-        satisfactionChart.data.datasets[0].data = predictionResults.map(r => r.satisfaction_change_score.toFixed(2));
-        satisfactionChart.update();
+        if (satisfactionChart && predictionResults && predictionResults.length > 0) {
+            satisfactionChart.data.labels = labels;
+            satisfactionChart.data.datasets[0].data = predictionResults.map(r => 
+                r && r.satisfaction_change_score !== undefined ? r.satisfaction_change_score.toFixed(2) : '0.00'
+            );
+            satisfactionChart.update();
+        }
     };
 
     // 헬퍼 함수들 (백엔드와 일치)

@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash
 from datetime import timedelta
 from app import services
-from app.utils.session_utils import set_user_session, clear_user_session
+from app.utils.web_helpers import set_user_session, clear_user_session
 from . import bp
 
 @bp.route('/login', methods=('GET', 'POST'))
@@ -11,7 +11,6 @@ def login():
         password = request.form['password']
         
         if services.verify_user(username, password):
-            clear_user_session()
             set_user_session(username)
             # 로그인 성공 시 메인 페이지로 리디렉션
             return redirect(url_for('main.index'))

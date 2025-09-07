@@ -5,16 +5,48 @@ from app.constants import (
     JOB_CATEGORY_MAP, SATIS_FACTOR_MAP, EDUCATION_MAP,
     REQUIRED_PROFILE_FIELDS, DEFAULT_PREDICTION_RESULTS, MESSAGES
 )
-from app.utils.session_utils import (
-    get_current_username, is_user_logged_in, get_prediction_data,
-    set_prediction_data, get_chat_messages, set_chat_messages, add_chat_message
+from app.utils.web_helpers import (
+    get_prediction_data, set_prediction_data, login_required, 
+    get_current_user, handle_api_exception, success_response, error_response
 )
-from app.utils.auth_utils import login_required, get_current_user, require_profile_complete
-from app.utils.response_utils import json_response, error_response, success_response, handle_api_exception
 from . import bp
 import json
 
-# 상수들은 app.constants에서 임포트
+# --- 비공개 헬퍼 함수 ---
+
+def _get_alternative_jobs(current_job_code: str) -> tuple[str, str]:
+    """현재 직업을 기반으로 추천 직업 2개를 반환합니다."""
+    job_map = {
+        '1': ('2', '3'),
+        '2': ('3', '1'),
+        '3': ('2', '4'),
+    }
+    return job_map.get(current_job_code, ('2', '3'))
+
+def _create_user_input(source) -> dict:
+    """request.form 또는 user 객체로부터 user_input 딕셔너리를 생성합니다."""
+    is_form = hasattr(source, 'get')
+    
+    def get_val(key, default=None):
+        return source.get(key, default) if is_form else getattr(source, key, default)
+
+    current_job = str(get_val('job_category') or get_val('current_job_category', '3'))
+    job_A, job_B = _get_alternative_jobs(current_job)
+
+    user_input = {
+        'age': str(get_val('age')),
+        'gender': str(get_val('gender')),
+        'education': str(get_val('education')),
+        'monthly_income': str(get_val('monthly_income')),
+        'current_job_category': current_job,
+        'job_satisfaction': str(get_val('job_satisfaction')),
+        'job_A_category': job_A,
+        'job_B_category': job_B,
+    }
+    for key in SATIS_FACTOR_MAP.keys():
+        user_input[key] = str(get_val(key, 3))
+        
+    return user_input
 
 # --- 라우트 함수 ---
 @bp.route('/')
@@ -29,516 +61,131 @@ def about():
 def faq():
     return render_template('main/faq.html')
 
-@bp.route('/industry-form')
-def industry_form():
-    return render_template('main/industry_form.html')
-
-@bp.route('/industry-result')
-def industry_result():
-    range_limit = request.args.get('rangeLimit', 5, type=int)
-    main_type = request.args.get('detail', '0')
-    dummy_data_map = {
-        "2025_manufacturing": {"data": [1, 2, 3, 4, range_limit]},
-        "2025_it": {"data": [5, 4, 3, 2, 1]},
-    }
-    return render_template(
-        'main/industry_result.html',
-        data_map=dummy_data_map, range_limit=range_limit, main_type=main_type
-    )
-
 @bp.route('/predict', methods=['GET'])
 def predict():
-    """비회원/회원 모두 접근 가능한 예측 페이지"""
     user = get_current_user()
-
-    # 회원이면서 프로필이 완료된 경우 자동으로 예측 실행
-    if user and hasattr(user, 'age') and user.age:
-            # 사용자 프로필 데이터를 user_input 형식으로 변환
-            current_job = str(user.job_category)
-            
-            # 현재 직업과 다른 두 개의 인기 직업을 기본값으로 설정
-            if current_job == '2':  # 현재가 전문직이면
-                job_A, job_B = '3', '1'  # 사무직, 관리직
-            elif current_job == '3':  # 현재가 사무직이면
-                job_A, job_B = '2', '4'  # 전문직, 서비스직
-            elif current_job == '1':  # 현재가 관리직이면
-                job_A, job_B = '2', '3'  # 전문직, 사무직
-            else:  # 기타 직업의 경우
-                job_A, job_B = '2', '3'  # 전문직, 사무직
-                
-            user_input = {
-                'age': str(user.age),
-                'gender': str(user.gender),
-                'education': str(user.education),
-                'monthly_income': str(user.monthly_income),
-                'current_job_category': current_job,
-                'job_satisfaction': str(user.job_satisfaction),
-                'job_A_category': job_A,
-                'job_B_category': job_B,
-                # 9개 만족도 요인 추가
-                'satis_wage': str(user.satis_wage or 3),
-                'satis_stability': str(user.satis_stability or 3),
-                'satis_growth': str(user.satis_growth or 3),
-                'satis_task_content': str(user.satis_task_content or 3),
-                'satis_work_env': str(user.satis_work_env or 3),
-                'satis_work_time': str(user.satis_work_time or 3),
-                'satis_communication': str(user.satis_communication or 3),
-                'satis_fair_eval': str(user.satis_fair_eval or 3),
-                'satis_welfare': str(user.satis_welfare or 3)
-            }
-
-            try:
-                prediction_results = services.run_prediction(user_input)
-                set_prediction_data(user_input, prediction_results)
-                return redirect(url_for('main.predict_result'))
-            except Exception as e:
-                current_app.logger.error(f"자동 예측 중 오류 발생: {e}")
-                flash("프로필 기반 예측 중 오류가 발생했습니다. 수동으로 입력해주세요.")
-
-    # 비회원이거나 프로필이 완료되지 않은 회원의 경우 입력 폼 표시
-    return render_template('main/predict.html')
-
+    if user and user.age:
+        try:
+            user_input = _create_user_input(user)
+            prediction_results = services.run_prediction(user_input)
+            set_prediction_data(user_input, prediction_results)
+            return redirect(url_for('main.predict_result'))
+        except Exception as e:
+            current_app.logger.error(f"자동 예측 중 오류: {e}")
+            flash("프로필 기반 자동 예측 중 오류가 발생했습니다. 수동으로 입력해주세요.")
+    return render_template('main/predict.html', 
+                           job_category_map=JOB_CATEGORY_MAP,
+                           satis_factor_map=SATIS_FACTOR_MAP,
+                           education=EDUCATION_MAP)
 
 @bp.route('/predict-result', methods=['GET', 'POST'])
 def predict_result():
-    user_input = {}
-    prediction_results = []
-    error_message = None
     user = get_current_user()
-    is_guest = not user  # 비회원 여부 확인
+    is_guest = not user
+    error_message = None
 
     if request.method == 'POST':
-        user_input = request.form.to_dict()
-        
-        # AJAX 업데이트가 아닌, 최초 POST 요청 시에만 기본 직업군 A/B를 설정합니다.
-        if 'job_A_category' not in user_input or not user_input.get('job_A_category'):
-            current_job = user_input.get('current_job_category', '3')
-            
-            if current_job == '2':  # 현재가 전문직이면
-                user_input['job_A_category'] = '3'  # 사무직
-                user_input['job_B_category'] = '1'  # 관리직
-            elif current_job == '3':  # 현재가 사무직이면
-                user_input['job_A_category'] = '2'  # 전문직
-                user_input['job_B_category'] = '4'  # 서비스직
-            elif current_job == '1':  # 현재가 관리직이면
-                user_input['job_A_category'] = '2'  # 전문직
-                user_input['job_B_category'] = '3'  # 사무직
-            else:  # 기타 직업의 경우
-                user_input['job_A_category'] = '2'  # 전문직
-                user_input['job_B_category'] = '3'  # 사무직
-
-        current_app.logger.info(f"Prediction started with user_input: {user_input}")
-
+        user_input = _create_user_input(request.form)
+        current_app.logger.info(f"수동 예측 시작: {user_input}")
         try:
             prediction_results = services.run_prediction(user_input)
-            current_app.logger.info("Prediction successful.")
-            # 회원인 경우에만 세션에 저장
             if not is_guest:
                 set_prediction_data(user_input, prediction_results)
         except Exception as e:
-            tb_str = traceback.format_exc()
-            current_app.logger.error(f"An error occurred during prediction: {e}\n{tb_str}")
+            current_app.logger.error(f"수동 예측 중 오류: {e}", exc_info=True)
             prediction_results = DEFAULT_PREDICTION_RESULTS
-            error_message = "예측 중 오류가 발생했습니다. 입력값을 확인하거나 잠시 후 다시 시도해주세요."
-
-    elif request.method == 'GET':
-        # GET 요청은 회원만 가능 (세션 데이터 사용)
+            error_message = "예측 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+    else: # GET
         if is_guest:
-            flash("예측 데이터가 없습니다. 다시 예측을 시도해주세요.")
             return redirect(url_for('main.predict'))
-
         prediction_data = get_prediction_data()
-        if prediction_data:
-            user_input = prediction_data['user_input']
-            prediction_results = prediction_data['prediction_results']
-        else:
-            flash("예측 데이터가 없습니다. 다시 예측을 시도해주세요.")
+        if not prediction_data:
+            flash("세션에 예측 데이터가 없습니다. 다시 예측해주세요.")
             return redirect(url_for('main.predict'))
+        user_input = prediction_data['user_input']
+        prediction_results = prediction_data['prediction_results']
 
-    # AJAX 요청인 경우 JSON을 반환합니다.
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        current_app.logger.info(f"AJAX request detected. Returning JSON for: {user_input}")
         return jsonify(prediction_results=prediction_results)
     
-    # 일반 요청인 경우 전체 페이지를 렌더링합니다.
     return render_template(
         'main/predict_result.html',
         user_input=user_input,
         prediction_results=prediction_results,
         job_category_map=JOB_CATEGORY_MAP,
-        focus_key_name=SATIS_FACTOR_MAP.get(user_input.get('satis_focus_key')),
-        error_message=error_message,
         education=EDUCATION_MAP,
-        satis_focus_key=SATIS_FACTOR_MAP,
+        satis_factor_map=SATIS_FACTOR_MAP,
+        error_message=error_message,
         is_guest=is_guest
     )
 
-
-
-@bp.route('/advice', methods=['GET', 'POST'])
+@bp.route('/advice', methods=['GET'])
+@login_required
 def advice():
-    user = get_current_user()
-    is_guest = not user
+    prediction_data = get_prediction_data()
+    if not prediction_data:
+        flash("AI 조언을 위한 예측 데이터가 없습니다. 먼저 예측을 실행해주세요.")
+        return redirect(url_for('main.predict'))
     
-    # POST 요청인 경우 (비회원이 predict_result에서 넘어온 경우)
-    if request.method == 'POST':
-        # 폼 데이터에서 현재 직업 가져오기
-        current_job = request.form.get('current_job_category', '3')
-        
-        # 현재 직업과 다른 두 개의 인기 직업을 기본값으로 설정
-        if current_job == '2':  # 현재가 전문직이면
-            job_A, job_B = '3', '1'  # 사무직, 관리직
-        elif current_job == '3':  # 현재가 사무직이면
-            job_A, job_B = '2', '4'  # 전문직, 서비스직
-        elif current_job == '1':  # 현재가 관리직이면
-            job_A, job_B = '2', '3'  # 전문직, 사무직
-        else:  # 기타 직업의 경우
-            job_A, job_B = '2', '3'  # 전문직, 사무직
-        
-        user_input = {
-            'age': request.form.get('age'),
-            'gender': request.form.get('gender'),
-            'education': request.form.get('education'),
-            'monthly_income': request.form.get('monthly_income'),
-            'current_job_category': current_job,
-            'job_satisfaction': request.form.get('job_satisfaction'),
-            'satis_focus_key': request.form.get('satis_focus_key'),
-            'job_A_category': job_A,
-            'job_B_category': job_B,
-            # 9개 만족도 요인 추가
-            'satis_wage': request.form.get('satis_wage', '3'),
-            'satis_stability': request.form.get('satis_stability', '3'),
-            'satis_growth': request.form.get('satis_growth', '3'),
-            'satis_task_content': request.form.get('satis_task_content', '3'),
-            'satis_work_env': request.form.get('satis_work_env', '3'),
-            'satis_work_time': request.form.get('satis_work_time', '3'),
-            'satis_communication': request.form.get('satis_communication', '3'),
-            'satis_fair_eval': request.form.get('satis_fair_eval', '3'),
-            'satis_welfare': request.form.get('satis_welfare', '3')
-        }
-        
-        # 예측 결과 다시 생성 (비회원의 경우)
-        try:
-            prediction_results = services.run_prediction(user_input)
-        except Exception as e:
-            current_app.logger.error(f"비회원 AI 조언용 예측 중 오류 발생: {e}")
-            flash("예측 데이터 생성 중 오류가 발생했습니다. 다시 시도해주세요.")
-            return redirect(url_for('main.predict'))
-            
-    else:  # GET 요청인 경우 (회원이 세션 데이터 사용)
-        if is_guest:
-            flash("예측 데이터가 없습니다. 다시 예측을 시도해주세요.")
-            return redirect(url_for('main.predict'))
-            
-        prediction_data = get_prediction_data()
-        if not prediction_data:
-            flash("예측 데이터가 없습니다. 다시 예측을 시도해주세요.")
-            return redirect(url_for('main.predict'))
-        
-        user_input = prediction_data['user_input']
-        prediction_results = prediction_data['prediction_results']
+    user_input = prediction_data['user_input']
+    prediction_results = prediction_data['prediction_results']
 
     try:
         from app.chat_session import get_current_chat_session, clear_chat_session
+        clear_chat_session()
+        chat_session = get_current_chat_session()
         
-        # 회원의 경우에만 세션 관리 (비회원은 일회성)
-        if not is_guest:
-            # 새로운 상담을 위해 기존 세션 초기화
-            clear_chat_session()
+        ai_advice = services.generate_career_advice(user_input, prediction_results)
+        context_summary = services.summarize_context(user_input, prediction_results)
         
-        # AI 조언 생성
-        ai_advice = services.generate_career_advice_hf(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
-        context_summary = services.summarize_context(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
-        
-        # 회원의 경우에만 채팅 세션 설정
-        if not is_guest:
-            # 새 채팅 세션에 컨텍스트 설정
-            chat_session = get_current_chat_session()
-            chat_session.set_user_context(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
-            
-            # 초기 메시지들을 채팅 세션에 저장
-            chat_session.add_message("assistant", context_summary, {"type": "context_summary"})
-            chat_session.add_message("assistant", ai_advice, {"type": "initial_advice"})
-            
-            # 통합 시스템 프롬프트 사용
-            from app.prompt_templates import prompt_manager
-            system_prompt = prompt_manager.get_conversational_system_prompt()
-            
-            # 기존 호환성을 위한 세션 저장
-            chat_messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "assistant", "content": context_summary},
-                {"role": "assistant", "content": ai_advice}
-            ]
-            session['chat_messages'] = chat_messages
+        chat_session.set_user_context(user_input, prediction_results)
+        chat_session.add_message("assistant", context_summary, {"type": "context_summary"})
+        chat_session.add_message("assistant", ai_advice, {"type": "initial_advice"})
 
     except Exception as e:
-        current_app.logger.error(f"AI 조언 생성 페이지 오류: {e}")
-        ai_advice = "AI 조언을 생성하기 위한 데이터를 불러오는 데 실패했습니다. 예측 페이지로 돌아가 다시 시도해주세요."
+        current_app.logger.error(f"AI 조언 생성 오류: {e}", exc_info=True)
+        ai_advice = "AI 조언 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
 
-    return render_template('main/advice.html', ai_advice=ai_advice, is_guest=is_guest)
-
-@bp.route('/db-test')
-def db_test():
-    try:
-        status = services.example_db_query()
-        return f"<h1>DB 테스트 결과: {status}</h1>"
-    except Exception as e:
-        current_app.logger.error(f"DB 테스트 실패: {e}")
-        return f"<h1>DB 테스트 실패: {e}</h1>"
-
-@bp.route('/ml-status')
-def ml_status():
-    """ML 모델 상태 확인용 디버그 엔드포인트"""
-    try:
-        ml_resources = current_app.extensions.get('ml_resources', {})
-        
-        status_html = "<h1>ML 모델 상태 확인</h1>"
-        status_html += f"<p>app.extensions 존재: {'ml_resources' in current_app.extensions}</p>"
-        status_html += f"<p>ML resources keys: {list(ml_resources.keys())}</p>"
-        
-        for key in ['lgb_income', 'cat_satis', 'klips_df', 'job_category_stats', 'income_features', 'satis_features']:
-            if key in ml_resources and ml_resources[key] is not None:
-                if key == 'klips_df':
-                    status_html += f"<p>✅ {key}: {len(ml_resources[key])} rows</p>"
-                elif key in ['income_features', 'satis_features']:
-                    status_html += f"<p>✅ {key}: {len(ml_resources[key])} features</p>"
-                elif key == 'job_category_stats':
-                    status_html += f"<p>✅ {key}: {len(ml_resources[key])} categories</p>"
-                else:
-                    status_html += f"<p>✅ {key}: Loaded</p>"
-            else:
-                status_html += f"<p>❌ {key}: Not loaded</p>"
-        
-        return status_html
-        
-    except Exception as e:
-        current_app.logger.error(f"ML 상태 확인 실패: {e}")
-        return f"<h1>ML 상태 확인 실패: {e}</h1>"
-
-@bp.route('/ask-ai', methods=['POST'])
-@handle_api_exception
-def ask_ai():
-    from app.chat_session import get_current_chat_session
-    
-    data = request.get_json()
-    user_message = data.get('message')
-    client_history = data.get('history', [])
-    use_streaming = data.get('streaming', False)  # 스트리밍 옵션
-
-    if not user_message:
-        return error_response('메시지가 없습니다.', 400)
-
-    user = get_current_user()
-    is_guest = not user
-
-    try:
-        if is_guest:
-            # 비회원의 경우 간단한 컨텍스트 사용 (세션 관리 없음)
-            context_summary = "비회원 사용자의 추가 질문입니다. 일반적인 커리어 조언을 제공해주세요."
-            
-            if use_streaming:
-                return json.dumps({'use_streaming': True, 'message': '스트리밍 모드로 전환합니다.'})
-            else:
-                # 비회원용 간단한 AI 응답
-                reply = services.generate_follow_up_advice(user_message, client_history, context_summary)
-                return json_response({'reply': reply})
-        else:
-            # 회원의 경우 기존 로직 사용
-            # 개선된 세션 관리 시스템 사용
-            chat_session = get_current_chat_session()
-            context_summary = chat_session.get_context_summary()
-            
-            # 사용자 메시지 저장
-            chat_session.add_message("user", user_message)
-            
-            if use_streaming:
-                # 스트리밍 응답은 직접 처리하지 않고 클라이언트에서 별도 요청하도록 함
-                return json.dumps({'use_streaming': True, 'message': '스트리밍 모드로 전환합니다.'})
-            else:
-                # 컨텍스트를 포함하여 서비스 호출
-                reply = services.generate_follow_up_advice(user_message, client_history, context_summary)
-                
-                # AI 응답 저장
-                chat_session.add_message("assistant", reply)
-                
-                # 기존 호환성을 위한 세션 업데이트
-                add_chat_message("user", user_message)
-                add_chat_message("assistant", reply)
-                
-                return json_response({'reply': reply})
-            
-    except Exception as e:
-        current_app.logger.error(f"AI 추가 질문 처리 중 오류 발생: {e}")
-        return error_response('AI 응답 생성 중 오류가 발생했습니다.', 500)
+    return render_template('main/advice.html', ai_advice=ai_advice)
 
 @bp.route('/ask-ai-stream', methods=['POST'])
+@login_required
 def ask_ai_stream():
-    """스트리밍 응답을 위한 새로운 엔드포인트"""
     from flask import Response
     from app.chat_session import get_current_chat_session
     import time
     
     data = request.get_json()
     user_message = data.get('message')
-    client_history = data.get('history', [])
-
     if not user_message:
-        return json.dumps({'error': '메시지가 없습니다.'}), 400
-
-    user = get_current_user()
-    is_guest = not user
+        return Response(json.dumps({'error': '메시지가 없습니다.'}), status=400, mimetype='application/json')
 
     def generate_stream():
         try:
-            if is_guest:
-                # 비회원의 경우 간단한 컨텍스트 사용
-                context_summary = "비회원 사용자의 추가 질문입니다. 일반적인 커리어 조언을 제공해주세요."
-                
-                full_response = ""
-                
-                # 비회원용 스트리밍 응답 생성
-                for chunk in services.generate_follow_up_advice_stream(user_message, client_history, context_summary):
-                    if chunk and chunk.strip():
-                        full_response += chunk
-                        # SSE 형식으로 전송
-                        yield f"data: {json.dumps({'chunk': chunk, 'done': False})}"
-                        time.sleep(0.01)  # 스트리밍 효과를 위한 작은 딜레이
-                
-                # 완료 시그널과 함께 전체 응답 전송
-                yield f"data: {json.dumps({'chunk': '', 'done': True, 'full_response': full_response})}"
-                
-            else:
-                # 회원의 경우 기존 로직 사용
-                # 개선된 세션 관리 사용
-                chat_session = get_current_chat_session()
-                context_summary = chat_session.get_context_summary()
-                
-                # 사용자 메시지 저장 (아직 저장되지 않은 경우)
-                if not chat_session.messages or chat_session.messages[-1]['content'] != user_message:
-                    chat_session.add_message("user", user_message)
-                
-                full_response = ""
-                
-                # 스트리밍 응답 생성 (컨텍스트 포함)
-                for chunk in services.generate_follow_up_advice_stream(user_message, client_history, context_summary):
-                    if chunk and chunk.strip():
-                        full_response += chunk
-                        # SSE 형식으로 전송
-                        yield f"data: {json.dumps({'chunk': chunk, 'done': False})}"
-                        time.sleep(0.01)  # 스트리밍 효과를 위한 작은 딜레이
-                
-                # AI 응답을 채팅 세션에 저장
-                chat_session.add_message("assistant", full_response, {"streaming": True})
-                
-                # 완료 시그널과 함께 전체 응답 전송
-                yield f"data: {json.dumps({'chunk': '', 'done': True, 'full_response': full_response})}"
-                
-                # 기존 호환성을 위한 세션 업데이트
-                messages = session.get('chat_messages', [])
-                messages.append({"role": "user", "content": user_message})
-                messages.append({"role": "assistant", "content": full_response})
-                session['chat_messages'] = messages
+            chat_session = get_current_chat_session()
+            chat_session.add_message("user", user_message)
             
+            full_response = ""
+            for chunk in services.generate_follow_up_advice_stream(chat_session):
+                if chunk and chunk.strip():
+                    full_response += chunk
+                    yield f"data: {json.dumps({'chunk': chunk})}"
+                    time.sleep(0.01)
+            
+            chat_session.add_message("assistant", full_response, {"streaming": True})
+            yield f"data: {json.dumps({'done': True, 'full_response': full_response})}"
         except Exception as e:
             current_app.logger.error(f"스트리밍 AI 응답 중 오류: {e}")
             yield f"data: {json.dumps({'error': 'AI 응답 생성 중 오류가 발생했습니다.'})}"
 
-    return Response(
-        generate_stream(),
-        mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no'  # nginx 버퍼링 방지
-        }
-    )
-
-
-@bp.route('/chat/new', methods=['POST'])
-@handle_api_exception
-def new_chat():
-    """새로운 채팅 세션 시작"""
-    from app.chat_session import clear_chat_session
-    clear_chat_session()
-    return success_response('새로운 채팅을 시작했습니다.')
-
-@bp.route('/chat/history', methods=['GET'])
-def chat_history():
-    """현재 채팅 세션의 대화 기록 조회"""
-    from app.chat_session import get_current_chat_session
-    try:
-        chat_session = get_current_chat_session()
-        messages = chat_session.get_messages()
-        
-        # 클라이언트 형식으로 변환
-        formatted_messages = []
-        for msg in messages:
-            formatted_messages.append({
-                'sender': 'ai' if msg['role'] == 'assistant' else 'user',
-                'text': msg['content'],
-                'timestamp': msg.get('timestamp'),
-                'metadata': msg.get('metadata', {})
-            })
-        
-        return json.dumps({
-            'messages': formatted_messages,
-            'session_info': {
-                'created_at': chat_session.created_at.isoformat(),
-                'last_activity': chat_session.last_activity.isoformat(),
-                'context_summary': chat_session.get_context_summary()
-            }
-        })
-    except Exception as e:
-        current_app.logger.error(f"채팅 기록 조회 오류: {e}")
-        return json.dumps({'error': '채팅 기록 조회 중 오류가 발생했습니다.'}), 500
-
-@bp.route('/chat/context', methods=['GET'])
-def chat_context():
-    """채팅 컨텍스트 정보 조회"""
-    from app.chat_session import get_current_chat_session
-    try:
-        chat_session = get_current_chat_session()
-        return json.dumps({
-            'context_summary': chat_session.get_context_summary(),
-            'user_profile': chat_session.user_profile,
-            'has_prediction': bool(chat_session.prediction_context),
-            'message_count': len(chat_session.messages)
-        })
-    except Exception as e:
-        current_app.logger.error(f"채팅 컨텍스트 조회 오류: {e}")
-        return json.dumps({'error': '컨텍스트 조회 중 오류가 발생했습니다.'}), 500
+    return Response(generate_stream(), mimetype='text/event-stream')
 
 @bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     user = get_current_user()
-
     if request.method == 'POST':
-        # 프로필 업데이트 로직
-        age = request.form.get('age', type=int)
-        gender = request.form.get('gender', type=int)
-        education = request.form.get('education', type=int)
-        monthly_income = request.form.get('monthly_income', type=int)
-        job_category = request.form.get('job_category', type=int)
-        job_satisfaction = request.form.get('job_satisfaction', type=int)
-        
-        # 9개 만족도 요인 수집
-        satisfaction_factors = {
-            'satis_wage': request.form.get('satis_wage', type=int),
-            'satis_stability': request.form.get('satis_stability', type=int),
-            'satis_growth': request.form.get('satis_growth', type=int),
-            'satis_task_content': request.form.get('satis_task_content', type=int),
-            'satis_work_env': request.form.get('satis_work_env', type=int),
-            'satis_work_time': request.form.get('satis_work_time', type=int),
-            'satis_communication': request.form.get('satis_communication', type=int),
-            'satis_fair_eval': request.form.get('satis_fair_eval', type=int),
-            'satis_welfare': request.form.get('satis_welfare', type=int)
-        }
-
-        success = services.update_user_profile(
-            user.id, age, gender, education, monthly_income, job_category, job_satisfaction, **satisfaction_factors
-        )
+        success = services.update_user_profile(user.id, request.form.to_dict())
         if success:
             flash('프로필이 성공적으로 업데이트되었습니다.')
         else:
@@ -548,4 +195,22 @@ def profile():
     return render_template('main/profile.html', user=user,
                            job_category_map=JOB_CATEGORY_MAP,
                            satis_factor_map=SATIS_FACTOR_MAP,
-                           education_map=EDUCATION_MAP)
+                           education=EDUCATION_MAP)
+
+# --- 기타 디버그용 라우트 ---
+@bp.route('/db-test')
+def db_test():
+    try:
+        status = services.example_db_query()
+        return f"<h1>DB 테스트 결과: {status}</h1>"
+    except Exception as e:
+        return f"<h1>DB 테스트 실패: {e}</h1>", 500
+
+@bp.route('/ml-status')
+def ml_status():
+    """ML 모델 상태 확인용 디버그 엔드포인트"""
+    ml_resources = current_app.extensions.get('ml_resources', {})
+    status_html = "<h1>ML 모델 상태 확인</h1>"
+    for key in ['lgb_income', 'cat_satis', 'klips_df', 'job_category_stats', 'income_features', 'satis_features']:
+        status_html += f"<p>{'✅' if key in ml_resources and ml_resources[key] is not None else '❌'} {key}</p>"
+    return status_html

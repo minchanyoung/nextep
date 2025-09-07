@@ -382,7 +382,7 @@ def tune_catboost(X_train, y_train):
 
 
 def tune_lightgbm(X_train, y_train):
-    """속도/안정성 고려 버전: RandomizedSearch + TSCV"""
+    
     tscv = TimeSeriesSplit(n_splits=3)
 
     base = lgb.LGBMRegressor(

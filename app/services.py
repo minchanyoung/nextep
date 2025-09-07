@@ -73,36 +73,34 @@ def get_user_by_username(username):
 
 
 @safe_db_operation("사용자 프로필 업데이트")
-def update_user_profile(user_id, age, gender, education, monthly_income, job_category, job_satisfaction, **satisfaction_factors):
+def update_user_profile(user_id, profile_data: dict):
     """사용자 프로필 정보를 업데이트합니다."""
     user = User.query.get(user_id)
-    if user:
-        user.age = age
-        user.gender = gender
-        user.education = education
-        user.monthly_income = monthly_income
-        user.job_category = job_category
-        user.job_satisfaction = job_satisfaction
-        
-        # 9개 만족도 요인 업데이트
-        satisfaction_fields = [
-            'satis_wage', 'satis_stability', 'satis_growth', 'satis_task_content',
-            'satis_work_env', 'satis_work_time', 'satis_communication', 
-            'satis_fair_eval', 'satis_welfare'
-        ]
-        
-        for field in satisfaction_fields:
-            if field in satisfaction_factors:
-                setattr(user, field, satisfaction_factors[field])
-        
-        return True
-    return False
+    if not user:
+        return False
+    
+    # 데이터 타입 변환 및 모델 업데이트
+    for key, value in profile_data.items():
+        if hasattr(user, key):
+            try:
+                # 정수형으로 변환해야 하는 필드들
+                if key in ['age', 'gender', 'education', 'monthly_income', 'job_category', 'job_satisfaction'] or key.startswith('satis_'):
+                    if value is not None and value != '':
+                        setattr(user, key, int(value))
+                    else:
+                        setattr(user, key, None)
+                else:
+                    setattr(user, key, value)
+            except (ValueError, TypeError):
+                logger.warning(f"프로필 업데이트 중 값 변환 실패: {key}={value}")
+                continue # 변환 실패 시 해당 필드는 건너뜀
+    return True
 
 
 def verify_user(username, password):
     """사용자 이름과 비밀번호를 확인하여 로그인 인증을 수행합니다."""
     user = User.query.filter_by(username=username).first()
-    if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+    if user and bcrypt.checkpw(password.encode('utf-8'), user.password):
         return True
     return False
 
@@ -147,7 +145,7 @@ def run_prediction(user_input):
 
     # 새로운 피처 매칭 방식 사용
     logger.info("새로운 피처 매칭 방식으로 예측을 시작합니다.")
-    results = ml_routes.run_prediction_with_proper_features(user_input)
+    results = ml_routes.run_prediction(user_input)
     logger.info(f"예측 결과 받음: {results}")
     
     # KLIPS 취업자 데이터(월소득 100만원+) 기반 현실적 범위 적용
@@ -160,26 +158,26 @@ def run_prediction(user_input):
     REALISTIC_MIN_SATIS_CHANGE = -2.0    # -2점 (KLIPS 실제 분포)
     REALISTIC_MAX_SATIS_CHANGE = 2.0     # +2점 (KLIPS 실제 분포)
     
+    def clamp_value(value, min_val, max_val):
+        """값을 주어진 범위로 제한"""
+        return max(min_val, min(max_val, value))
+    
     for result in results:
         if 'income_change_rate' in result:
             original_rate = float(result['income_change_rate'])
-            # 현실적 범위로 제한 (KLIPS 94.7% 데이터 범위)
-            realistic_rate = max(REALISTIC_MIN_INCOME_CHANGE, 
-                               min(REALISTIC_MAX_INCOME_CHANGE, original_rate))
+            realistic_rate = clamp_value(original_rate, REALISTIC_MIN_INCOME_CHANGE, REALISTIC_MAX_INCOME_CHANGE)
             result['income_change_rate'] = float(realistic_rate)
             
-            if abs(original_rate - realistic_rate) > 0.001:
-                logger.warning(f"비현실적 예측값 조정: {original_rate*100:.2f}% -> {realistic_rate*100:.2f}%")
+            if abs(original_rate - realistic_rate) > 0.01:  # 1% 이상 차이날 때만 경고
+                logger.info(f"예측값 범위 조정: {original_rate*100:.1f}% -> {realistic_rate*100:.1f}%")
         
         if 'satisfaction_change_score' in result:
             original_satis = float(result['satisfaction_change_score'])
-            # 현실적 범위로 제한
-            realistic_satis = max(REALISTIC_MIN_SATIS_CHANGE,
-                                min(REALISTIC_MAX_SATIS_CHANGE, original_satis))
+            realistic_satis = clamp_value(original_satis, REALISTIC_MIN_SATIS_CHANGE, REALISTIC_MAX_SATIS_CHANGE)
             result['satisfaction_change_score'] = float(realistic_satis)
             
-            if abs(original_satis - realistic_satis) > 0.001:
-                logger.warning(f"비현실적 만족도 조정: {original_satis:.3f}점 -> {realistic_satis:.3f}점")
+            if abs(original_satis - realistic_satis) > 0.1:  # 0.1점 이상 차이날 때만 경고
+                logger.info(f"만족도 범위 조정: {original_satis:.1f}점 -> {realistic_satis:.1f}점")
     
     logger.info(f"KLIPS 현실적 범위 적용 완료: {results}")
     return results
@@ -442,6 +440,3 @@ def get_enhanced_career_advice(user_message: str, rag_results: List[Dict]) -> st
         raise LLMServiceError(f"향상된 조언 생성 중 오류: {str(e)}")
 
 
-# 호환성을 위한 유틸리티 함수들
-from app.utils.math_utils import cosine_similarity
-from app.utils.flask_utils import get_llm_service as _get_llm_service
