@@ -127,7 +127,6 @@ def create_user(username, password, email):
 
 def run_prediction(user_input):
     """사용자 입력을 받아 예측 시나리오를 구성하고, 머신러닝 모델을 호출합니다."""
-    from app.ml.preprocessing import prepare_prediction_features
     from app.ml import routes as ml_routes
 
     # MLPredictor 클래스를 여기서 정의하여 필요한 데이터만 명시적으로 전달
