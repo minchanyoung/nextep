@@ -226,6 +226,11 @@ def retrieve_learning_recommendations(query_text: str, top_n: int = 2) -> str:
         return ""
 
 
+def generate_career_advice(user_input, prediction_results):
+    """커리어 조언 생성 - 메인 인터페이스 함수"""
+    from app.main.routes import JOB_CATEGORY_MAP, SATIS_FACTOR_MAP
+    return generate_career_advice_hf(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
+
 def generate_career_advice_hf(user_input, prediction_results, job_category_map, satis_factor_map):
     """LangChain 기반 커리어 조언 생성 (PDF 데이터 통합 RAG)"""
     try:
@@ -385,7 +390,12 @@ def generate_follow_up_advice_stream(user_message: str, chat_history: List[Dict]
         yield "스트리밍 응답 생성 중 오류가 발생했습니다."
 
 
-def summarize_context(user_input: Dict, prediction_results: List, job_category_map: Dict, satis_factor_map: Dict) -> str:
+def summarize_context(user_input: Dict, prediction_results: List) -> str:
+    """컨텍스트 요약 - 메인 인터페이스 함수"""
+    from app.main.routes import JOB_CATEGORY_MAP, SATIS_FACTOR_MAP
+    return summarize_context_hf(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
+
+def summarize_context_hf(user_input: Dict, prediction_results: List, job_category_map: Dict, satis_factor_map: Dict) -> str:
     """컨텍스트 요약 (대화 세션용)"""
     try:
         current_job = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')

@@ -1,0 +1,329 @@
+NEXTEP.AI 프로젝트 보고서 - 주요 서비스 기능 및 소스 코드 정리
+================================================================
+
+🤖 1. 머신러닝 항목
+================================================================
+
+1-1. 머신러닝 피처 엔지니어링 및 시나리오 생성
+파일: app/ml/preprocessing.py (19줄~48줄)
+-----------------------------------------------------------------
+def prepare_income_model_features(user_input, ml_predictor):
+    """
+    소득 모델을 위한 정확한 피처 생성
+    """
+    from flask import current_app
+    
+    # 기본 시나리오 3개(현직, 직업A, 직업B) 생성
+    scenarios = []
+    job_categories = [
+        user_input["current_job_category"],
+        user_input["job_A_category"], 
+        user_input["job_B_category"]
+    ]
+
+    for i, job_cat_code in enumerate(job_categories):
+        scenario = {
+            "age": int(user_input["age"]),
+            "gender": int(user_input["gender"]),
+            "education": int(user_input["education"]),
+            "monthly_income": int(user_input["monthly_income"]),
+            "job_satisfaction": int(user_input["job_satisfaction"]),
+            "job_category": int(job_cat_code)
+        }
+        scenarios.append(scenario)
+
+    df = pd.DataFrame(scenarios)
+
+    # prev_job_satisfaction 추가
+    df['prev_job_satisfaction'] = df['job_satisfaction']
+
+
+1-2. LightGBM 소득 예측 모델 
+파일: app/ml/routes.py (174줄~207줄)
+-----------------------------------------------------------------
+            income_model_features = [income_row.get(f, 0.0) for f in income_features]
+            income_input = np.array(income_model_features).reshape(1, -1)
+            base_income_change = float(lgb_income_model.predict(income_input)[0])
+            
+            # 직업별 소득 변화율 보정 (강력한 차별화)
+            current_job = int(user_input["current_job_category"])
+            target_job = income_row.get('job_category', current_job)
+            
+            if target_job != current_job:  # 이직 시나리오
+                # 직업별 기본 소득 프리미엄/디스카운트 적용
+                job_income_multiplier = {
+                    1: 1.20,  # 관리자 - 20% 소득 프리미엄
+                    2: 1.35,  # 전문가 - 35% 소득 프리미엄 (최고)
+                    3: 1.05,  # 사무직 - 5% 소득 프리미엄 (안정적)
+                    4: 0.90,  # 서비스직 - 10% 소득 감소 위험
+                    5: 1.15   # 판매직 - 15% 소득 변동성 (성과 기반)
+                }.get(target_job, 1.0)
+                
+                # 현재 직업에서의 이직 난이도 보정
+                job_transition_difficulty = {
+                    1: 0.15,  # 관리자로 이직 - 어려움 (소득 증가 제한)
+                    2: 0.25,  # 전문가로 이직 - 매우 어려움 (큰 소득 증가 가능)
+                    3: 0.05,  # 사무직으로 이직 - 쉬움 (소득 변화 적음)
+                    4: -0.10, # 서비스직으로 이직 - 소득 감소 위험
+                    5: 0.10   # 판매직으로 이직 - 변동성 큼
+                }.get(target_job, 0.0)
+                
+                income_change = base_income_change * job_income_multiplier + job_transition_difficulty
+            else:
+                # 현직 유지 - 기본 예측값 사용 (소폭 보정)
+                income_change = base_income_change * 1.02  # 2% 안정성 보너스
+            
+            # 현실적 범위로 제한
+            income_change = max(-0.50, min(1.00, income_change))
+
+
+1-3. 앙상블 만족도 예측 시스템 (XGBoost + LightGBM + CatBoost)
+파일: app/ml/routes.py (216줄~243줄)
+-----------------------------------------------------------------
+            predictions = []
+            for name, model in ensemble_models.items():
+                if model:
+                    try:
+                        if name == 'cat':
+                            # CatBoost용 데이터프레임 생성 (카테고리형 피처 타입 보정)
+                            cat_df = pd.DataFrame([satis_model_features], columns=satis_features)
+                            
+                            # 카테고리형 피처들을 정수로 변환 (CatBoost 요구사항)
+                            categorical_features = ['age', 'gender', 'education', 'job_category', 'career_stage']
+                            for cat_col in categorical_features:
+                                if cat_col in cat_df.columns:
+                                    cat_df[cat_col] = cat_df[cat_col].astype(int)
+                            
+                            pred = float(model.predict(cat_df)[0])
+                        else:
+                            pred = float(model.predict(satis_input)[0])
+                        predictions.append((pred, weights.get(name, 0.33)))
+                    except Exception as e:
+                        logger.warning(f"{name} 만족도 모델 예측 실패: {e}")
+            
+            if predictions:
+                weighted_sum = sum(pred * w for pred, w in predictions)
+                total_weight = sum(w for _, w in predictions)
+                satis_change = weighted_sum / total_weight if total_weight > 0 else 0.0
+            else:
+                satis_change = 0.0 # 모든 만족도 모델 실패 시
+
+
+================================================================
+🌐 2. Flask 항목 
+================================================================
+
+2-1. 동적 예측 API 라우트 (AJAX 지원)
+파일: app/main/routes.py (88줄~118줄)
+-----------------------------------------------------------------
+    if request.method == 'POST':
+        # POST 요청 시 항상 새로운 예측 실행 (AJAX 포함)
+        user_input = _create_user_input(request.form)
+        
+        # 디버깅: 폼 데이터와 최종 user_input 로깅
+        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}폼 데이터 - 직업군A: {request.form.get('job_A_category')}, 직업군B: {request.form.get('job_B_category')}")
+        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}최종 user_input: {user_input}")
+        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}예측 시작: 현직={user_input['current_job_category']}, A={user_input['job_A_category']}, B={user_input['job_B_category']}")
+        try:
+            prediction_results = services.run_prediction(user_input)
+            current_app.logger.info(f"예측 완료 - 결과 개수: {len(prediction_results)}")
+            
+            # 예측 결과 로깅 (디버깅용)
+            for i, result in enumerate(prediction_results):
+                current_app.logger.info(f"  시나리오 {i}: 소득변화={result.get('income_change_rate', 'N/A')}, "
+                                       f"만족도변화={result.get('satisfaction_change_score', 'N/A')}")
+            
+            if not is_guest:  # 회원의 경우 항상 세션 저장 (AJAX 포함)
+                set_prediction_data(user_input, prediction_results)
+                current_app.logger.info(f"세션 데이터 업데이트: 직업군A={user_input['job_A_category']}, 직업군B={user_input['job_B_category']}")
+        except Exception as e:
+            current_app.logger.error(f"예측 중 오류: {e}", exc_info=True)
+            prediction_results = DEFAULT_PREDICTION_RESULTS
+            error_message = "예측 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+
+    if is_ajax:
+        return jsonify({
+            'status': 'success',
+            'prediction_results': prediction_results,
+            'user_input': user_input,
+            'job_category_map': JOB_CATEGORY_MAP
+        })
+
+
+2-2. 드롭다운 값 추출 및 사용자 입력 생성
+파일: app/main/routes.py (35줄~51줄)
+-----------------------------------------------------------------
+    # 드롭다운에서 선택된 직업군 A, B 사용 (폼 데이터에서 직접)
+    job_A = str(get_val('job_A_category', '2'))  # 기본값 전문가
+    job_B = str(get_val('job_B_category', '4'))  # 기본값 서비스직
+    
+    # 만약 폼에서 값이 없으면 기존 로직 사용 (초기 로드 시)
+    if not is_form or not get_val('job_A_category'):
+        job_A, job_B = _get_alternative_jobs(current_job)
+
+    user_input = {
+        'age': str(get_val('age')),
+        'gender': str(get_val('gender')),
+        'education': str(get_val('education')),
+        'monthly_income': str(get_val('monthly_income')),
+        'current_job_category': current_job,
+        'job_satisfaction': str(get_val('job_satisfaction')),
+        'job_A_category': job_A,
+        'job_B_category': job_B,
+    }
+
+
+2-3. 세션 기반 사용자 데이터 관리 
+파일: app/utils/web_helpers.py (66줄~83줄)
+-----------------------------------------------------------------
+def get_prediction_data() -> Optional[Dict]:
+    """예측 데이터 가져오기"""
+    return session.get('prediction_data')
+
+def set_prediction_data(user_input: Dict, prediction_results: list) -> None:
+    """예측 데이터 설정"""
+    session['prediction_data'] = {
+        'user_input': user_input,
+        'prediction_results': prediction_results
+    }
+
+def get_chat_messages() -> list:
+    """채팅 메시지 가져오기"""
+    return session.get('chat_messages', [])
+
+def set_chat_messages(messages: list) -> None:
+    """채팅 메시지 설정"""
+    session['chat_messages'] = messages
+
+
+================================================================
+🧠 3. LLM 및 RAG 항목
+================================================================
+
+3-1. RAG 기반 커리어 조언 생성
+파일: app/services.py (234줄~270줄)
+-----------------------------------------------------------------
+def generate_career_advice_hf(user_input, prediction_results, job_category_map, satis_factor_map):
+    """LangChain 기반 커리어 조언 생성 (PDF 데이터 통합 RAG)"""
+    try:
+        llm_service = get_llm_service()
+        rag_manager = get_rag_manager()
+        
+        if not llm_service:
+            raise LLMServiceError("LLM 서비스를 사용할 수 없습니다.")
+        
+        # RAG 검색을 위한 통합 쿼리 생성
+        current_job_name = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')
+        job_a_name = job_category_map.get(user_input.get('job_A_category', ''), '알 수 없음')
+        job_b_name = job_category_map.get(user_input.get('job_B_category', ''), '알 수 없음')
+        
+        search_query = f"""
+        {current_job_name} 직업에서 {job_a_name} {job_b_name} 이직 상담 커리어 조언 직업만족도 개선방안
+        연령: {user_input.get('age', '?')}세
+        월소득: {user_input.get('monthly_income', '?')}만원
+        직업만족도: {user_input.get('job_satisfaction', '?')}/5점
+        """
+        
+        # RAG를 통한 관련 문서 검색
+        relevant_docs = ""
+        if rag_manager:
+            try:
+                relevant_docs = rag_manager.search_documents(search_query, top_k=5)
+            except Exception as e:
+                logger.warning(f"RAG 검색 실패: {e}")
+
+        # 사용자 만족도 요인 분석
+        satis_factors = []
+        for key in ['satis_wage', 'satis_stability', 'satis_growth', 'satis_task_content', 
+                   'satis_work_env', 'satis_work_time', 'satis_communication', 'satis_fair_eval', 'satis_welfare']:
+            value = user_input.get(key, 3)
+            factor_name = satis_factor_map.get(key, key)
+            satis_factors.append(f"{factor_name}: {value}/5점")
+
+
+3-2. 스트리밍 대화형 조언 시스템
+파일: app/services.py (332줄~390줄)
+-----------------------------------------------------------------
+def generate_follow_up_advice_stream(user_message: str, chat_history: List[Dict], context_summary: str = "") -> Iterator[str]:
+    """LangChain 기반 스트리밍 추가 질문 응답"""
+    try:
+        llm_service = get_llm_service()
+        rag_manager = get_rag_manager()
+        
+        if not llm_service:
+            raise LLMServiceError("LLM 서비스를 사용할 수 없습니다.")
+            
+        # 대화 기록을 텍스트로 변환 (최근 5개만)
+        history_text = ""
+        if chat_history:
+            recent_messages = chat_history[-5:]
+            history_text = "\n".join([
+                f"{msg.get('role', '사용자')}: {msg.get('content', '')}" 
+                for msg in recent_messages 
+                if msg.get('content')
+            ])
+        
+        # RAG 검색으로 추가 컨텍스트 획득
+        additional_context = ""
+        if rag_manager:
+            try:
+                additional_context = rag_manager.search_documents(user_message, top_k=3)
+            except Exception as e:
+                logger.warning(f"RAG 검색 실패: {e}")
+        
+        # 스트리밍 응답을 위한 프롬프트 구성
+        stream_response = llm_service.generate_streaming_response({
+            "context_summary": context_summary or "이전 커리어 분석 결과 없음",
+            "chat_history": history_text or "이전 대화 기록 없음",
+            "additional_context": additional_context or "추가 참고 정보 없음",
+            "user_question": user_message
+        })
+        
+        # 스트리밍 텍스트를 청크 단위로 반환
+        for chunk in stream_response:
+            if chunk and chunk.strip():
+                yield chunk
+                
+    except Exception as e:
+        logger.error(f"스트리밍 조언 생성 실패: {e}")
+        yield "스트리밍 응답 생성 중 오류가 발생했습니다."
+
+
+3-3. 컨텍스트 요약 및 채팅 세션 관리
+파일: app/services.py (398줄~410줄)
+-----------------------------------------------------------------
+def summarize_context_hf(user_input: Dict, prediction_results: List, job_category_map: Dict, satis_factor_map: Dict) -> str:
+    """컨텍스트 요약 (대화 세션용)"""
+    try:
+        current_job = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')
+        focus_key = satis_factor_map.get(user_input.get('satis_focus_key'), '지정되지 않음')
+        
+        summary = f"""사용자 정보: {user_input.get('age', '?')}세, {current_job}, 월소득 {user_input.get('monthly_income', '?')}만원
+중요 가치: {focus_key}
+AI 예측을 바탕으로 커리어 조언을 제공했습니다."""
+        
+        return summary
+    except Exception as e:
+        logger.error(f"컨텍스트 요약 실패: {e}")
+        return "컨텍스트 요약에 실패했습니다."
+
+
+================================================================
+📊 기술 스택 요약
+================================================================
+
+머신러닝:
+- LightGBM (소득 예측)
+- XGBoost, LightGBM, CatBoost (만족도 앙상블 예측)
+- 한국노동패널(KLIPS) 117,397건 데이터 학습
+
+Flask:
+- 동적 AJAX API
+- 세션 기반 상태 관리
+- 실시간 드롭다운 연동
+
+LLM & RAG:
+- Ollama LLM (로컬 실행)
+- LangChain 프레임워크
+- PDF 문서 기반 RAG 검색
+- 스트리밍 대화형 응답

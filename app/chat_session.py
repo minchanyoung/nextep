@@ -64,14 +64,14 @@ class ChatSession:
     def set_user_context(self, user_input: Dict, prediction_results: List[Dict], 
                         job_category_map: Dict, satis_factor_map: Dict):
         """사용자 컨텍스트 설정"""
-        from app.services import summarize_context
+        from app.services import summarize_context_hf
         
         self.prediction_context = {
             'user_input': user_input,
             'prediction_results': prediction_results,
             'job_category_map': job_category_map,
             'satis_factor_map': satis_factor_map,
-            'prediction_summary': summarize_context(user_input, prediction_results, job_category_map, satis_factor_map)
+            'prediction_summary': summarize_context_hf(user_input, prediction_results, job_category_map, satis_factor_map)
         }
         
         # 사용자 프로필 정보 저장

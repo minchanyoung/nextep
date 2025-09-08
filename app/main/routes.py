@@ -109,8 +109,9 @@ def predict_result():
                 current_app.logger.info(f"  시나리오 {i}: 소득변화={result.get('income_change_rate', 'N/A')}, "
                                        f"만족도변화={result.get('satisfaction_change_score', 'N/A')}")
             
-            if not is_guest and not is_ajax:  # 일반 POST 요청만 세션 저장
+            if not is_guest:  # 회원의 경우 항상 세션 저장 (AJAX 포함)
                 set_prediction_data(user_input, prediction_results)
+                current_app.logger.info(f"세션 데이터 업데이트: 직업군A={user_input['job_A_category']}, 직업군B={user_input['job_B_category']}")
         except Exception as e:
             current_app.logger.error(f"예측 중 오류: {e}", exc_info=True)
             prediction_results = DEFAULT_PREDICTION_RESULTS
@@ -179,7 +180,7 @@ def advice():
         ai_advice = services.generate_career_advice(user_input, prediction_results)
         context_summary = services.summarize_context(user_input, prediction_results)
         
-        chat_session.set_user_context(user_input, prediction_results)
+        chat_session.set_user_context(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
         chat_session.add_message("assistant", context_summary, {"type": "context_summary"})
         chat_session.add_message("assistant", ai_advice, {"type": "initial_advice"})
 

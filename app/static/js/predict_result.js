@@ -266,6 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateResultCards();
                 updateCharts();
                 updateRecommendation();
+                updateAdviceButton();  // AI 조언 버튼 업데이트 추가
                 console.log('UI 업데이트 완료');
             } else {
                 console.error('서버 응답 데이터 오류:', data);
@@ -473,6 +474,36 @@ document.addEventListener('DOMContentLoaded', function () {
             );
             satisfactionChart.update();
         }
+    };
+
+    /**
+     * AI 조언 버튼의 hidden 필드를 업데이트하는 함수
+     */
+    const updateAdviceButton = () => {
+        console.log('AI 조언 버튼 업데이트 시작');
+        
+        // 비회원용 폼의 hidden 필드 업데이트
+        const adviceForm = document.querySelector('.advice-link-wrapper form');
+        if (adviceForm) {
+            const jobAInput = adviceForm.querySelector('input[name="job_A_category"]');
+            const jobBInput = adviceForm.querySelector('input[name="job_B_category"]');
+            
+            if (jobAInput && jobASelect) {
+                const oldValueA = jobAInput.value;
+                jobAInput.value = jobASelect.value;
+                console.log(`AI 조언 - 직업군A 업데이트: ${oldValueA} -> ${jobASelect.value}`);
+            }
+            
+            if (jobBInput && jobBSelect) {
+                const oldValueB = jobBInput.value;
+                jobBInput.value = jobBSelect.value;
+                console.log(`AI 조언 - 직업군B 업데이트: ${oldValueB} -> ${jobBSelect.value}`);
+            }
+        }
+        
+        // 회원용의 경우 세션 업데이트가 필요하지만, 
+        // 현재 구조에서는 서버에서 최신 세션 데이터를 사용하도록 되어 있음
+        console.log('AI 조언 버튼 업데이트 완료');
     };
 
     // 헬퍼 함수들 (백엔드와 일치)
