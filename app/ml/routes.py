@@ -175,7 +175,7 @@ def run_prediction(user_input):
             income_input = np.array(income_model_features).reshape(1, -1)
             base_income_change = float(lgb_income_model.predict(income_input)[0])
             
-            # 직업별 소득 변화율 보정 (강력한 차별화)
+            # 직업별 소득 변화율 보정
             current_job = int(user_input["current_job_category"])
             target_job = income_row.get('job_category', current_job)
             
@@ -218,10 +218,10 @@ def run_prediction(user_input):
                 if model:
                     try:
                         if name == 'cat':
-                            # CatBoost용 데이터프레임 생성 (카테고리형 피처 타입 보정)
+                            # CatBoost용 데이터프레임 생성
                             cat_df = pd.DataFrame([satis_model_features], columns=satis_features)
                             
-                            # 카테고리형 피처들을 정수로 변환 (CatBoost 요구사항)
+                            # 카테고리형 피처들을 정수로 변환 
                             categorical_features = ['age', 'gender', 'education', 'job_category', 'career_stage']
                             for cat_col in categorical_features:
                                 if cat_col in cat_df.columns:
@@ -239,7 +239,7 @@ def run_prediction(user_input):
                 total_weight = sum(w for _, w in predictions)
                 satis_change = weighted_sum / total_weight if total_weight > 0 else 0.0
             else:
-                satis_change = 0.0 # 모든 만족도 모델 실패 시
+                satis_change = 0.0
 
             distribution = generate_distribution_data(user_input, scenario_type, income_change, satis_change)
             

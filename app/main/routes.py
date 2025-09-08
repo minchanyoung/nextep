@@ -32,14 +32,10 @@ def _create_user_input(source) -> dict:
 
     current_job = str(get_val('job_category') or get_val('current_job_category', '3'))
     
-    # 드롭다운에서 선택된 직업군 A, B 사용 (폼 데이터에서 직접)
+    # 드롭다운에서 선택된 직업군 A, B 사용
     job_A = str(get_val('job_A_category', '2'))  # 기본값 전문가
     job_B = str(get_val('job_B_category', '4'))  # 기본값 서비스직
     
-    # 만약 폼에서 값이 없으면 기존 로직 사용 (초기 로드 시)
-    if not is_form or not get_val('job_A_category'):
-        job_A, job_B = _get_alternative_jobs(current_job)
-
     user_input = {
         'age': str(get_val('age')),
         'gender': str(get_val('gender')),
@@ -93,29 +89,9 @@ def predict_result():
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if request.method == 'POST':
-        # POST 요청 시 항상 새로운 예측 실행 (AJAX 포함)
+        # POST 요청 시 항상 새로운 예측 실행
         user_input = _create_user_input(request.form)
         
-        # 디버깅: 폼 데이터와 최종 user_input 로깅
-        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}폼 데이터 - 직업군A: {request.form.get('job_A_category')}, 직업군B: {request.form.get('job_B_category')}")
-        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}최종 user_input: {user_input}")
-        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}예측 시작: 현직={user_input['current_job_category']}, A={user_input['job_A_category']}, B={user_input['job_B_category']}")
-        try:
-            prediction_results = services.run_prediction(user_input)
-            current_app.logger.info(f"예측 완료 - 결과 개수: {len(prediction_results)}")
-            
-            # 예측 결과 로깅 (디버깅용)
-            for i, result in enumerate(prediction_results):
-                current_app.logger.info(f"  시나리오 {i}: 소득변화={result.get('income_change_rate', 'N/A')}, "
-                                       f"만족도변화={result.get('satisfaction_change_score', 'N/A')}")
-            
-            if not is_guest:  # 회원의 경우 항상 세션 저장 (AJAX 포함)
-                set_prediction_data(user_input, prediction_results)
-                current_app.logger.info(f"세션 데이터 업데이트: 직업군A={user_input['job_A_category']}, 직업군B={user_input['job_B_category']}")
-        except Exception as e:
-            current_app.logger.error(f"예측 중 오류: {e}", exc_info=True)
-            prediction_results = DEFAULT_PREDICTION_RESULTS
-            error_message = "예측 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
     else: # GET
         if is_guest:
             return redirect(url_for('main.predict'))

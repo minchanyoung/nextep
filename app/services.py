@@ -232,7 +232,7 @@ def generate_career_advice(user_input, prediction_results):
     return generate_career_advice_hf(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
 
 def generate_career_advice_hf(user_input, prediction_results, job_category_map, satis_factor_map):
-    """LangChain 기반 커리어 조언 생성 (PDF 데이터 통합 RAG)"""
+    """LangChain 기반 커리어 조언 생성"""
     try:
         llm_service = get_llm_service()
         rag_manager = get_rag_manager()
@@ -244,9 +244,8 @@ def generate_career_advice_hf(user_input, prediction_results, job_category_map, 
         current_job_name = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')
         job_a_name = job_category_map.get(user_input.get('job_A_category', ''), '알 수 없음')
         job_b_name = job_category_map.get(user_input.get('job_B_category', ''), '알 수 없음')
-        focus_key_name = satis_factor_map.get(user_input.get('satis_focus_key'), '지정되지 않음')
         
-        comprehensive_query = f"{current_job_name} 직업의 전망과 {focus_key_name} 가치를 높이기 위한 역량 개발 방법. {job_a_name} 또는 {job_b_name}으로의 이직 고려. 2024년 및 2025년 노동 시장 동향 포함."
+        comprehensive_query = f"{current_job_name} 직업의 전망과 커리어 발전을 위한 역량 개발 방법. {job_a_name} 또는 {job_b_name}으로의 이직 고려. 2024년 및 2025년 노동 시장 동향 포함."
         
         rag_context = ""
         if rag_manager:
@@ -351,7 +350,7 @@ def generate_follow_up_advice_stream(user_message: str, chat_history: List[Dict]
             except Exception as e:
                 logger.warning(f"RAG 검색 실패: {e}")
         
-        # 대화 히스토리 포맷팅
+        # 대화 히스토리
         history_text = ""
         if chat_history:
             recent_history = chat_history[-6:]
@@ -360,7 +359,7 @@ def generate_follow_up_advice_stream(user_message: str, chat_history: List[Dict]
                 content = msg.get("content", "")
                 history_text += f"{role}: {content}\n"
         
-        # 통합 시스템 프롬프트 사용
+        # 시스템 프롬프트
         system_prompt = prompt_manager.get_streaming_system_prompt()
         
         # 스트리밍용 메시지 구성

@@ -17,9 +17,6 @@ JOB_TRANSFER_SUCCESS_RATES = {
 }
 
 def prepare_income_model_features(user_input, ml_predictor):
-    """
-    소득 모델을 위한 정확한 피처 생성
-    """
     from flask import current_app
     
     # 기본 시나리오 3개(현직, 직업A, 직업B) 생성
