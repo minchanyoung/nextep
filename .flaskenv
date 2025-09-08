@@ -6,3 +6,6 @@ FLASK_APP=run.py
 
 # 개발 모드 활성화 (디버거, 자동 리로드)
 FLASK_DEBUG=1
+
+# RunPod 추론 서버 URL
+INFERENCE_SERVER_URL=https://61kjvhsqmvhle0-8000.proxy.runpod.net/

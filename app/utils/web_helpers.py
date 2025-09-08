@@ -8,7 +8,7 @@ import uuid
 from functools import wraps
 from typing import Any, Dict, Optional
 
-from flask import flash, jsonify, redirect, session, url_for
+from flask import flash, jsonify, redirect, session, url_for, request
 
 # 이 파일이 다른 유틸리티에 의해 순환 참조될 수 있으므로, 
 # 뷰 함수나 모델 임포트는 함수 내에서 지역적으로 수행합니다.
@@ -22,6 +22,9 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_user_logged_in():
+            # AJAX 요청인지 확인
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': '로그인이 필요합니다.'}), 401
             flash('로그인이 필요합니다.')
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)

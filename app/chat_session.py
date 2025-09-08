@@ -44,22 +44,33 @@ class ChatSession:
     def get_context_summary(self) -> str:
         """대화 컨텍스트 요약 반환"""
         if not self.prediction_context:
-            return ""
+            return "사용자 정보가 없습니다."
         
-        context_parts = []
-        
+        summary_parts = []
+
         # 사용자 프로필 정보
         if self.user_profile:
-            profile_info = []
-            for key, value in self.user_profile.items():
-                profile_info.append(f"{key}: {value}")
-            context_parts.append(f"사용자 프로필 - {', '.join(profile_info)}")
-        
+            profile_items = []
+            # 원하는 순서대로 프로필 정보 추가
+            order = ['age', 'gender', 'current_job', 'income', 'focus_factor']
+            for key in order:
+                if key in self.user_profile:
+                    # 한글 키 이름으로 변경
+                    key_map = {
+                        'age': '나이', 'gender': '성별', 'current_job': '현재 직업',
+                        'income': '월소득', 'focus_factor': '중요 가치'
+                    }
+                    profile_items.append(f"{key_map.get(key, key)}: {self.user_profile[key]}")
+            if profile_items:
+                summary_parts.append(f"사용자 프로필: {', '.join(profile_items)}")
+
         # 예측 결과 요약
         if 'prediction_summary' in self.prediction_context:
-            context_parts.append(f"예측 분석 - {self.prediction_context['prediction_summary']}")
-        
-        return " | ".join(context_parts)
+            # prediction_summary가 이미 충분한 정보를 담고 있으므로 그대로 사용
+            # 필요하다면 여기서 추가 가공
+            summary_parts.append(f"AI 예측 요약: {self.prediction_context['prediction_summary']}")
+
+        return "\n".join(summary_parts)
     
     def set_user_context(self, user_input: Dict, prediction_results: List[Dict], 
                         job_category_map: Dict, satis_factor_map: Dict):

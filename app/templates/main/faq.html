@@ -64,7 +64,7 @@
                 <i class="fas fa-chevron-down accordion-arrow"></i>
             </button>
             <div class="accordion-body">
-                <p><strong>NEXTEP.AI는 한국노동패널(KLIPS) 22차년도 데이터를 기반으로 합니다.</strong> 한국노동연구원에서 1998년부터 매년 수집하고 있는 이 데이터는 개인과 가구의 경제활동 및 노동시장 이동을 추적한 종단면 데이터입니다.</p>
+                <p><strong>NEXTEP.AI는 한국노동패널(KLIPS) 데이터를 기반으로 합니다.</strong> 한국노동연구원에서 1998년부터 매년 수집하고 있는 이 데이터는 개인과 가구의 경제활동 및 노동시장 이동을 추적한 종단면 데이터입니다.</p>
                 <p>우리 서비스는 이 방대한 데이터 중 <strong>117,397건의 개인별 경력 변화 기록</strong>을 활용하여 소득 변화율과 직무 만족도 변화를 예측합니다. 최신 2023년 데이터를 테스트 세트로 활용하여 실제 예측 성능을 검증했으며, 데이터 누수 방지를 위한 엄격한 전처리 과정을 거쳤습니다.</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
@@ -85,7 +85,7 @@
                 <i class="fas fa-chevron-down accordion-arrow"></i>
             </button>
             <div class="accordion-body">
-                <p><strong>소득 예측에는 LightGBM, XGBoost, CatBoost 앙상블 모델을 사용합니다.</strong> 최적화된 앙상블 가중치(LightGBM 60%, XGBoost 40%)로 구성되며, 현재 최고 성능 모델인 LightGBM이 핵심 역할을 담당합니다.</p>
+                <p><strong>소득 예측에는 모든 알고리즘에서 최고 성능 모델인</strong> LightGBM 모델을 사용합니다.</p>
                 <p><strong>만족도 예측에는 XGBoost, LightGBM, CatBoost의 성능 기반 가중 앙상블</strong>을 사용합니다. CatBoost는 범주형 변수(직업, 학력 등)를 자동으로 처리하여 복합적인 만족도 변화를 더 정확하게 예측합니다.</p>
                 <p>모든 모델은 TimeSeriesSplit 교차 검증으로 최적화되었으며, 조기 종료(Early Stopping)를 통해 과적합을 방지합니다.</p>
                 <div class="feedback-widget">
@@ -109,14 +109,14 @@
             <div class="accordion-body">
                 <p><strong>소득 변화율 예측 모델:</strong></p>
                 <ul>
-                    <li>R² Score: 75.8% (최고 성능 모델 기준)</li>
-                    <li>RMSE: 0.186 (실제 검증 결과)</li>
+                    <li>R² Score: 67.5% (최고 성능 모델 기준)</li>
+                    <li>RMSE: 0.8534 (실제 검증 결과)</li>
                     <li>주요 피처: 개인별 소득 이력, 경력 단계, 교육 투자 수익률, 직업별 상대 위치</li>
                 </ul>
                 <p><strong>직무 만족도 변화 예측 모델:</strong></p>
                 <ul>
-                    <li>R² Score: 64.0% (앙상블 모델 기준)</li>
-                    <li>RMSE: 0.394 (실제 검증 결과)</li>
+                    <li>R² Score: 52.9% (앙상블 모델 기준)</li>
+                    <li>RMSE: 0.4151 (실제 검증 결과)</li>
                     <li>주요 피처: 9개 만족도 요인, 만족도 이력 패턴, 직업-개인 특성 상호작용</li>
                 </ul>
                 <p>이러한 성능 지표는 2022-2023년 실제 데이터로 검증된 결과이며, 시계열 피처 엔지니어링이 성능 향상에 결정적 역할을 했습니다.</p>

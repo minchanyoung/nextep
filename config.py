@@ -38,12 +38,8 @@ class Config:
     COMPRESS_LEVEL = _settings.compression['level']
     COMPRESS_MIN_SIZE = _settings.compression['min_size']
     
-    # Ollama 설정 (하위 호환성)
-    OLLAMA_URL = _settings.ollama.url
-    OLLAMA_MODEL = _settings.ollama.model
-    OLLAMA_EMBEDDING_MODEL = _settings.ollama.embedding_model
-    OLLAMA_TIMEOUT = _settings.ollama.timeout
-    OLLAMA_KEEP_ALIVE = _settings.ollama.keep_alive
+    # 추론 서버 설정 (마이그레이션 후)
+    INFERENCE_SERVER_URL = _settings.inference_server.url
     
     # LangChain 설정 (마이그레이션 후 추가)
     LANGCHAIN_VERBOSE = getattr(_settings, 'langchain_verbose', False)

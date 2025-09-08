@@ -24,38 +24,11 @@ class DatabaseSettings:
 
 
 @dataclass
-class OllamaSettings:
-    """Ollama LLM 설정"""
+class InferenceServerSettings:
+    """추론 서버 설정"""
     url: str
-    model: str
-    embedding_model: str
-    timeout: Optional[int]
-    keep_alive: str
-    
-    # 성능 옵션 (기본값은 _load_ollama_settings에서 관리)
-    num_ctx: int
-    temperature: float
-    top_p: float
-    top_k: int
-    repeat_penalty: float
-    num_predict: int
-    num_thread: int
-    num_gpu: int
-    num_batch: int
-    
-    def get_default_options(self) -> dict:
-        """Ollama API 요청에 사용할 기본 옵션 딕셔너리 반환"""
-        return {
-            "num_ctx": self.num_ctx,
-            "temperature": self.temperature,
-            "top_p": self.top_p,
-            "top_k": self.top_k,
-            "repeat_penalty": self.repeat_penalty,
-            "num_predict": self.num_predict,
-            "num_thread": self.num_thread,
-            "num_gpu": self.num_gpu,
-            "num_batch": self.num_batch
-        }
+    timeout: int = 60
+
 
 
 @dataclass
@@ -96,7 +69,7 @@ class Settings:
     
     def __init__(self):
         self.database = self._load_database_settings()
-        self.ollama = self._load_ollama_settings() 
+        self.inference_server = self._load_inference_server_settings() 
         self.security = self._load_security_settings()
         self.logging = self._load_logging_settings()
         self.cache = self._load_cache_settings()
@@ -128,23 +101,12 @@ class Settings:
         )
         return DatabaseSettings(uri=uri)
     
-    def _load_ollama_settings(self) -> OllamaSettings:
-        """Ollama 설정 로드"""
-        return OllamaSettings(
-            url=os.environ.get('OLLAMA_URL', 'http://localhost:11434'),
-            model=os.environ.get('OLLAMA_MODEL', 'exaone3.5:7.8b'),
-            embedding_model=os.environ.get('OLLAMA_EMBEDDING_MODEL', 'llama3:latest'),
-            timeout=self._get_optional_int('OLLAMA_TIMEOUT'),
-            keep_alive=os.environ.get('OLLAMA_KEEP_ALIVE', '30m'),
-            num_ctx=int(os.environ.get('OLLAMA_NUM_CTX', '2048')),
-            temperature=float(os.environ.get('OLLAMA_TEMPERATURE', '0.7')),
-            top_p=float(os.environ.get('OLLAMA_TOP_P', '0.9')),
-            top_k=int(os.environ.get('OLLAMA_TOP_K', '40')),
-            repeat_penalty=float(os.environ.get('OLLAMA_REPEAT_PENALTY', '1.1')),
-            num_predict=int(os.environ.get('OLLAMA_NUM_PREDICT', '1024')),
-            num_thread=int(os.environ.get('OLLAMA_NUM_THREAD', '-1')),
-            num_gpu=int(os.environ.get('OLLAMA_NUM_GPU', '0')),
-            num_batch=int(os.environ.get('OLLAMA_NUM_BATCH', '512'))
+    def _load_inference_server_settings(self) -> InferenceServerSettings:
+        """추론 서버 설정 로드"""
+        url = os.environ.get('INFERENCE_SERVER_URL', 'http://localhost:8000')
+        return InferenceServerSettings(
+            url=url,
+            timeout=int(os.environ.get('INFERENCE_SERVER_TIMEOUT', '60'))
         )
     
     def _load_security_settings(self) -> SecuritySettings:

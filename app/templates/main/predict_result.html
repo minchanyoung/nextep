@@ -197,7 +197,7 @@
                     <div class="sub-section methodology">
                         <h5>🔬 AI 예측 방법론</h5>
                         <p>
-                            본 예측은 <strong>한국노동패널(KLIPS) 117,397건 데이터</strong>를 학습한 최신 XGBoost 모델을 기반으로 합니다.
+                            본 예측은 <strong>한국노동패널(KLIPS) 117,397건 데이터</strong>를 학습한 최신 머신러닝 모델을 기반으로 합니다.
                             사용자가 입력한 <strong>9개 만족도 요인</strong>과 개인 특성을 종합 분석하여 1년 후 변화를 예측합니다.
                         </p>
                         
@@ -205,8 +205,8 @@
                             <div class="model-card">
                                 <div class="model-header">💰 소득 예측 모델</div>
                                 <ul>
-                                    <li><strong>알고리즘:</strong> XGBoost Regression</li>
-                                    <li><strong>예측 정확도:</strong> R² = 75.8%</li>
+                                    <li><strong>알고리즘:</strong> LightGBM</li>
+                                    <li><strong>예측 정확도:</strong> R² = 67.5%</li>
                                     <li><strong>주요 피처:</strong> 경력 단계, 교육 투자 수익률, 직업별 평균 소득 대비 상대 위치</li>
                                     <li><strong>예측 범위:</strong> -50% ~ +100% 변화율</li>
                                 </ul>
@@ -215,8 +215,8 @@
                             <div class="model-card">
                                 <div class="model-header">😊 만족도 예측 모델</div>
                                 <ul>
-                                    <li><strong>알고리즘:</strong> XGBoost Regression</li>
-                                    <li><strong>예측 정확도:</strong> R² = 64.0%</li>
+                                    <li><strong>알고리즘:</strong> Ensemble</li>
+                                    <li><strong>예측 정확도:</strong> R² = 52.9%</li>
                                     <li><strong>주요 피처:</strong> 9개 만족도 요인, 직업별 특성, 개인 이력 패턴</li>
                                     <li><strong>예측 범위:</strong> -2.5 ~ +2.5점 변화</li>
                                 </ul>
@@ -315,7 +315,7 @@
                             <div class="tech-content">
                                 <h6>데이터 처리 과정</h6>
                                 <div class="process-steps">
-                                    <div class="step">1. 한국노동패널 22차년도 데이터 전처리</div>
+                                    <div class="step">1. 한국노동패널 (KLPIS) 03차수 ~ 26차수 설문조사 데이터 전처리</div>
                                     <div class="step">2. 데이터 누수 방지를 위한 미래 정보 제거</div>
                                     <div class="step">3. 29개 고급 피처 엔지니어링</div>
                                     <div class="step">4. 교차 검증을 통한 모델 최적화</div>
@@ -324,12 +324,12 @@
                                 <h6>모델 성능 검증</h6>
                                 <div class="performance-metrics">
                                     <div class="metric">
-                                        <span class="metric-name">소득 모델 RMSE:</span>
-                                        <span class="metric-value">0.186</span>
+                                        <span class="metric-name">소득 모델 R²:</span>
+                                        <span class="metric-value">0.6752</span>
                                     </div>
                                     <div class="metric">
-                                        <span class="metric-name">만족도 모델 RMSE:</span>
-                                        <span class="metric-value">0.394</span>
+                                        <span class="metric-name">만족도 모델 R²:</span>
+                                        <span class="metric-value">0.5295</span>
                                     </div>
                                     <div class="metric">
                                         <span class="metric-name">학습 데이터 크기:</span>

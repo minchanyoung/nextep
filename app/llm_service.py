@@ -1,334 +1,190 @@
-"""
-LangChain 기반 LLM 서비스 (완전 마이그레이션 버전)
-기존 Ollama 직접 호출을 LangChain으로 완전 교체
-"""
-
-import os
 import logging
-from typing import List, Dict, Any, Iterator, Optional
-from flask import current_app
+import os
+import re
+from typing import List, Dict, Iterator, Optional
 
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import StrOutputParser
-from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain_core.callbacks.base import BaseCallbackHandler
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from app.core.exceptions import LLMServiceError
 from app.utils.error_handler import handle_service_exceptions
 
 logger = logging.getLogger(__name__)
 
+_MIN_READ_TIMEOUT = int(os.getenv("LLM_MIN_READ_TIMEOUT", "300"))
 
-class StreamingCallbackHandler(BaseCallbackHandler):
-    """스트리밍을 위한 콜백 핸들러"""
-    
-    def __init__(self):
-        self.tokens = []
-        
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        """새 토큰이 생성될 때 호출"""
-        self.tokens.append(token)
-        
-    def get_tokens(self) -> List[str]:
-        """생성된 토큰들 반환"""
-        return self.tokens.copy()
-        
-    def clear_tokens(self):
-        """토큰 목록 초기화"""
-        self.tokens.clear()
+_ROLE_START = ["### Assistant:", "assistant:", "Assistant:", "어시스턴트:"]
+_ROLE_STOP  = ["### User:", "user:", "User:", "사용자:"]
 
+def _strip_roles(s: str) -> str:
+    if not s:
+        return s
+    cut = 0
+    for m in _ROLE_START:
+        i = s.rfind(m)
+        if i != -1:
+            cut = max(cut, i + len(m))
+    if cut:
+        s = s[cut:]
+    stop = len(s)
+    for m in _ROLE_STOP:
+        j = s.find(m)
+        if j != -1:
+            stop = min(stop, j)
+    return s[:stop].strip()
+
+_LEAK_PATTERNS = re.compile(r"(규칙]|구조]|프롬프트|당신은 .*?입니다|시스템 지침)", re.S)
+_REPEAT_FIX = re.compile(r"(\b[^\.!?]{3,}\b)([\.!?])(\s*\1\2)+")
+_LIST_FIX = re.compile(r"(,\s*)+", re.S)
+_BAN_PHRASE = re.compile(r"(4차 산업혁명,\s*AI,\s*IoT,\s*빅데이터,\s*클라우드,\s*블록체인,\s*사이버 보안)(?:\s*등)?", re.I)
+_EN_KO_SPAM = re.compile(r"(?i)\b(NEXTE?P?T?\s+(Korea\s+)?(Job|Labor)\s+(Market|Trend|Forecast|Analysis)|Career\s+(Development|Framework))\b(\s*\1\b)+")
+
+def _sanitize_output(s: str) -> str:
+    s = _LEAK_PATTERNS.sub("", s)
+    s = _BAN_PHRASE.sub("", s)
+    s = _EN_KO_SPAM.sub(r"\1", s)
+    s = _REPEAT_FIX.sub(r"\1\2", s)
+    s = _LIST_FIX.sub(r", ", s)
+    s = re.sub(r"(?m)^(.*)\n\1(\n|$)+", r"\1\2", s)
+    s = re.sub(r"[ \t]{2,}", " ", s)
+    return s.strip()
 
 class LLMService:
-    """LangChain 기반 완전 통합 LLM 서비스"""
-    
     def __init__(self, app=None):
-        # 기본값 설정
-        self.ollama_url = "http://localhost:11434"
-        self.ollama_model = "exaone3.5:7.8b"
-        self.ollama_embedding_model = "llama3"
-        self.ollama_timeout = None
-        self.default_options = {}
-        
-        # LangChain 컴포넌트
-        self.chat_model = None
-        self.embedding_model = None
-        self.output_parser = StrOutputParser()
-        
+        self.inference_server_url = ""
+        self.connect_timeout = 10
+        self.read_timeout = _MIN_READ_TIMEOUT
+        self._session = self._build_session()
         if app:
             self.init_app(app)
-    
-    def init_app(self, app):
-        """Flask 앱 초기화"""
+
+    def _build_session(self) -> requests.Session:
+        s = requests.Session()
+        retry = Retry(total=3, backoff_factor=0.8, status_forcelist=[429, 502, 503, 504], allowed_methods=["GET", "POST"], raise_on_status=False)
+        adapter = HTTPAdapter(max_retries=retry, pool_connections=32, pool_maxsize=64)
+        s.mount("https://", adapter)
+        s.mount("http://", adapter)
+        return s
+
+    def _load_timeouts_from_settings(self):
+        ct_env = os.getenv("LLM_CONNECT_TIMEOUT")
+        rt_env = os.getenv("LLM_READ_TIMEOUT")
+        ct = int(ct_env) if ct_env and ct_env.isdigit() else None
+        rt = int(rt_env) if rt_env and rt_env.isdigit() else None
         try:
-            # 설정 로드
             from app.config.settings import get_settings
-            settings = get_settings()
-            
-            self.ollama_url = settings.ollama.url
-            self.ollama_model = settings.ollama.model
-            self.ollama_embedding_model = settings.ollama.embedding_model
-            self.ollama_timeout = settings.ollama.timeout
-            self.default_options = settings.ollama.get_default_options()
-            
-            # LangChain 모델 초기화
-            self._initialize_models()
-            
-            app.extensions["llm_service"] = self
-            logger.info("LangChain 기반 LLM 서비스가 초기화되었습니다.")
-            
+            st = get_settings()
+            base = (st.inference_server.url or "").strip()
+            self.inference_server_url = base[:-1] if base.endswith("/") else base
+            if rt is None:
+                v = getattr(st.inference_server, "read_timeout", None)
+                if isinstance(v, (int, float)):
+                    rt = int(v)
+            if ct is None:
+                v = getattr(st.inference_server, "connect_timeout", None)
+                if isinstance(v, (int, float)):
+                    ct = int(v)
+            legacy = getattr(st.inference_server, "timeout", None)
+            if rt is None and isinstance(legacy, (int, float)):
+                rt = int(legacy)
         except Exception as e:
-            logger.error(f"LLM 서비스 초기화 실패: {e}")
-            raise e
-    
-    def _initialize_models(self):
-        """LangChain 모델들 초기화"""
-        try:
-            # 채팅 모델 초기화 (새로운 langchain-ollama 사용)
-            chat_params = {
-                "base_url": self.ollama_url,
-                "model": self.ollama_model,
-                "temperature": self.default_options.get('temperature', 0.6),
-                "num_ctx": self.default_options.get('num_ctx', 8192),
-                "num_predict": self.default_options.get('num_predict', -1),
-                "keep_alive": "30m"
-            }
-            
-            # timeout이 설정되어 있을 때만 추가
-            if self.ollama_timeout:
-                chat_params["timeout"] = self.ollama_timeout
-                
-            self.chat_model = ChatOllama(**chat_params)
-            
-            # 임베딩 모델 초기화 (새로운 langchain-ollama 사용)
-            embed_params = {
-                "base_url": self.ollama_url,
-                "model": self.ollama_embedding_model
-            }
-            
-            self.embedding_model = OllamaEmbeddings(**embed_params)
-            
-            logger.info("LangChain 모델 초기화 완료")
-            
-        except Exception as e:
-            logger.error(f"LangChain 모델 초기화 실패: {e}")
-            raise LLMServiceError(f"모델 초기화 실패: {str(e)}")
-    
-    def _messages_to_langchain(self, messages: List[Dict[str, str]]) -> List:
-        """기존 메시지 형식을 LangChain 메시지로 변환"""
-        langchain_messages = []
-        
-        for msg in messages:
-            role = msg.get("role", "")
-            content = msg.get("content", "")
-            
-            if role == "system":
-                langchain_messages.append(SystemMessage(content=content))
-            elif role == "user":
-                langchain_messages.append(HumanMessage(content=content))
-            elif role == "assistant":
-                langchain_messages.append(AIMessage(content=content))
-            else:
-                # 기본적으로 user로 처리
-                langchain_messages.append(HumanMessage(content=content))
-        
-        return langchain_messages
-    
-    @handle_service_exceptions("LLM")
-    def chat_sync(self, messages: List[Dict[str, str]], options: Optional[Dict] = None, template_type: str = None) -> str:
-        """동기 채팅 완성 (통합 프롬프트 시스템 지원)"""
-        try:
-            # 메시지 변환
-            langchain_messages = self._messages_to_langchain(messages)
-            
-            # 옵션 적용
-            if options:
-                # 동적으로 모델 옵션 업데이트
-                self.chat_model.temperature = options.get('temperature', self.chat_model.temperature)
-                self.chat_model.num_ctx = options.get('num_ctx', self.chat_model.num_ctx)
-                if 'num_predict' in options:
-                    self.chat_model.num_predict = options['num_predict']
-            
-            # 통합 프롬프트 시스템 사용 (선택적)
-            if template_type and len(langchain_messages) == 1 and langchain_messages[0].content:
-                from app.prompt_templates import prompt_manager
-                system_prompt = prompt_manager.get_unified_system_prompt(template_type)
-                # 시스템 프롬프트를 추가하여 사용자 메시지를 수정
-                from langchain_core.messages import SystemMessage
-                langchain_messages = [SystemMessage(content=system_prompt)] + langchain_messages
-            
-            # LangChain으로 응답 생성
-            response = self.chat_model.invoke(langchain_messages)
-            
-            # 응답 파싱
-            if hasattr(response, 'content'):
-                return response.content
-            else:
-                return str(response)
-                
-        except Exception as e:
-            logger.error(f"LangChain 채팅 완성 오류: {e}")
-            if "connection" in str(e).lower():
-                raise LLMServiceError("Ollama 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.")
-            elif "timeout" in str(e).lower():
-                raise LLMServiceError(f"요청 시간 초과 (설정: {self.ollama_timeout}초)")
-            elif "404" in str(e).lower():
-                raise LLMServiceError(f"모델 '{self.ollama_model}'을 찾을 수 없습니다.")
-            else:
-                raise LLMServiceError(f"LLM 처리 중 오류: {str(e)}")
-    
-    def chat_stream(self, messages: List[Dict[str, str]], options: Optional[Dict] = None, template_type: str = None) -> Iterator[str]:
-        """스트리밍 채팅 완성 (통합 프롬프트 시스템 지원)"""
-        try:
-            # 메시지 변환
-            langchain_messages = self._messages_to_langchain(messages)
-            
-            # 옵션 적용
-            if options:
-                self.chat_model.temperature = options.get('temperature', self.chat_model.temperature)
-                self.chat_model.num_ctx = options.get('num_ctx', self.chat_model.num_ctx)
-                if 'num_predict' in options:
-                    self.chat_model.num_predict = options['num_predict']
-            
-            # 통합 프롬프트 시스템 사용 (선택적)
-            if template_type and len(langchain_messages) == 1 and langchain_messages[0].content:
-                from app.prompt_templates import prompt_manager
-                system_prompt = prompt_manager.get_unified_system_prompt(template_type)
-                from langchain_core.messages import SystemMessage
-                langchain_messages = [SystemMessage(content=system_prompt)] + langchain_messages
-            
-            # 스트리밍 콜백 핸들러
-            streaming_handler = StreamingCallbackHandler()
-            
-            # 스트리밍으로 응답 생성
-            for chunk in self.chat_model.stream(langchain_messages, callbacks=[streaming_handler]):
-                if hasattr(chunk, 'content') and chunk.content:
-                    yield chunk.content
-                elif isinstance(chunk, str):
+            logger.warning(f"설정 로드 경고(기본값 사용): {e}")
+        self.connect_timeout = max(1, int(ct if ct is not None else self.connect_timeout))
+        self.read_timeout = int(rt if rt is not None else self.read_timeout)
+        if self.read_timeout < _MIN_READ_TIMEOUT:
+            logger.warning(f"read_timeout={self.read_timeout}s → 최소 {_MIN_READ_TIMEOUT}s로 상향")
+            self.read_timeout = _MIN_READ_TIMEOUT
+
+    def init_app(self, app):
+        self._load_timeouts_from_settings()
+        app.extensions["llm_service"] = self
+        logger.info(f"LLM 서비스 초기화: {self.inference_server_url} (timeout=(connect:{self.connect_timeout}s, read:{self.read_timeout}s))")
+
+    def _post_json(self, path: str, payload: dict) -> requests.Response:
+        url = f"{self.inference_server_url}{path if path.startswith('/') else '/' + path}"
+        t = (self.connect_timeout, self.read_timeout)
+        resp = self._session.post(url, json=payload, timeout=t)
+        if resp.status_code >= 400:
+            logger.error(f"[LLM] POST {url} -> {resp.status_code} {resp.text[:200]}")
+        resp.raise_for_status()
+        return resp
+
+    def _post_stream(self, path: str, payload: dict) -> Iterator[str]:
+        url = f"{self.inference_server_url}{path if path.startswith('/') else '/' + path}"
+        t = (self.connect_timeout, self.read_timeout)
+        with self._session.post(url, json=payload, timeout=t, stream=True) as resp:
+            if resp.status_code >= 400:
+                first = ""
+                try:
+                    first = next(resp.iter_content(1024)).decode("utf-8", "ignore")
+                except Exception:
+                    pass
+                logger.error(f"[LLM] STREAM {url} -> {resp.status_code} {first[:200]}")
+                resp.raise_for_status()
+            for chunk in resp.iter_content(chunk_size=1024, decode_unicode=True):
+                if chunk:
                     yield chunk
-                    
+
+    @handle_service_exceptions("LLM")
+    def chat_sync(self, messages: List[Dict[str, str]], options: Optional[Dict] = None) -> str:
+        try:
+            fixed: List[Dict[str, str]] = []
+            for i, m in enumerate(messages or []):
+                role = (m.get("role") or "").strip()
+                content = (m.get("content") or "").strip()
+                if role not in {"system", "user", "assistant"} or not content:
+                    raise LLMServiceError(f"messages[{i}] 형식 오류")
+                fixed.append({"role": role, "content": content})
+            if not fixed:
+                raise LLMServiceError("messages 가 비었습니다.")
+            
+            opts = options or {}
+            payload = {
+                "messages": fixed,
+                "max_new_tokens": int(opts.get("max_new_tokens", 1024)),
+                "temperature": float(opts.get("temperature", 0.7)),
+                "top_p": float(opts.get("top_p", 0.85)),
+            }
+
+            resp = self._post_json("/generate", payload)
+            data = resp.json()
+            return _sanitize_output(_strip_roles(data.get("result", "")))
         except Exception as e:
-            logger.error(f"LangChain 스트리밍 오류: {e}")
-            yield "AI 응답 생성 중 스트리밍 오류가 발생했습니다."
-    
+            raise LLMServiceError(f"LLM 처리 중 오류: {str(e)}")
+
+    def chat_stream(self, messages: List[Dict[str, str]], options: Optional[Dict] = None) -> Iterator[str]:
+        fixed = [{"role": (m.get("role") or "").strip(), "content": (m.get("content") or "").strip()} for m in (messages or [])]
+        if not fixed:
+            raise LLMServiceError("messages 가 비었습니다.")
+        opts = options or {}
+        payload = {
+            "messages": fixed,
+            "max_new_tokens": int(opts.get("max_new_tokens", 1024)),
+            "temperature": float(opts.get("temperature", 0.7)),
+            "top_p": float(opts.get("top_p", 0.85)),
+        }
+        for chunk in self._post_stream("/generate_stream", payload):
+            yield _sanitize_output(chunk)
+
     def generate_embedding(self, text: str, model_name: Optional[str] = None) -> List[float]:
-        """텍스트 임베딩 생성 (기존 API 호환)"""
-        try:
-            # 캐시 확인
-            from app.utils.cache_manager import get_cache_manager
-            cache_manager = get_cache_manager()
-            
-            model_to_use = model_name if model_name else self.ollama_embedding_model
-            
-            cached_embedding = cache_manager.get_embedding(text, model_to_use)
-            if cached_embedding is not None:
-                return cached_embedding
-            
-            # LangChain으로 임베딩 생성
-            if model_name and model_name != self.ollama_embedding_model:
-                # 다른 모델 사용시 임시 임베딩 모델 생성
-                temp_params = {
-                    "base_url": self.ollama_url,
-                    "model": model_name
-                }
-                if self.ollama_timeout:
-                    temp_params["timeout"] = self.ollama_timeout
-                    
-                temp_embedding_model = OllamaEmbeddings(**temp_params)
-                embedding = temp_embedding_model.embed_query(text)
-            else:
-                embedding = self.embedding_model.embed_query(text)
-            
-            # 캐시에 저장
-            cache_manager.cache_embedding(text, model_to_use, embedding)
-            
-            return embedding
-            
-        except Exception as e:
-            logger.error(f"LangChain 임베딩 생성 오류: {e}")
-            return []
-    
+        vecs = self.embed_documents([text])
+        return vecs[0] if vecs else []
+
+    def embed_query(self, text: str) -> List[float]:
+        return self.generate_embedding(text)
+
     def embed_documents(self, texts: List[str], model_name: Optional[str] = None) -> List[List[float]]:
-        """여러 문서 임베딩 생성 (배치 처리)"""
         try:
-            model_to_use = model_name if model_name else self.ollama_embedding_model
-            
-            if model_name and model_name != self.ollama_embedding_model:
-                temp_params = {
-                    "base_url": self.ollama_url,
-                    "model": model_name
-                }
-                if self.ollama_timeout:
-                    temp_params["timeout"] = self.ollama_timeout
-                    
-                temp_embedding_model = OllamaEmbeddings(**temp_params)
-                embeddings = temp_embedding_model.embed_documents(texts)
-            else:
-                embeddings = self.embedding_model.embed_documents(texts)
-            
-            return embeddings
-            
+            resp = self._post_json("/embed", {"texts": texts, "normalize": True})
+            data = resp.json()
+            return data.get("embeddings", [])
         except Exception as e:
-            logger.error(f"LangChain 배치 임베딩 생성 오류: {e}")
-            return [[] for _ in texts]
-    
-    def create_chain(self, template_type: str = "conversational", context: dict = None, **kwargs):
-        """LangChain 체인 생성 (통합 프롬프트 시스템 사용)"""
-        try:
-            from app.prompt_templates import prompt_manager
-            
-            # 통합 프롬프트 시스템 사용
-            system_prompt = prompt_manager.get_unified_system_prompt(template_type, context)
-            
-            # 프롬프트 템플릿 생성
-            prompt = ChatPromptTemplate.from_template(system_prompt + "\n\n{input}")
-            
-            # 체인 구성
-            chain = prompt | self.chat_model | self.output_parser
-            
-            return chain
-            
-        except Exception as e:
-            logger.error(f"LangChain 체인 생성 오류: {e}")
-            raise LLMServiceError(f"체인 생성 실패: {str(e)}")
-    
-    def create_conversational_chain(self, template_type="conversational"):
-        """대화형 체인 생성 (통합 프롬프트 사용)"""
-        try:
-            from app.prompt_templates import prompt_manager
-            
-            # 통합 프롬프트 시스템 사용
-            system_prompt = prompt_manager.get_unified_system_prompt(template_type)
-            
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                MessagesPlaceholder(variable_name="history"),
-                ("human", "{input}")
-            ])
-            
-            chain = prompt | self.chat_model | self.output_parser
-            
-            return chain
-            
-        except Exception as e:
-            logger.error(f"대화형 체인 생성 오류: {e}")
-            raise LLMServiceError(f"대화형 체인 생성 실패: {str(e)}")
+            raise LLMServiceError(f"배치 임베딩 처리 중 오류: {str(e)}")
 
-
-# 기존 호환성을 위한 함수들
-def clamp_options(temperature=0.6, num_ctx=8192, num_predict=None):
-    """옵션 정규화 (기존 호환성)"""
-    t = max(0.0, min(float(temperature), 2.0))
-    opts = {"temperature": t, "num_ctx": int(num_ctx)}
-    if num_predict is not None:
-        opts["num_predict"] = int(num_predict)
-    return opts
-
-
-def get_llm_service() -> Optional[LLMService]:
-    """LLM 서비스 인스턴스 반환 (기존 호환성)"""
+def get_llm_service():
     try:
+        from flask import current_app
         if current_app:
             return current_app.extensions.get("llm_service")
     except Exception as e:
