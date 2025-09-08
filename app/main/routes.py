@@ -31,7 +31,14 @@ def _create_user_input(source) -> dict:
         return source.get(key, default) if is_form else getattr(source, key, default)
 
     current_job = str(get_val('job_category') or get_val('current_job_category', '3'))
-    job_A, job_B = _get_alternative_jobs(current_job)
+    
+    # 드롭다운에서 선택된 직업군 A, B 사용 (폼 데이터에서 직접)
+    job_A = str(get_val('job_A_category', '2'))  # 기본값 전문가
+    job_B = str(get_val('job_B_category', '4'))  # 기본값 서비스직
+    
+    # 만약 폼에서 값이 없으면 기존 로직 사용 (초기 로드 시)
+    if not is_form or not get_val('job_A_category'):
+        job_A, job_B = _get_alternative_jobs(current_job)
 
     user_input = {
         'age': str(get_val('age')),
@@ -83,16 +90,29 @@ def predict_result():
     user = get_current_user()
     is_guest = not user
     error_message = None
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if request.method == 'POST':
+        # POST 요청 시 항상 새로운 예측 실행 (AJAX 포함)
         user_input = _create_user_input(request.form)
-        current_app.logger.info(f"수동 예측 시작: {user_input}")
+        
+        # 디버깅: 폼 데이터와 최종 user_input 로깅
+        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}폼 데이터 - 직업군A: {request.form.get('job_A_category')}, 직업군B: {request.form.get('job_B_category')}")
+        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}최종 user_input: {user_input}")
+        current_app.logger.info(f"{'AJAX ' if is_ajax else ''}예측 시작: 현직={user_input['current_job_category']}, A={user_input['job_A_category']}, B={user_input['job_B_category']}")
         try:
             prediction_results = services.run_prediction(user_input)
-            if not is_guest:
+            current_app.logger.info(f"예측 완료 - 결과 개수: {len(prediction_results)}")
+            
+            # 예측 결과 로깅 (디버깅용)
+            for i, result in enumerate(prediction_results):
+                current_app.logger.info(f"  시나리오 {i}: 소득변화={result.get('income_change_rate', 'N/A')}, "
+                                       f"만족도변화={result.get('satisfaction_change_score', 'N/A')}")
+            
+            if not is_guest and not is_ajax:  # 일반 POST 요청만 세션 저장
                 set_prediction_data(user_input, prediction_results)
         except Exception as e:
-            current_app.logger.error(f"수동 예측 중 오류: {e}", exc_info=True)
+            current_app.logger.error(f"예측 중 오류: {e}", exc_info=True)
             prediction_results = DEFAULT_PREDICTION_RESULTS
             error_message = "예측 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
     else: # GET
@@ -105,8 +125,13 @@ def predict_result():
         user_input = prediction_data['user_input']
         prediction_results = prediction_data['prediction_results']
 
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify(prediction_results=prediction_results)
+    if is_ajax:
+        return jsonify({
+            'status': 'success',
+            'prediction_results': prediction_results,
+            'user_input': user_input,
+            'job_category_map': JOB_CATEGORY_MAP
+        })
     
     return render_template(
         'main/predict_result.html',

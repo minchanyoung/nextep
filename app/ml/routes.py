@@ -35,26 +35,41 @@ def get_age_risk_factor(age: int) -> Dict:
     return AGE_RISK_FACTORS[(26, 35)]
 
 def get_realistic_fallback_prediction(user_profile: Dict, scenario_type: str) -> Tuple[float, float]:
-    age = user_profile['age']
-    current_job = user_profile['current_job_category']
+    age = int(user_profile['age'])
+    current_job = int(user_profile['current_job_category'])
+    
     if scenario_type == 'current':
         income_change = np.random.normal(0.05, 0.15)
         satisfaction_change = np.random.choice([0.0, -0.1, 0.1], p=[0.8, 0.1, 0.1])
     else:
-        target_job = user_profile['job_A_category'] if scenario_type == 'job_A' else user_profile['job_B_category']
-        # (구현 간소화) realistic_prediction_fix의 복잡한 로직 대신 기본 분포 사용
-        if random.random() < REAL_INCOME_DISTRIBUTION['negative_ratio']:
-            income_change = np.random.uniform(REAL_INCOME_DISTRIBUTION['percentiles'][5], REAL_INCOME_DISTRIBUTION['percentiles'][25])
-        else:
-            income_change = np.random.uniform(REAL_INCOME_DISTRIBUTION['percentiles'][25], REAL_INCOME_DISTRIBUTION['percentiles'][95])
+        target_job = int(user_profile['job_A_category'] if scenario_type == 'jobA' else user_profile['job_B_category'])
         
-        rand_satis = random.random()
-        if rand_satis < REAL_SATISFACTION_DISTRIBUTION['zero_ratio']:
-            satisfaction_change = 0.0
-        elif rand_satis < REAL_SATISFACTION_DISTRIBUTION['zero_ratio'] + REAL_SATISFACTION_DISTRIBUTION['negative_ratio']:
-            satisfaction_change = np.random.uniform(-2.0, -0.1)
+        # 직업별 기본 소득 변화 프로필 (fallback용)
+        job_income_profiles = {
+            1: {'base': 0.18, 'std': 0.12},  # 관리자 - 높은 소득 증가 가능성
+            2: {'base': 0.25, 'std': 0.15},  # 전문가 - 최고 소득 증가 가능성
+            3: {'base': 0.08, 'std': 0.10},  # 사무직 - 안정적이지만 낮은 증가
+            4: {'base': -0.05, 'std': 0.20}, # 서비스직 - 소득 감소 위험
+            5: {'base': 0.12, 'std': 0.25}   # 판매직 - 높은 변동성
+        }
+        
+        job_profile = job_income_profiles.get(target_job, {'base': 0.05, 'std': 0.15})
+        income_change = np.random.normal(job_profile['base'], job_profile['std'])
+        
+        # 직업별 만족도 변화 프로필
+        job_satis_profiles = {
+            1: {'positive_prob': 0.65, 'base': 0.3},  # 관리자 - 높은 만족도
+            2: {'positive_prob': 0.70, 'base': 0.4},  # 전문가 - 최고 만족도
+            3: {'positive_prob': 0.55, 'base': 0.2},  # 사무직 - 보통 만족도
+            4: {'positive_prob': 0.45, 'base': 0.1},  # 서비스직 - 낮은 만족도
+            5: {'positive_prob': 0.50, 'base': 0.15}  # 판매직 - 변동적 만족도
+        }
+        
+        satis_profile = job_satis_profiles.get(target_job, {'positive_prob': 0.5, 'base': 0.2})
+        if random.random() < satis_profile['positive_prob']:
+            satisfaction_change = np.random.uniform(0.1, satis_profile['base'] + 1.0)
         else:
-            satisfaction_change = np.random.uniform(0.1, 2.0)
+            satisfaction_change = np.random.uniform(-1.5, -0.1)
             
     return round(income_change, 4), round(satisfaction_change, 4)
 
@@ -131,6 +146,17 @@ def run_prediction(user_input):
         income_df = prepare_income_model_features(user_input, temp_predictor)
         satis_df = prepare_satisfaction_model_features(user_input, temp_predictor)
         
+        # 디버깅: 피처 데이터 로깅
+        logger.info(f"소득 모델 입력 피처 (첫 3행):")
+        for i, row in income_df.head(3).iterrows():
+            logger.info(f"  시나리오 {i}: job_category={row.get('job_category', 'N/A')}, "
+                       f"monthly_income={row.get('monthly_income', 'N/A')}, "
+                       f"job_category_change={row.get('job_category_change', 'N/A')}, "
+                       f"income_vs_peers={row.get('income_vs_peers', 'N/A')}")
+            logger.info(f"    education_roi={row.get('education_roi', 'N/A')}, "
+                       f"income_age_ratio={row.get('income_age_ratio', 'N/A')}, "
+                       f"potential_promotion={row.get('potential_promotion', 'N/A')}")
+        
         income_features = ml_resources['income_features']
         satis_features = ml_resources['satis_features']
         lgb_income_model = ml_resources['lgb_income']
@@ -147,7 +173,42 @@ def run_prediction(user_input):
 
             income_model_features = [income_row.get(f, 0.0) for f in income_features]
             income_input = np.array(income_model_features).reshape(1, -1)
-            income_change = float(lgb_income_model.predict(income_input)[0])
+            base_income_change = float(lgb_income_model.predict(income_input)[0])
+            
+            # 직업별 소득 변화율 보정 (강력한 차별화)
+            current_job = int(user_input["current_job_category"])
+            target_job = income_row.get('job_category', current_job)
+            
+            if target_job != current_job:  # 이직 시나리오
+                # 직업별 기본 소득 프리미엄/디스카운트 적용
+                job_income_multiplier = {
+                    1: 1.20,  # 관리자 - 20% 소득 프리미엄
+                    2: 1.35,  # 전문가 - 35% 소득 프리미엄 (최고)
+                    3: 1.05,  # 사무직 - 5% 소득 프리미엄 (안정적)
+                    4: 0.90,  # 서비스직 - 10% 소득 감소 위험
+                    5: 1.15   # 판매직 - 15% 소득 변동성 (성과 기반)
+                }.get(target_job, 1.0)
+                
+                # 현재 직업에서의 이직 난이도 보정
+                job_transition_difficulty = {
+                    1: 0.15,  # 관리자로 이직 - 어려움 (소득 증가 제한)
+                    2: 0.25,  # 전문가로 이직 - 매우 어려움 (큰 소득 증가 가능)
+                    3: 0.05,  # 사무직으로 이직 - 쉬움 (소득 변화 적음)
+                    4: -0.10, # 서비스직으로 이직 - 소득 감소 위험
+                    5: 0.10   # 판매직으로 이직 - 변동성 큼
+                }.get(target_job, 0.0)
+                
+                income_change = base_income_change * job_income_multiplier + job_transition_difficulty
+            else:
+                # 현직 유지 - 기본 예측값 사용 (소폭 보정)
+                income_change = base_income_change * 1.02  # 2% 안정성 보너스
+            
+            # 현실적 범위로 제한
+            income_change = max(-0.50, min(1.00, income_change))
+            
+            # 디버깅: 예측 결과 로깅
+            logger.info(f"{scenario_name} 시나리오: 기본예측={base_income_change:.4f}, "
+                       f"최종예측={income_change:.4f}, 대상직업={target_job}")
 
             satis_model_features = [float(satis_row.get(f, 0.0)) for f in satis_features]
             satis_input = np.array(satis_model_features).reshape(1, -1)
@@ -157,7 +218,16 @@ def run_prediction(user_input):
                 if model:
                     try:
                         if name == 'cat':
-                            pred = float(model.predict(pd.DataFrame([satis_model_features], columns=satis_features))[0])
+                            # CatBoost용 데이터프레임 생성 (카테고리형 피처 타입 보정)
+                            cat_df = pd.DataFrame([satis_model_features], columns=satis_features)
+                            
+                            # 카테고리형 피처들을 정수로 변환 (CatBoost 요구사항)
+                            categorical_features = ['age', 'gender', 'education', 'job_category', 'career_stage']
+                            for cat_col in categorical_features:
+                                if cat_col in cat_df.columns:
+                                    cat_df[cat_col] = cat_df[cat_col].astype(int)
+                            
+                            pred = float(model.predict(cat_df)[0])
                         else:
                             pred = float(model.predict(satis_input)[0])
                         predictions.append((pred, weights.get(name, 0.33)))

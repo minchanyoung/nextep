@@ -225,12 +225,21 @@ document.addEventListener('DOMContentLoaded', function () {
      * 드롭다운 변경 시 서버에 새로운 예측 요청을 보내는 함수
      */
     const updatePredictionResults = async () => {
+        console.log('드롭다운 변경 감지 - AJAX 요청 시작');
+        console.log('현재 선택된 직업군:', {
+            jobA: jobASelect.value,
+            jobB: jobBSelect.value,
+            jobAName: jobCategoryMapJs[jobASelect.value],
+            jobBName: jobCategoryMapJs[jobBSelect.value]
+        });
+        
         try {
             // 로딩 상태 표시
             showLoadingState(true);
             
             // 폼 데이터 수집
             const formData = new FormData(form);
+            console.log('폼 데이터 수집 완료');
             
             // AJAX 요청
             const response = await fetch(window.location.href, {
@@ -246,16 +255,37 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             
             const data = await response.json();
-            predictionResults = data.prediction_results;
+            console.log('서버 응답 받음:', data);
             
-            // UI 업데이트
-            updateResultCards();
-            updateCharts();
-            updateRecommendation();
+            if (data.status === 'success' && data.prediction_results) {
+                console.log('새로운 예측 결과:', data.prediction_results);
+                predictionResults = data.prediction_results;
+                
+                // UI 업데이트
+                console.log('UI 업데이트 시작...');
+                updateResultCards();
+                updateCharts();
+                updateRecommendation();
+                console.log('UI 업데이트 완료');
+            } else {
+                console.error('서버 응답 데이터 오류:', data);
+                throw new Error('서버 응답 데이터 형식 오류');
+            }
             
         } catch (error) {
             console.error('예측 결과 업데이트 실패:', error);
-            showErrorMessage('예측 결과를 업데이트하는 중 오류가 발생했습니다. 다시 시도해주세요.');
+            console.error('Response status:', error.status);
+            console.error('Response text:', error.message);
+            
+            let errorMessage = '예측 결과를 업데이트하는 중 오류가 발생했습니다.';
+            if (error.message.includes('형식 오류')) {
+                errorMessage += ' 서버 응답 형식에 문제가 있습니다.';
+            } else if (error.message.includes('서버 응답 오류')) {
+                errorMessage += ' 서버 연결에 문제가 있습니다.';
+            }
+            errorMessage += ' 다시 시도해주세요.';
+            
+            showErrorMessage(errorMessage);
         } finally {
             // 로딩 상태 해제
             showLoadingState(false);
@@ -338,25 +368,58 @@ document.addEventListener('DOMContentLoaded', function () {
      * 결과 카드 내용을 업데이트하는 함수
      */
     const updateResultCards = () => {
+        console.log('updateResultCards 함수 시작');
+        console.log('predictionResults:', predictionResults);
+        
         const currentResult = predictionResults[0];
         const jobAResult = predictionResults[1];
         const jobBResult = predictionResults.length > 2 ? predictionResults[2] : null;
+        
+        console.log('결과 분해:', { currentResult, jobAResult, jobBResult });
+        
+        // 현재 직업 유지 카드 업데이트
+        const currentCard = document.querySelector('.result-card[data-scenario-id="current"]');
+        if (currentCard && currentResult) {
+            const currentIncomeEl = currentCard.querySelector('.result-item .value');
+            const currentSatisEl = currentCard.querySelectorAll('.result-item .value')[1];
+            
+            if (currentIncomeEl && currentResult.income_change_rate !== undefined) {
+                currentIncomeEl.textContent = formatIncomeChange(currentResult.income_change_rate);
+                currentIncomeEl.className = `value ${getChangeClass(currentResult.income_change_rate)}`;
+            }
+            if (currentSatisEl && currentResult.satisfaction_change_score !== undefined) {
+                currentSatisEl.textContent = formatSatisfactionChange(currentResult.satisfaction_change_score);
+                currentSatisEl.className = `value ${getChangeClass(currentResult.satisfaction_change_score)}`;
+            }
+        }
         
         // 직업군 A 카드 업데이트
         const jobAName = document.getElementById('jobAName');
         const jobAIncome = document.getElementById('jobAIncome');
         const jobASatis = document.getElementById('jobASatis');
         
+        console.log('직업군 A DOM 요소:', { jobAName, jobAIncome, jobASatis });
+        console.log('직업군 A 선택 값:', jobASelect?.value);
+        
         if (jobAName && jobAResult && jobASelect) {
-            jobAName.textContent = jobCategoryMapJs[jobASelect.value] || '직업군 A';
+            const newJobName = jobCategoryMapJs[jobASelect.value] || '직업군 A';
+            console.log('직업군 A 이름 업데이트:', jobAName.textContent, '->', newJobName);
+            jobAName.textContent = newJobName;
+            
             if (jobAIncome && jobAResult.income_change_rate !== undefined) {
-                jobAIncome.textContent = formatIncomeChange(jobAResult.income_change_rate);
+                const newIncomeText = formatIncomeChange(jobAResult.income_change_rate);
+                console.log('직업군 A 소득 업데이트:', jobAIncome.textContent, '->', newIncomeText);
+                jobAIncome.textContent = newIncomeText;
                 jobAIncome.className = `value ${getChangeClass(jobAResult.income_change_rate)}`;
             }
             if (jobASatis && jobAResult.satisfaction_change_score !== undefined) {
-                jobASatis.textContent = formatSatisfactionChange(jobAResult.satisfaction_change_score);
+                const newSatisText = formatSatisfactionChange(jobAResult.satisfaction_change_score);
+                console.log('직업군 A 만족도 업데이트:', jobASatis.textContent, '->', newSatisText);
+                jobASatis.textContent = newSatisText;
                 jobASatis.className = `value ${getChangeClass(jobAResult.satisfaction_change_score)}`;
             }
+        } else {
+            console.warn('직업군 A 업데이트 실패 - DOM 요소나 데이터 누락');
         }
         
         // 직업군 B 카드 업데이트
@@ -433,8 +496,29 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // 드롭다운 변경 이벤트 리스너
-    jobASelect.addEventListener('change', updatePredictionResults);
-    jobBSelect.addEventListener('change', updatePredictionResults);
+    console.log('이벤트 리스너 등록 중...');
+    console.log('jobASelect:', jobASelect);
+    console.log('jobBSelect:', jobBSelect);
+    
+    if (jobASelect) {
+        jobASelect.addEventListener('change', function(event) {
+            console.log('직업군 A 변경됨:', event.target.value);
+            updatePredictionResults();
+        });
+        console.log('직업군 A 이벤트 리스너 등록 완료');
+    } else {
+        console.error('직업군 A 셀렉트 박스를 찾을 수 없습니다');
+    }
+    
+    if (jobBSelect) {
+        jobBSelect.addEventListener('change', function(event) {
+            console.log('직업군 B 변경됨:', event.target.value);
+            updatePredictionResults();
+        });
+        console.log('직업군 B 이벤트 리스너 등록 완료');
+    } else {
+        console.error('직업군 B 셀렉트 박스를 찾을 수 없습니다');
+    }
 
     // 슬라이더 이벤트
     prioritySlider.addEventListener('input', () => {
@@ -461,4 +545,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // 초기화 실행
     initCharts();
     updateRecommendation();
+    
+    // 디버깅용 전역 함수 등록 (개발자 도구에서 테스트 가능)
+    window.debugFunctions = {
+        updatePredictionResults,
+        updateResultCards,
+        predictionResults: () => predictionResults,
+        testAjax: () => {
+            console.log('테스트 AJAX 요청 시작...');
+            updatePredictionResults();
+        }
+    };
+    
+    console.log('디버깅 함수들이 window.debugFunctions에 등록되었습니다.');
+    console.log('사용법: window.debugFunctions.testAjax() - AJAX 요청 테스트');
 });

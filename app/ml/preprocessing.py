@@ -66,18 +66,20 @@ def prepare_income_model_features(user_input, ml_predictor):
             target_income = df.loc[idx, 'job_category_income_avg']
             job_cat = df.loc[idx, 'job_category']
             
-            # KLIPS 데이터 분포 기반 현실적 이직 소득 조정
+            # KLIPS 데이터 분포 기반 현실적 이직 소득 조정 (더 강한 차별화)
             # 실제 평균 소득변화율: +12.69%, 5-95분위수: -40% ~ +80%
-            if job_cat == 1:  # 관리자 - 매우 보수적 상승 (12% 목표, 88% 현재)
-                adjusted_income = target_income * 0.12 + current_income * 0.88
-            elif job_cat == 2:  # 전문가 - 적당한 상승 (18% 목표, 82% 현재)
-                adjusted_income = target_income * 0.18 + current_income * 0.82
-            elif job_cat == 3:  # 사무직 - 소폭 조정 (10% 목표, 90% 현재)
-                adjusted_income = target_income * 0.10 + current_income * 0.90
-            elif job_cat in [4, 5]:  # 서비스/판매직 - 현실적 하락 고려 (30% 목표, 70% 현재)
-                adjusted_income = target_income * 0.30 + current_income * 0.70
-            else:  # 기타 직업 - 일반적 조정 (25% 목표, 75% 현재)
+            if job_cat == 1:  # 관리자 - 고소득 직종 (25% 목표, 75% 현재)
                 adjusted_income = target_income * 0.25 + current_income * 0.75
+            elif job_cat == 2:  # 전문가 - 최고 소득 직종 (35% 목표, 65% 현재)  
+                adjusted_income = target_income * 0.35 + current_income * 0.65
+            elif job_cat == 3:  # 사무직 - 안정 직종 (15% 목표, 85% 현재)
+                adjusted_income = target_income * 0.15 + current_income * 0.85
+            elif job_cat == 4:  # 서비스직 - 변동성 큰 직종 (40% 목표, 60% 현재)
+                adjusted_income = target_income * 0.40 + current_income * 0.60
+            elif job_cat == 5:  # 판매직 - 성과 기반 직종 (45% 목표, 55% 현재)
+                adjusted_income = target_income * 0.45 + current_income * 0.55
+            else:  # 기타 직업 - 일반적 조정 (20% 목표, 80% 현재)
+                adjusted_income = target_income * 0.20 + current_income * 0.80
             
             df.loc[idx, 'monthly_income'] = int(adjusted_income)
 
@@ -127,9 +129,21 @@ def prepare_income_model_features(user_input, ml_predictor):
     # 경력 단계 (23세 이하 세분화)
     df['career_stage'] = pd.cut(df['age'], bins=[0, 23, 28, 35, 45, 55, 100], labels=[1, 2, 3, 4, 5, 6]).fillna(1).astype(int).clip(upper=5)
     
-    # 동료 대비 소득
+    # 동료 대비 소득 (직업별 가중 차이)
     if ml_predictor.job_category_stats is not None:
         df['income_vs_peers'] = df['monthly_income'] - df['job_category_income_avg']
+        
+        # 직업별 소득 차이 가중치 적용 (차별화 강화)
+        for idx in range(len(df)):
+            job_cat = df.loc[idx, 'job_category']
+            if job_cat == 1:  # 관리자 - 고소득 프리미엄 강조
+                df.loc[idx, 'income_vs_peers'] = df.loc[idx, 'income_vs_peers'] * 1.3
+            elif job_cat == 2:  # 전문가 - 최대 프리미엄 강조  
+                df.loc[idx, 'income_vs_peers'] = df.loc[idx, 'income_vs_peers'] * 1.5
+            elif job_cat == 3:  # 사무직 - 기본
+                df.loc[idx, 'income_vs_peers'] = df.loc[idx, 'income_vs_peers'] * 1.0
+            elif job_cat in [4, 5]:  # 서비스/판매직 - 변동성 반영
+                df.loc[idx, 'income_vs_peers'] = df.loc[idx, 'income_vs_peers'] * 0.8
     else:
         df['income_vs_peers'] = 0
 
@@ -159,19 +173,38 @@ def prepare_income_model_features(user_input, ml_predictor):
         if row_job_cat != current_job_cat:  # 이직 시나리오인 경우
             df.loc[idx, 'job_category_change'] = 1
             
-            # 직업별로 다른 소득 변화 시그널 생성
-            if row_job_cat == 1:  # 관리자 - 승진 가능성
+            # 직업별로 다른 소득 변화 시그널 생성 (더 강력한 차별화)
+            if row_job_cat == 1:  # 관리자 - 고소득 잠재력
                 df.loc[idx, 'potential_promotion'] = 1
                 df.loc[idx, 'career_stage'] = min(5, df.loc[idx, 'career_stage'] + 1)
-            elif row_job_cat == 2:  # 전문가 - 교육투자 수익률 증가
+                df.loc[idx, 'education_roi'] = df.loc[idx, 'education_roi'] * 1.25  # 관리자 프리미엄
+                df.loc[idx, 'income_age_ratio'] = df.loc[idx, 'income_age_ratio'] * 1.15
+                df.loc[idx, 'peak_earning_years'] = 1  # 관리자는 고소득 시기
+                
+            elif row_job_cat == 2:  # 전문가 - 전문성 프리미엄
                 df.loc[idx, 'potential_promotion'] = 1
-                df.loc[idx, 'education_roi'] = df.loc[idx, 'education_roi'] * 1.15
-            elif row_job_cat == 3:  # 사무직 - 안정적
-                pass  # 기본 시그널만
-            elif row_job_cat in [4, 5]:  # 서비스직, 판매직
-                pass  # 기본 시그널만
-            else:  # 기타 직종
-                pass  # 기본 시그널만
+                df.loc[idx, 'education_roi'] = df.loc[idx, 'education_roi'] * 1.35  # 전문가 최고 프리미엄
+                df.loc[idx, 'income_age_ratio'] = df.loc[idx, 'income_age_ratio'] * 1.20
+                if df.loc[idx, 'education'] >= 4:  # 대졸 이상 전문가
+                    df.loc[idx, 'satisfaction_income_gap'] = df.loc[idx, 'satisfaction_income_gap'] + 0.5
+                    
+            elif row_job_cat == 3:  # 사무직 - 안정성 중심
+                df.loc[idx, 'job_stability'] = 2  # 높은 안정성
+                df.loc[idx, 'income_age_ratio'] = df.loc[idx, 'income_age_ratio'] * 0.95  # 소득 증가 보수적
+                df.loc[idx, 'economic_cycle'] = 0.7  # 경기 영향 적음
+                
+            elif row_job_cat == 4:  # 서비스직 - 경험 중심
+                df.loc[idx, 'career_length'] = df.loc[idx, 'career_length'] + 2  # 경력 가산
+                df.loc[idx, 'income_age_ratio'] = df.loc[idx, 'income_age_ratio'] * 0.85
+                df.loc[idx, 'job_stability'] = 0  # 낮은 안정성
+                
+            elif row_job_cat == 5:  # 판매직 - 성과 변동성
+                df.loc[idx, 'income_volatility'] = 0.8  # 높은 변동성
+                df.loc[idx, 'economic_cycle'] = 1.2  # 경기 민감
+                df.loc[idx, 'income_age_ratio'] = df.loc[idx, 'income_age_ratio'] * 0.90
+                
+            else:  # 기타 직종 - 기본 조정
+                df.loc[idx, 'income_age_ratio'] = df.loc[idx, 'income_age_ratio'] * 0.92
 
     # 최종 결측값 처리
     df = df.fillna(0)
@@ -180,7 +213,7 @@ def prepare_income_model_features(user_input, ml_predictor):
     categorical_cols = ['age', 'gender', 'education', 'job_category', 'career_stage']
     for col in categorical_cols:
         if col in df.columns:
-            df[col] = df[col].astype(int)
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
     
     return df
 
@@ -314,7 +347,7 @@ def prepare_satisfaction_model_features(user_input, ml_predictor):
     categorical_cols = ['age', 'gender', 'education', 'job_category', 'career_stage']
     for col in categorical_cols:
         if col in df.columns:
-            df[col] = df[col].astype(int)
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
     
     return df
 
