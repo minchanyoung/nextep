@@ -136,8 +136,8 @@ class LLMService:
         return langchain_messages
     
     @handle_service_exceptions("LLM")
-    def chat_sync(self, messages: List[Dict[str, str]], options: Optional[Dict] = None) -> str:
-        """동기 채팅 완성 (기존 API 호환)"""
+    def chat_sync(self, messages: List[Dict[str, str]], options: Optional[Dict] = None, template_type: str = None) -> str:
+        """동기 채팅 완성 (통합 프롬프트 시스템 지원)"""
         try:
             # 메시지 변환
             langchain_messages = self._messages_to_langchain(messages)
@@ -149,6 +149,14 @@ class LLMService:
                 self.chat_model.num_ctx = options.get('num_ctx', self.chat_model.num_ctx)
                 if 'num_predict' in options:
                     self.chat_model.num_predict = options['num_predict']
+            
+            # 통합 프롬프트 시스템 사용 (선택적)
+            if template_type and len(langchain_messages) == 1 and langchain_messages[0].content:
+                from app.prompt_templates import prompt_manager
+                system_prompt = prompt_manager.get_unified_system_prompt(template_type)
+                # 시스템 프롬프트를 추가하여 사용자 메시지를 수정
+                from langchain_core.messages import SystemMessage
+                langchain_messages = [SystemMessage(content=system_prompt)] + langchain_messages
             
             # LangChain으로 응답 생성
             response = self.chat_model.invoke(langchain_messages)
@@ -170,8 +178,8 @@ class LLMService:
             else:
                 raise LLMServiceError(f"LLM 처리 중 오류: {str(e)}")
     
-    def chat_stream(self, messages: List[Dict[str, str]], options: Optional[Dict] = None) -> Iterator[str]:
-        """스트리밍 채팅 완성 (기존 API 호환)"""
+    def chat_stream(self, messages: List[Dict[str, str]], options: Optional[Dict] = None, template_type: str = None) -> Iterator[str]:
+        """스트리밍 채팅 완성 (통합 프롬프트 시스템 지원)"""
         try:
             # 메시지 변환
             langchain_messages = self._messages_to_langchain(messages)
@@ -182,6 +190,13 @@ class LLMService:
                 self.chat_model.num_ctx = options.get('num_ctx', self.chat_model.num_ctx)
                 if 'num_predict' in options:
                     self.chat_model.num_predict = options['num_predict']
+            
+            # 통합 프롬프트 시스템 사용 (선택적)
+            if template_type and len(langchain_messages) == 1 and langchain_messages[0].content:
+                from app.prompt_templates import prompt_manager
+                system_prompt = prompt_manager.get_unified_system_prompt(template_type)
+                from langchain_core.messages import SystemMessage
+                langchain_messages = [SystemMessage(content=system_prompt)] + langchain_messages
             
             # 스트리밍 콜백 핸들러
             streaming_handler = StreamingCallbackHandler()
@@ -258,11 +273,16 @@ class LLMService:
             logger.error(f"LangChain 배치 임베딩 생성 오류: {e}")
             return [[] for _ in texts]
     
-    def create_chain(self, prompt_template: str, **kwargs):
-        """LangChain 체인 생성"""
+    def create_chain(self, template_type: str = "conversational", context: dict = None, **kwargs):
+        """LangChain 체인 생성 (통합 프롬프트 시스템 사용)"""
         try:
+            from app.prompt_templates import prompt_manager
+            
+            # 통합 프롬프트 시스템 사용
+            system_prompt = prompt_manager.get_unified_system_prompt(template_type, context)
+            
             # 프롬프트 템플릿 생성
-            prompt = ChatPromptTemplate.from_template(prompt_template)
+            prompt = ChatPromptTemplate.from_template(system_prompt + "\n\n{input}")
             
             # 체인 구성
             chain = prompt | self.chat_model | self.output_parser
@@ -273,11 +293,13 @@ class LLMService:
             logger.error(f"LangChain 체인 생성 오류: {e}")
             raise LLMServiceError(f"체인 생성 실패: {str(e)}")
     
-    def create_conversational_chain(self):
-        """대화형 체인 생성"""
+    def create_conversational_chain(self, template_type="conversational"):
+        """대화형 체인 생성 (통합 프롬프트 사용)"""
         try:
             from app.prompt_templates import prompt_manager
-            system_prompt = prompt_manager.get_conversational_system_prompt()
+            
+            # 통합 프롬프트 시스템 사용
+            system_prompt = prompt_manager.get_unified_system_prompt(template_type)
             
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),

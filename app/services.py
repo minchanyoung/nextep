@@ -20,7 +20,7 @@ from app.llm_service import LLMService, get_llm_service
 from app.rag_manager import RAGManager, get_rag_manager
 from app import db
 from app.models import User
-from app.rag_data import LABOR_MARKET_TRENDS, LEARNING_RECOMMENDATIONS
+from app.prompt_templates import LABOR_MARKET_TRENDS, LEARNING_RECOMMENDATIONS
 from app.utils.db_utils import safe_db_operation, execute_db_transaction
 from app.prompt_templates import prompt_manager
 from app.core.exceptions import LLMServiceError, RAGError

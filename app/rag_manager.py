@@ -20,7 +20,7 @@ from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor
 
 from app.document_processor import DocumentProcessor
-from app.rag_data import LABOR_MARKET_TRENDS, LEARNING_RECOMMENDATIONS
+from app.prompt_templates import LABOR_MARKET_TRENDS, LEARNING_RECOMMENDATIONS
 from app.core.exceptions import RAGError
 
 logger = logging.getLogger(__name__)
@@ -178,35 +178,37 @@ class RAGManager:
             return False
     
     def ingest_legacy_data(self, llm_service=None) -> bool:
-        """기존 하드코딩된 RAG 데이터를 벡터 데이터베이스로 이전"""
+        """기존 RAG 데이터를 벡터 데이터베이스로 이전 (통합된 데이터 사용)"""
         try:
-            logger.info("기존 RAG 데이터 이전 시작...")
+            logger.info("통합 RAG 데이터 이전 시작...")
             
             documents = []
             
-            # 노동시장 트렌드 데이터 변환
+            # 노동시장 트렌드 데이터 변환 (전체 content 사용)
             for idx, item in enumerate(LABOR_MARKET_TRENDS):
                 content = item.get("content", "")
                 if content.strip():
                     metadata = {
-                        'source': 'legacy_labor_market',
+                        'source': 'integrated_labor_market',
                         'chunk_type': 'labor_trend',
                         'keywords': ','.join(item.get('keywords', [])),
-                        'id': f"labor_trend_{idx}",
+                        'id': item.get('id', f"labor_trend_{idx}"),
+                        'title': item.get('title', ''),
                         'content_length': len(content)
                     }
                     documents.append(Document(page_content=content, metadata=metadata))
             
-            # 학습 추천 데이터 변환
+            # 학습 추천 데이터 변환 (개선된 스키마)
             for idx, item in enumerate(LEARNING_RECOMMENDATIONS):
                 content = item.get("description", "")
                 if content.strip():
                     metadata = {
-                        'source': 'legacy_learning',
+                        'source': 'integrated_learning',
                         'chunk_type': 'learning_rec',
                         'keywords': ','.join(item.get('keywords', [])),
                         'category': item.get('category', ''),
-                        'id': f"learning_rec_{idx}",
+                        'skill_name': item.get('skill_name', ''),
+                        'id': item.get('id', f"learning_rec_{idx}"),
                         'content_length': len(content)
                     }
                     documents.append(Document(page_content=content, metadata=metadata))
@@ -214,20 +216,20 @@ class RAGManager:
             if documents:
                 # 벡터 스토어에 추가
                 self.vector_store.add_documents(documents)
-                logger.info(f"기존 RAG 데이터 이전 완료: {len(documents)}개 문서")
+                logger.info(f"통합 RAG 데이터 이전 완료: {len(documents)}개 문서")
                 return True
             else:
-                logger.warning("이전할 기존 데이터가 없습니다.")
+                logger.warning("이전할 데이터가 없습니다.")
                 return False
                 
         except Exception as e:
-            logger.error(f"기존 데이터 이전 실패: {e}")
+            logger.error(f"통합 데이터 이전 실패: {e}")
             return False
     
     def get_labor_market_info(self, query_text: str, top_k: int = 3, llm_service=None) -> str:
         """노동시장 정보 검색 (LangChain 기반)"""
         try:
-            # 노동시장 관련 문서만 필터링하여 검색
+            # 노동시장 관련 문서만 필터링하여 검색 (통합 데이터)
             filter_query = {"chunk_type": "labor_trend"}
             
             # 유사도 검색
@@ -262,7 +264,7 @@ class RAGManager:
     def get_learning_recommendations(self, query_text: str, top_k: int = 3, llm_service=None) -> str:
         """학습 추천 정보 검색 (LangChain 기반)"""
         try:
-            # 학습 추천 관련 문서만 필터링하여 검색
+            # 학습 추천 관련 문서만 필터링하여 검색 (통합 데이터)
             filter_query = {"chunk_type": "learning_rec"}
             
             # 유사도 검색
