@@ -119,16 +119,32 @@ def predict_result():
         is_guest=is_guest
     )
 
-@bp.route('/advice', methods=['GET'])
-@login_required
+@bp.route('/advice', methods=['GET', 'POST'])
 def advice():
-    prediction_data = get_prediction_data()
-    if not prediction_data:
-        flash("AI 조언을 위한 예측 데이터가 없습니다. 먼저 예측을 실행해주세요.")
-        return redirect(url_for('main.predict'))
+    user = get_current_user()
     
-    user_input = prediction_data['user_input']
-    prediction_results = prediction_data['prediction_results']
+    if request.method == 'POST' and not user:
+        # 비회원용 POST 처리
+        user_input = _create_user_input(request.form)
+        try:
+            prediction_results = services.run_prediction(user_input)
+        except Exception as e:
+            current_app.logger.error(f"비회원 예측 중 오류: {e}")
+            flash("예측 중 오류가 발생했습니다. 다시 시도해주세요.")
+            return redirect(url_for('main.predict'))
+    elif user:
+        # 회원용 GET 처리 (세션 데이터 사용)
+        prediction_data = get_prediction_data()
+        if not prediction_data:
+            flash("AI 조언을 위한 예측 데이터가 없습니다. 먼저 예측을 실행해주세요.")
+            return redirect(url_for('main.predict'))
+        
+        user_input = prediction_data['user_input']
+        prediction_results = prediction_data['prediction_results']
+    else:
+        # 비로그인 사용자가 GET 요청을 한 경우
+        flash("AI 조언을 받으려면 로그인하거나 예측을 먼저 실행해주세요.")
+        return redirect(url_for('main.predict'))
 
     try:
         from app.chat_session import get_current_chat_session, clear_chat_session

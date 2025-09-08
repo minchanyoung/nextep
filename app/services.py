@@ -100,7 +100,7 @@ def update_user_profile(user_id, profile_data: dict):
 def verify_user(username, password):
     """사용자 이름과 비밀번호를 확인하여 로그인 인증을 수행합니다."""
     user = User.query.filter_by(username=username).first()
-    if user and bcrypt.checkpw(password.encode('utf-8'), user.password):
+    if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         return True
     return False
 
