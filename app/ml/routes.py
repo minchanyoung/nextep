@@ -120,7 +120,7 @@ def init_app(app):
             app.extensions['ml_resources'] = {}
 
 @bp.route('/predict', methods=['POST'])
-def run_prediction(user_input):
+def run_prediction(user_input, scenarios_to_run=None):
     from app.ml.preprocessing import prepare_income_model_features, prepare_satisfaction_model_features
 
     def _get_change_class(value):
@@ -129,10 +129,22 @@ def run_prediction(user_input):
         if value < -0.001: return 'negative-change'
         return 'no-change'
 
-    results = []
-    scenario_names = ["현직", "직업A", "직업B"]
-    scenario_types = ["current", "jobA", "jobB"]
+    results = {}
     
+    # 시나리오 설정
+    if scenarios_to_run:
+        # 'current' 시나리오를 기본으로 포함하고, 전달받은 모든 직업 코드를 시나리오로 추가
+        scenario_codes = ['current'] + list(scenarios_to_run)
+        scenario_map = {'current': '현직 유지'}
+        for code in scenarios_to_run:
+            # JOB_CATEGORY_MAP은 app.constants에 정의되어 있다고 가정
+            from app.constants import JOB_CATEGORY_MAP
+            scenario_map[code] = JOB_CATEGORY_MAP.get(str(code), f"직업 {code}")
+    else:
+        # 기존 방식 (하위 호환성)
+        scenario_map = {'current': '현직 유지', 'jobA': '직업A', 'jobB': '직업B'}
+        scenario_codes = list(scenario_map.keys())
+
     try:
         ml_resources = current_app.extensions.get('ml_resources', {})
         if not ml_resources:
@@ -143,19 +155,9 @@ def run_prediction(user_input):
                 self.job_category_stats = ml_resources.get('job_category_stats')
         temp_predictor = TempPredictor()
 
-        income_df = prepare_income_model_features(user_input, temp_predictor)
-        satis_df = prepare_satisfaction_model_features(user_input, temp_predictor)
-        
-        # 디버깅: 피처 데이터 로깅
-        logger.info(f"소득 모델 입력 피처 (첫 3행):")
-        for i, row in income_df.head(3).iterrows():
-            logger.info(f"  시나리오 {i}: job_category={row.get('job_category', 'N/A')}, "
-                       f"monthly_income={row.get('monthly_income', 'N/A')}, "
-                       f"job_category_change={row.get('job_category_change', 'N/A')}, "
-                       f"income_vs_peers={row.get('income_vs_peers', 'N/A')}")
-            logger.info(f"    education_roi={row.get('education_roi', 'N/A')}, "
-                       f"income_age_ratio={row.get('income_age_ratio', 'N/A')}, "
-                       f"potential_promotion={row.get('potential_promotion', 'N/A')}")
+        # 모든 시나리오에 대한 피처 데이터프레임 생성
+        income_df = prepare_income_model_features(user_input, temp_predictor, scenario_codes)
+        satis_df = prepare_satisfaction_model_features(user_input, temp_predictor, scenario_codes)
         
         income_features = ml_resources['income_features']
         satis_features = ml_resources['satis_features']
@@ -167,7 +169,7 @@ def run_prediction(user_input):
         }
         weights = ml_resources.get('ensemble_config', {}).get('weights', {'xgb': 0.34, 'lgb': 0.31, 'cat': 0.34})
 
-        for i, (scenario_name, scenario_type) in enumerate(zip(scenario_names, scenario_types)):
+        for i, scenario_code in enumerate(scenario_codes):
             income_row = income_df.iloc[i].to_dict()
             satis_row = satis_df.iloc[i].to_dict()
 
@@ -175,41 +177,18 @@ def run_prediction(user_input):
             income_input = np.array(income_model_features).reshape(1, -1)
             base_income_change = float(lgb_income_model.predict(income_input)[0])
             
-            # 직업별 소득 변화율 보정
             current_job = int(user_input["current_job_category"])
             target_job = income_row.get('job_category', current_job)
             
-            if target_job != current_job:  # 이직 시나리오
-                # 직업별 기본 소득 프리미엄/디스카운트 적용
-                job_income_multiplier = {
-                    1: 1.20,  # 관리자 - 20% 소득 프리미엄
-                    2: 1.35,  # 전문가 - 35% 소득 프리미엄 (최고)
-                    3: 1.05,  # 사무직 - 5% 소득 프리미엄 (안정적)
-                    4: 0.90,  # 서비스직 - 10% 소득 감소 위험
-                    5: 1.15   # 판매직 - 15% 소득 변동성 (성과 기반)
-                }.get(target_job, 1.0)
-                
-                # 현재 직업에서의 이직 난이도 보정
-                job_transition_difficulty = {
-                    1: 0.15,  # 관리자로 이직 - 어려움 (소득 증가 제한)
-                    2: 0.25,  # 전문가로 이직 - 매우 어려움 (큰 소득 증가 가능)
-                    3: 0.05,  # 사무직으로 이직 - 쉬움 (소득 변화 적음)
-                    4: -0.10, # 서비스직으로 이직 - 소득 감소 위험
-                    5: 0.10   # 판매직으로 이직 - 변동성 큼
-                }.get(target_job, 0.0)
-                
+            if target_job != current_job:
+                job_income_multiplier = {1: 1.20, 2: 1.35, 3: 1.05, 4: 0.90, 5: 1.15}.get(target_job, 1.0)
+                job_transition_difficulty = {1: 0.15, 2: 0.25, 3: 0.05, 4: -0.10, 5: 0.10}.get(target_job, 0.0)
                 income_change = base_income_change * job_income_multiplier + job_transition_difficulty
             else:
-                # 현직 유지 - 기본 예측값 사용 (소폭 보정)
-                income_change = base_income_change * 1.02  # 2% 안정성 보너스
+                income_change = base_income_change * 1.02
             
-            # 현실적 범위로 제한
             income_change = max(-0.50, min(1.00, income_change))
             
-            # 디버깅: 예측 결과 로깅
-            logger.info(f"{scenario_name} 시나리오: 기본예측={base_income_change:.4f}, "
-                       f"최종예측={income_change:.4f}, 대상직업={target_job}")
-
             satis_model_features = [float(satis_row.get(f, 0.0)) for f in satis_features]
             satis_input = np.array(satis_model_features).reshape(1, -1)
             
@@ -218,15 +197,11 @@ def run_prediction(user_input):
                 if model:
                     try:
                         if name == 'cat':
-                            # CatBoost용 데이터프레임 생성
                             cat_df = pd.DataFrame([satis_model_features], columns=satis_features)
-                            
-                            # 카테고리형 피처들을 정수로 변환 
                             categorical_features = ['age', 'gender', 'education', 'job_category', 'career_stage']
                             for cat_col in categorical_features:
                                 if cat_col in cat_df.columns:
                                     cat_df[cat_col] = cat_df[cat_col].astype(int)
-                            
                             pred = float(model.predict(cat_df)[0])
                         else:
                             pred = float(model.predict(satis_input)[0])
@@ -234,32 +209,26 @@ def run_prediction(user_input):
                     except Exception as e:
                         logger.warning(f"{name} 만족도 모델 예측 실패: {e}")
             
-            if predictions:
-                weighted_sum = sum(pred * w for pred, w in predictions)
-                total_weight = sum(w for _, w in predictions)
-                satis_change = weighted_sum / total_weight if total_weight > 0 else 0.0
-            else:
-                satis_change = 0.0
+            satis_change = sum(p * w for p, w in predictions) / sum(w for _, w in predictions) if predictions else 0.0
 
-            distribution = generate_distribution_data(user_input, scenario_type, income_change, satis_change)
+            distribution = generate_distribution_data(user_input, scenario_code, income_change, satis_change)
             
-            results.append({
+            results[scenario_code] = {
                 "income_change_rate": round(income_change, 4),
                 "satisfaction_change_score": round(satis_change, 4),
                 "income_class": _get_change_class(income_change),
                 "satisfaction_class": _get_change_class(satis_change),
                 "distribution": distribution,
-                "scenario": scenario_name
-            })
+                "scenario": scenario_map[scenario_code]
+            }
 
     except Exception as e:
         logger.error(f"모델 예측 실패: {e}", exc_info=True)
-        # 모델 예측 실패 시 현실적인 Fallback 로직 사용
-        results = []
-        for scenario_name, scenario_type in zip(scenario_names, scenario_types):
-            income_change, satis_change = get_realistic_fallback_prediction(user_input, scenario_type)
-            distribution = generate_distribution_data(user_input, scenario_type, income_change, satis_change)
-            results.append({
+        results = {}
+        for scenario_code, scenario_name in scenario_map.items():
+            income_change, satis_change = get_realistic_fallback_prediction(user_input, scenario_code)
+            distribution = generate_distribution_data(user_input, scenario_code, income_change, satis_change)
+            results[scenario_code] = {
                 "income_change_rate": income_change,
                 "satisfaction_change_score": satis_change,
                 "income_class": _get_change_class(income_change),
@@ -267,6 +236,6 @@ def run_prediction(user_input):
                 "distribution": distribution,
                 "scenario": scenario_name,
                 "error": "모델 예측에 실패하여 현실적 추정치를 제공합니다."
-            })
+            }
         
     return results

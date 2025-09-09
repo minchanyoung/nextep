@@ -16,18 +16,25 @@ JOB_TRANSFER_SUCCESS_RATES = {
     9: {'income_success': 0.30, 'satisfaction_success': 0.40},  # 단순노무
 }
 
-def prepare_income_model_features(user_input, ml_predictor):
+def prepare_income_model_features(user_input, ml_predictor, scenario_codes=None):
     from flask import current_app
     
-    # 기본 시나리오 3개(현직, 직업A, 직업B) 생성
-    scenarios = []
-    job_categories = [
-        user_input["current_job_category"],
-        user_input["job_A_category"], 
-        user_input["job_B_category"]
-    ]
+    if scenario_codes is None:
+        # 하위 호환성을 위해 기본 시나리오 설정
+        scenario_codes = ['current', 'jobA', 'jobB']
 
-    for i, job_cat_code in enumerate(job_categories):
+    scenarios = []
+    
+    # 시나리오 코드에 따라 데이터 생성
+    for code in scenario_codes:
+        job_cat_code = user_input["current_job_category"] # 기본값
+        if code == 'jobA':
+            job_cat_code = user_input["job_A_category"]
+        elif code == 'jobB':
+            job_cat_code = user_input["job_B_category"]
+        elif code != 'current':
+            job_cat_code = code # 'current', 'jobA', 'jobB'가 아닌 경우 코드를 직업 코드로 간주
+
         scenario = {
             "age": int(user_input["age"]),
             "gender": int(user_input["gender"]),
@@ -215,21 +222,25 @@ def prepare_income_model_features(user_input, ml_predictor):
     return df
 
 
-def prepare_satisfaction_model_features(user_input, ml_predictor):
+def prepare_satisfaction_model_features(user_input, ml_predictor, scenario_codes=None):
     """
     만족도 모델을 위한 정확한 피처 생성
     """
     from flask import current_app
     
-    # 기본 시나리오 3개(현직, 직업A, 직업B) 생성
-    scenarios = []
-    job_categories = [
-        user_input["current_job_category"],
-        user_input["job_A_category"],
-        user_input["job_B_category"]
-    ]
+    if scenario_codes is None:
+        scenario_codes = ['current', 'jobA', 'jobB']
 
-    for i, job_cat_code in enumerate(job_categories):
+    scenarios = []
+    for code in scenario_codes:
+        job_cat_code = user_input["current_job_category"]
+        if code == 'jobA':
+            job_cat_code = user_input["job_A_category"]
+        elif code == 'jobB':
+            job_cat_code = user_input["job_B_category"]
+        elif code != 'current':
+            job_cat_code = code
+
         scenario = {
             "age": int(user_input["age"]),
             "gender": int(user_input["gender"]),

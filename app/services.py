@@ -125,7 +125,7 @@ def create_user(username, password, email):
         return '회원가입 중 오류가 발생했습니다.'
 
 
-def run_prediction(user_input):
+def run_prediction(user_input, scenarios_to_run=None):
     """사용자 입력을 받아 예측 시나리오를 구성하고, 머신러닝 모델을 호출합니다."""
     from app.ml import routes as ml_routes
 
@@ -143,42 +143,30 @@ def run_prediction(user_input):
         raise RuntimeError("ML 모델이 제대로 초기화되지 않았습니다. 애플리케이션을 다시 시작해주세요.")
 
     # 새로운 피처 매칭 방식 사용
-    logger.info("새로운 피처 매칭 방식으로 예측을 시작합니다.")
-    results = ml_routes.run_prediction(user_input)
-    logger.info(f"예측 결과 받음: {results}")
+    logger.info(f"새로운 피처 매칭 방식으로 예측을 시작합니다. 시나리오: {scenarios_to_run or '기본'}")
+    results = ml_routes.run_prediction(user_input, scenarios_to_run)
+    logger.info(f"예측 결과 받음: {results.keys() if isinstance(results, dict) else '리스트 형식'}")
     
-    # KLIPS 취업자 데이터(월소득 100만원+) 기반 현실적 범위 적용
-    # 무소득→취업 등 특수한 케이스를 제외한 일반 취업자 분포 기준
-    # 취업자(88.7%) 분석 결과: 90.7%가 -50%~+50% 범위, 95분위수 80%
-    # 평균 14.47%, 표준편차 18.97% (훨씬 현실적)
-    
-    REALISTIC_MIN_INCOME_CHANGE = -0.50  # -50% (취업자 1분위수)
-    REALISTIC_MAX_INCOME_CHANGE = 0.50   # +50% (취업자 90분위수, 일반적 상한)
-    REALISTIC_MIN_SATIS_CHANGE = -2.0    # -2점 (KLIPS 실제 분포)
-    REALISTIC_MAX_SATIS_CHANGE = 2.0     # +2점 (KLIPS 실제 분포)
+    REALISTIC_MIN_INCOME_CHANGE = -0.50
+    REALISTIC_MAX_INCOME_CHANGE = 0.50
+    REALISTIC_MIN_SATIS_CHANGE = -2.0
+    REALISTIC_MAX_SATIS_CHANGE = 2.0
     
     def clamp_value(value, min_val, max_val):
-        """값을 주어진 범위로 제한"""
         return max(min_val, min(max_val, value))
     
-    for result in results:
-        if 'income_change_rate' in result:
-            original_rate = float(result['income_change_rate'])
-            realistic_rate = clamp_value(original_rate, REALISTIC_MIN_INCOME_CHANGE, REALISTIC_MAX_INCOME_CHANGE)
-            result['income_change_rate'] = float(realistic_rate)
+    # 결과가 딕셔너리 형태일 것으로 예상하고 처리
+    if isinstance(results, dict):
+        for key, result in results.items():
+            if 'income_change_rate' in result:
+                original_rate = float(result['income_change_rate'])
+                result['income_change_rate'] = clamp_value(original_rate, REALISTIC_MIN_INCOME_CHANGE, REALISTIC_MAX_INCOME_CHANGE)
             
-            if abs(original_rate - realistic_rate) > 0.01:  # 1% 이상 차이날 때만 경고
-                logger.info(f"예측값 범위 조정: {original_rate*100:.1f}% -> {realistic_rate*100:.1f}%")
-        
-        if 'satisfaction_change_score' in result:
-            original_satis = float(result['satisfaction_change_score'])
-            realistic_satis = clamp_value(original_satis, REALISTIC_MIN_SATIS_CHANGE, REALISTIC_MAX_SATIS_CHANGE)
-            result['satisfaction_change_score'] = float(realistic_satis)
-            
-            if abs(original_satis - realistic_satis) > 0.1:  # 0.1점 이상 차이날 때만 경고
-                logger.info(f"만족도 범위 조정: {original_satis:.1f}점 -> {realistic_satis:.1f}점")
+            if 'satisfaction_change_score' in result:
+                original_satis = float(result['satisfaction_change_score'])
+                result['satisfaction_change_score'] = clamp_value(original_satis, REALISTIC_MIN_SATIS_CHANGE, REALISTIC_MAX_SATIS_CHANGE)
     
-    logger.info(f"KLIPS 현실적 범위 적용 완료: {results}")
+    logger.info(f"KLIPS 현실적 범위 적용 완료.")
     return results
 
 

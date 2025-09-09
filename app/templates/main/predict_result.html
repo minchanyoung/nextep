@@ -406,6 +406,7 @@
     <script>
         // 서버에서 전달받은 데이터를 JavaScript 변수로 변환
         let predictionResultsRaw = {{ prediction_results | tojson }};
+        let allPredictionResults = {{ all_prediction_results | tojson }}; // 모든 예측 결과
         let selectedJobACategory = {{ user_input.job_A_category | tojson }};
         let selectedJobBCategory = {{ user_input.job_B_category | tojson }};
         const jobCategoryMapJs = {{ job_category_map | tojson }};

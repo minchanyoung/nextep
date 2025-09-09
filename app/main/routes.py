@@ -77,46 +77,48 @@ def predict():
 def predict_result():
     user = get_current_user()
     is_guest = not user
-    error_message = None
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if request.method == 'POST':
         user_input = _create_user_input(request.form)
         try:
-            prediction_results = services.run_prediction(user_input)
-            set_prediction_data(user_input, prediction_results)
+            # 모든 직업군 코드를 가져와서 예측 실행
+            all_job_codes = list(JOB_CATEGORY_MAP.keys())
+            all_prediction_results = services.run_prediction(user_input, scenarios_to_run=all_job_codes)
+            
+            # 세션에 모든 결과 저장
+            set_prediction_data(user_input, all_prediction_results)
+            return redirect(url_for('main.predict_result'))
+
         except Exception as e:
-            current_app.logger.error(f"수동 예측 오류: {e}", exc_info=True)
-            if is_ajax:
-                return jsonify({'status': 'error', 'message': '예측 중 오류가 발생했습니다.'}), 500
+            current_app.logger.error(f"전체 예측 중 오류: {e}", exc_info=True)
             flash("예측 중 오류가 발생했습니다. 다시 시도해주세요.")
             return redirect(url_for('main.predict'))
-    else:
-        if is_guest:
-            return redirect(url_for('main.predict'))
-        prediction_data = get_prediction_data()
-        if not prediction_data:
-            flash("세션에 예측 데이터가 없습니다. 다시 예측해주세요.")
-            return redirect(url_for('main.predict'))
-        user_input = prediction_data['user_input']
-        prediction_results = prediction_data['prediction_results']
+    
+    # GET 요청 처리
+    prediction_data = get_prediction_data()
+    if not prediction_data:
+        flash("세션에 예측 데이터가 없습니다. 다시 예측해주세요.")
+        return redirect(url_for('main.predict'))
 
-    if is_ajax:
-        return jsonify({
-            'status': 'success',
-            'prediction_results': prediction_results,
-            'user_input': user_input,
-            'job_category_map': JOB_CATEGORY_MAP
-        })
+    user_input = prediction_data['user_input']
+    all_prediction_results = prediction_data['prediction_results']
+
+    # 초기 화면에 표시할 예측 결과 3개를 구성
+    # all_prediction_results는 이제 딕셔너리 형태
+    prediction_results_display = [
+        all_prediction_results.get('current'),
+        all_prediction_results.get(user_input['job_A_category']),
+        all_prediction_results.get(user_input['job_B_category'])
+    ]
 
     return render_template(
         'main/predict_result.html',
         user_input=user_input,
-        prediction_results=prediction_results,
+        prediction_results=prediction_results_display,
+        all_prediction_results=all_prediction_results,  # 모든 예측 결과를 템플릿에 전달
         job_category_map=JOB_CATEGORY_MAP,
         education=EDUCATION_MAP,
         satis_factor_map=SATIS_FACTOR_MAP,
-        error_message=error_message,
         is_guest=is_guest
     )
 
