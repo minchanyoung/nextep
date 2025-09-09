@@ -35,6 +35,12 @@
     "job_cat_income_avg",
     "job_cat_satis_avg"
   ],
+  "cat_features": [
+    "gender",
+    "education",
+    "job_category",
+    "career_stage"
+  ],
   "split": {
     "test_year": 2023,
     "val_ratio": 0.2,
