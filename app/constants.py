@@ -50,7 +50,7 @@ GENDER_MAP = {
 # 프로필 필수 필드
 REQUIRED_PROFILE_FIELDS = [
     'age', 'gender', 'education', 'monthly_income', 
-    'job_category', 'job_satisfaction', 'satis_focus_key'
+    'job_category', 'job_satisfaction'
 ]
 
 # 기본 예측 결과 (오류 시 사용)

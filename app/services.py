@@ -127,24 +127,15 @@ def create_user(username, password, email):
 
 def run_prediction(user_input, scenarios_to_run=None):
     """사용자 입력을 받아 예측 시나리오를 구성하고, 머신러닝 모델을 호출합니다."""
-    from app.ml import routes as ml_routes
+    from flask import current_app
 
-    # MLPredictor 클래스를 여기서 정의하여 필요한 데이터만 명시적으로 전달
-    class MLPredictor:
-        def __init__(self):
-            ml_resources = current_app.extensions.get('ml_resources', {})
-            self.job_category_stats = ml_resources.get('job_category_stats')
-            self.klips_df = ml_resources.get('klips_df')
+    predictor = current_app.extensions.get('ml_predictor')
+    if not predictor:
+        logger.error("MLPredictor가 초기화되지 않았습니다. ML 모델이 제대로 로드되지 않았습니다.")
+        raise RuntimeError("ML 서비스가 제대로 초기화되지 않았습니다. 애플리케이션을 다시 시작해주세요.")
 
-    ml_predictor_instance = MLPredictor()
-
-    if ml_predictor_instance.job_category_stats is None:
-        logger.error("job_category_stats가 초기화되지 않았습니다. ML 모델이 제대로 로드되지 않았습니다.")
-        raise RuntimeError("ML 모델이 제대로 초기화되지 않았습니다. 애플리케이션을 다시 시작해주세요.")
-
-    # 새로운 피처 매칭 방식 사용
-    logger.info(f"새로운 피처 매칭 방식으로 예측을 시작합니다. 시나리오: {scenarios_to_run or '기본'}")
-    results = ml_routes.run_prediction(user_input, scenarios_to_run)
+    logger.info(f"MLPredictor를 사용하여 예측을 시작합니다. 시나리오: {scenarios_to_run or '기본'}")
+    results = predictor.predict(user_input, scenarios_to_run)
     logger.info(f"예측 결과 받음: {results.keys() if isinstance(results, dict) else '리스트 형식'}")
     
     REALISTIC_MIN_INCOME_CHANGE = -0.50
@@ -155,7 +146,6 @@ def run_prediction(user_input, scenarios_to_run=None):
     def clamp_value(value, min_val, max_val):
         return max(min_val, min(max_val, value))
     
-    # 결과가 딕셔너리 형태일 것으로 예상하고 처리
     if isinstance(results, dict):
         for key, result in results.items():
             if 'income_change_rate' in result:
@@ -370,11 +360,7 @@ def summarize_context(user_input: Dict, prediction_results: List) -> str:
 def summarize_context_hf(user_input: Dict, prediction_results: List, job_category_map: Dict, satis_factor_map: Dict) -> str:
     """컨텍스트 요약 (대화 세션용)"""
     try:
-        current_job = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')
-        focus_key = satis_factor_map.get(user_input.get('satis_focus_key'), '지정되지 않음')
-        
         summary = f"""사용자 정보: {user_input.get('age', '?')}세, {current_job}, 월소득 {user_input.get('monthly_income', '?')}만원
-중요 가치: {focus_key}
 AI 예측을 바탕으로 커리어 조언을 제공했습니다."""
         
         return summary

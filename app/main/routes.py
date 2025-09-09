@@ -57,15 +57,33 @@ def faq():
 @bp.route('/predict', methods=['GET'])
 def predict():
     user = get_current_user()
-    if user and getattr(user, 'age', None):
-        try:
-            user_input = _create_user_input(user)
-            prediction_results = services.run_prediction(user_input)
-            set_prediction_data(user_input, prediction_results)
-            return redirect(url_for('main.predict_result'))
-        except Exception as e:
-            current_app.logger.error(f"자동 예측 중 오류: {e}")
-            flash("프로필 기반 자동 예측 중 오류가 발생했습니다. 수동으로 입력해주세요.")
+    if user:
+        # 로그인한 경우, 프로필 정보 완전성 확인 (값이 0인 경우도 유효하도록 수정)
+        missing_fields = [field for field in REQUIRED_PROFILE_FIELDS if getattr(user, field, None) is None]
+        if not missing_fields:
+            # 프로필이 완전하면, 프로필 정보로 바로 예측 실행
+            try:
+                user_input = _create_user_input(user)
+                all_job_codes = list(JOB_CATEGORY_MAP.keys())
+                all_prediction_results = services.run_prediction(user_input, scenarios_to_run=all_job_codes)
+                set_prediction_data(user_input, all_prediction_results)
+                return redirect(url_for('main.predict_result'))
+            except Exception as e:
+                current_app.logger.error(f"프로필 기반 자동 예측 중 오류: {e}", exc_info=True)
+                flash("자동 예측 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+                # 오류 발생 시 수동 입력 페이지로 이동
+                return render_template(
+                    'main/predict.html',
+                    job_category_map=JOB_CATEGORY_MAP,
+                    satis_factor_map=SATIS_FACTOR_MAP,
+                    education=EDUCATION_MAP
+                )
+        else:
+            # 프로필이 불완전하면, 프로필 페이지로 리디렉션
+            flash(f'정확한 예측을 위해 프로필을 먼저 완성해주세요. (부족한 정보: {", ".join(missing_fields)})')
+            return redirect(url_for('main.profile'))
+    
+    # 비로그인 사용자는 수동 입력 페이지 표시
     return render_template(
         'main/predict.html',
         job_category_map=JOB_CATEGORY_MAP,

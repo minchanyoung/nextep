@@ -52,13 +52,13 @@ class ChatSession:
         if self.user_profile:
             profile_items = []
             # 원하는 순서대로 프로필 정보 추가
-            order = ['age', 'gender', 'current_job', 'income', 'focus_factor']
+            order = ['age', 'gender', 'current_job', 'income']
             for key in order:
                 if key in self.user_profile:
                     # 한글 키 이름으로 변경
                     key_map = {
                         'age': '나이', 'gender': '성별', 'current_job': '현재 직업',
-                        'income': '월소득', 'focus_factor': '중요 가치'
+                        'income': '월소득'
                     }
                     profile_items.append(f"{key_map.get(key, key)}: {self.user_profile[key]}")
             if profile_items:
@@ -90,8 +90,7 @@ class ChatSession:
             'age': user_input.get('age', 'N/A'),
             'gender': '여성' if str(user_input.get('gender')) == '1' else '남성',
             'current_job': job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음'),
-            'income': user_input.get('monthly_income', 'N/A'),
-            'focus_factor': satis_factor_map.get(user_input.get('satis_focus_key'), '지정되지 않음')
+            'income': user_input.get('monthly_income', 'N/A')
         }
     
     def is_expired(self, hours: int = 24) -> bool:

@@ -59,9 +59,15 @@ def create_app(config_class):
     from app.ml import bp as ml_bp
     app.register_blueprint(ml_bp, url_prefix='/api/ml')
 
-    # ML 모델 사전 로딩
-    from app.ml import routes as ml_routes
-    ml_routes.init_app(app)
+    # ML Predictor 초기화 및 등록
+    from app.ml.predictor import MLPredictor
+    try:
+        app.extensions['ml_predictor'] = MLPredictor(app)
+        app.logger.info("ML Predictor가 성공적으로 초기화되었습니다.")
+    except Exception as e:
+        app.logger.error(f"ML Predictor 초기화 실패: {e}", exc_info=True)
+        # 운영 환경에서는 앱 실행을 중단시킬 수도 있습니다.
+        # raise e
     
     # RAG 시스템 초기화 (지연 로딩)
     app.logger.info("RAG 시스템이 초기화되었습니다. 첫 번째 요청 시 데이터를 로드합니다.")
