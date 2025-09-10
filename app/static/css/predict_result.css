@@ -842,38 +842,46 @@ canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 10
 
 /* 상세 분석 리포트 리디자인 (RAG 페이지 스타일) */
 #report .report-section-new {
-    margin-bottom: 30px;
-}
-
-#report .report-section-new h4 {
-    font-size: 1.8rem;
-    font-weight: 600;
     margin-bottom: 20px;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 10px;
-    color: #1e293b;
-    display: flex;
-    align-items: center;
-}
-
-#report .report-section-new h4 .icon {
-    margin-right: 12px;
-    color: var(--primary-color);
 }
 
 #report .report-card {
     background-color: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 25px;
     margin-bottom: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    overflow: hidden; /* for header border-radius */
+}
+
+#report .report-card h4 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    padding: 18px 25px;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+}
+
+#report .report-card h4 .icon {
+    margin-right: 12px;
+}
+
+/* Card-specific content padding */
+#report .report-card .profile-grid-new,
+#report .report-card > p,
+#report .report-card .model-specs-new,
+#report .report-card .analysis-grid-new {
+    padding: 25px;
 }
 
 #report .report-card h5 {
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--primary-color);
+    color: #334155; /* Adjusted color */
     margin-top: 0;
     margin-bottom: 15px;
 }
@@ -887,6 +895,7 @@ canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 10
 #report .report-card ul {
     list-style-position: inside;
     padding-left: 0;
+    margin: 0;
 }
 
 #report .profile-grid-new {
@@ -918,19 +927,35 @@ canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 10
 
 #report .model-specs-new {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: 1fr;
+    gap: 15px; /* 간격 조정 */
+    margin-top: 25px;
+    padding-top: 25px;
+    border-top: 1px solid #e2e8f0;
 }
 
 #report .model-card-new {
-    border-left: 4px solid var(--primary-color);
-    padding-left: 20px;
+    border-left: none; /* 좌측 보더 제거 */
+    padding-left: 0; /* 좌측 패딩 제거 */
+}
+
+#report .model-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 12px;
 }
 
 #report .analysis-grid-new {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
+}
+
+/* Nested report-card inside analysis-grid */
+#report .analysis-grid-new .report-card {
+    padding: 20px;
+    background-color: #f8fafc;
 }
 
 #report .disclaimer-new {

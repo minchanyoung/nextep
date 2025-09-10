@@ -33,14 +33,14 @@
 
 <div class="wrapper">
     <form method="POST" class="rag-form">
-        <textarea name="query" placeholder="테스트할 질문을 입력하세요...">{{ query or '' }}</textarea>
+        <textarea name="query" placeholder="질문을 입력하세요.">{{ query or '' }}</textarea>
         <button type="submit">질문하기</button>
     </form>
 
     {% if answer %}
     <div class="results-container">
         <div class="result-section">
-            <h2><i class="fas fa-brain icon"></i>AI 생성 답변</h2>
+            <h2><i class="fas fa-brain icon"></i>생성 답변</h2>
             <div class="result-box answer-box">
                 {{ answer | safe | nl2br }}
             </div>
