@@ -3,7 +3,11 @@
 /* Hero Section from about.css */
 .rag-hero {
     position: relative;
-    padding: 80px 20px;
+    height: 50vh;
+    min-height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-top: 80px; /* 네비게이션 메뉴와의 간격 확보 */
     text-align: center;
     background-color: #f8fafc;
@@ -78,6 +82,10 @@
     font-weight: 700;
     color: #1e293b;
     margin-bottom: 1rem;
+}
+
+.rag-hero h1 span {
+    color: var(--primary-color);
 }
 
 .rag-hero h1 .icon {

@@ -54,7 +54,6 @@
 .floating-icons i:nth-child(2) { top: 65%; left: 85%; animation-delay: 2s; }
 .floating-icons i:nth-child(3) { top: 25%; left: 75%; animation-delay: 4s; }
 .floating-icons i:nth-child(4) { top: 80%; left: 15%; animation-delay: 6s; }
-.floating-icons i:nth-child(5) { top: 40%; left: 50%; animation-delay: 8s; }
 
 @keyframes floatMove {
     0%, 100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.4; }
@@ -73,7 +72,7 @@
 
 .hero-content h1 {
     font-family: 'Inter', sans-serif;
-    font-size: 3rem;
+    font-size: 2.8rem;
     font-weight: 700;
     margin-bottom: 1rem;
     letter-spacing: -0.02em;

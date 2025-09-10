@@ -5,26 +5,6 @@ from app import create_app, db
 from app.models import User # User 모델을 임포트하여 Flask-Migrate가 인식하도록 함
 from config import Config
 
-def preload_models():
-    """모델 사전 로딩 함수"""
-    print("LLM 모델 사전 로딩을 시작합니다...")
-    try:
-        from scripts.preload_models import preload_all_models
-        success = preload_all_models()
-        if success:
-            print("[SUCCESS] 모든 모델이 성공적으로 사전 로딩되었습니다!")
-            return True
-        else:
-            print("[WARNING] 일부 모델 로딩에 실패했지만 서버를 시작합니다.")
-            return False
-    except ImportError:
-        print("[ERROR] scripts/preload_models.py를 찾을 수 없습니다. 모델 사전 로딩을 건너뜁니다.")
-        return False
-    except Exception as e:
-        print(f"[ERROR] 모델 사전 로딩 중 오류 발생: {e}")
-        print("서버를 시작하지만 첫 번째 요청이 느릴 수 있습니다.")
-        return False
-
 # Oracle Instant Client 초기화
 skip_oracle = os.environ.get('SKIP_ORACLE_INIT', '').lower() in ('1', 'true', 'yes')
 if not skip_oracle:
@@ -56,19 +36,6 @@ if __name__ == '__main__':
     # 빠른 시작 모드 확인
     fast_start = os.environ.get('FAST_START', '').lower() in ('1', 'true', 'yes')
     skip_preload = os.environ.get('SKIP_MODEL_PRELOAD', '').lower() in ('1', 'true', 'yes')
-    
-    if fast_start:
-        print("빠른 시작 모드: 모든 사전 로딩을 건너뜁니다.")
-        print("첫 번째 AI 요청 시 초기화가 진행되어 응답이 느릴 수 있습니다.")
-    elif not skip_preload:
-        # 개발 서버 시작 전 모델 사전 로딩
-        preload_success = preload_models()
-        if preload_success:
-            print("모델 사전 로딩 완료! Flask 서버를 시작합니다.")
-        else:
-            print("모델 사전 로딩 없이 Flask 서버를 시작합니다.")
-    else:
-        print("환경변수 설정으로 모델 사전 로딩을 건너뜁니다.")
     
     print("=" * 60)
     print("NEXTEP Flask 서버가 시작됩니다!")

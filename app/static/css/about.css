@@ -5,8 +5,8 @@
 /* Hero Section */
 .about-hero {
     position: relative;
-    height: 60vh;
-    min-height: 450px;
+    height: 50vh;
+    min-height: 350px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,7 +83,7 @@
 
 .hero-content h1 {
     font-family: 'Inter', sans-serif;
-    font-size: 3.5rem;
+    font-size: 2.8rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
     letter-spacing: -0.02em;
