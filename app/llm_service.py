@@ -52,7 +52,7 @@ def _sanitize_output(s: str) -> str:
 
 class LLMService:
     def __init__(self, app=None):
-        self.inference_server_url = ""
+        self.inference_server_url = "https://6186iniqr6w5vr-8000.proxy.runpod.net/"
         self.connect_timeout = 10
         self.read_timeout = _MIN_READ_TIMEOUT
         self._session = self._build_session()
@@ -181,6 +181,19 @@ class LLMService:
             return data.get("embeddings", [])
         except Exception as e:
             raise LLMServiceError(f"배치 임베딩 처리 중 오류: {str(e)}")
+
+    @handle_service_exceptions("LLM Rerank")
+    def rerank_documents(self, query: str, documents: List[str]) -> List[str]:
+        """문서 목록을 쿼리와의 관련성을 기준으로 재정렬합니다."""
+        try:
+            if not documents:
+                return []
+            payload = {"query": query, "documents": documents}
+            resp = self._post_json("/rerank", payload)
+            data = resp.json()
+            return data.get("reranked_documents", [])
+        except Exception as e:
+            raise LLMServiceError(f"Reranking 처리 중 오류: {str(e)}")
 
 def get_llm_service():
     try:

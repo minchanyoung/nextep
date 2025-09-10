@@ -58,7 +58,9 @@ class PromptTemplateManager:
         job_a = job_category_map.get(user_input.get('job_A_category', ''), '알 수 없음')
         job_b = job_category_map.get(user_input.get('job_B_category', ''), '알 수 없음')
         gender_text = '여성' if str(user_input.get('gender')) == '1' else '남성'
-        p0, p1, p2 = prediction_results
+        
+        # 예측 결과가 3개 이상일 경우를 대비하여 처음 3개만 사용
+        p0, p1, p2 = list(prediction_results.values())[:3]
         prediction_text = f"""
 [예측 결과]
 - 현직 유지({current_job}): 소득 {p0['income_change_rate']:.2%}, 만족도 {p0['satisfaction_change_score']:.2f}

@@ -7,12 +7,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, CrossEncoder
 import uvicorn
 from starlette.responses import StreamingResponse
 
 LLM_MODEL_NAME = "MLP-KTLim/llama-3-Korean-Bllossom-8B"
 EMBEDDING_MODEL_NAME = "jhgan/ko-sroberta-multitask"
+RERANKER_MODEL_NAME = "bongsoo/kpf-cross-encoder-v1" # Reranker 모델
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 print(f"Using device: {DEVICE}")
@@ -42,6 +43,9 @@ try:
     print(f"임베딩 모델 로딩 중: {EMBEDDING_MODEL_NAME}")
     embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=DEVICE)
 
+    print(f"Reranker 모델 로딩 중: {RERANKER_MODEL_NAME}")
+    reranker_model = CrossEncoder(RERANKER_MODEL_NAME, device=DEVICE)
+
     print("모든 모델 로딩 완료.")
 except Exception as e:
     raise RuntimeError(f"Model loading failed: {e}") from e
@@ -70,6 +74,13 @@ class EmbeddingRequest(BaseModel):
 class EmbeddingResponse(BaseModel):
     embeddings: List[List[float]]
 
+class RerankRequest(BaseModel):
+    query: str
+    documents: List[str]
+
+class RerankResponse(BaseModel):
+    reranked_documents: List[str]
+
 
 
 @app.get("/")
@@ -79,6 +90,7 @@ def read_root():
         "device": DEVICE,
         "llm_model": LLM_MODEL_NAME,
         "embedding_model": EMBEDDING_MODEL_NAME,
+        "reranker_model": RERANKER_MODEL_NAME,
     }
 
 @app.get("/readyz")
@@ -165,6 +177,26 @@ def embed(request: EmbeddingRequest):
         return {"embeddings": embeddings}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"EMBED_ERROR: {e}")
+
+
+@app.post("/rerank", response_model=RerankResponse)
+def rerank(request: RerankRequest):
+    try:
+        pairs = [[request.query, doc] for doc in request.documents]
+        if not pairs:
+            return {"reranked_documents": []}
+            
+        scores = reranker_model.predict(pairs)
+        
+        # 점수와 문서를 묶어서 점수 기준으로 내림차순 정렬
+        scored_docs = sorted(zip(scores, request.documents), key=lambda x: x[0], reverse=True)
+        
+        # 정렬된 문서만 추출
+        reranked_docs = [doc for score, doc in scored_docs]
+        
+        return {"reranked_documents": reranked_docs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"RERANK_ERROR: {e}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))

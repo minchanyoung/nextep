@@ -228,7 +228,8 @@ def generate_career_advice_hf(user_input, prediction_results, job_category_map, 
         rag_context = ""
         if rag_manager:
             # 통합된 쿼리로 PDF 전체에서 관련 정보 검색
-            rag_context = rag_manager.get_career_advice(comprehensive_query, top_k=5)
+            # history를 전달하는 로직 추가 필요 (현재는 None)
+            rag_context = rag_manager.get_career_advice(comprehensive_query, history=None)
 
         # 프롬프트 템플릿 사용 (통합된 RAG 컨텍스트 전달)
         messages = prompt_manager.get_career_advice_prompt(
@@ -360,6 +361,7 @@ def summarize_context(user_input: Dict, prediction_results: List) -> str:
 def summarize_context_hf(user_input: Dict, prediction_results: List, job_category_map: Dict, satis_factor_map: Dict) -> str:
     """컨텍스트 요약 (대화 세션용)"""
     try:
+        current_job = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')
         summary = f"""사용자 정보: {user_input.get('age', '?')}세, {current_job}, 월소득 {user_input.get('monthly_income', '?')}만원
 AI 예측을 바탕으로 커리어 조언을 제공했습니다."""
         

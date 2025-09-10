@@ -51,10 +51,10 @@ class RAGManager:
             
             # 리트리버 초기화
             self.retriever = self.vector_store.as_retriever(
-                search_type="similarity_score_threshold",
+                search_type="mmr",
                 search_kwargs={
-                    "score_threshold": 0.3,
-                    "k": 5
+                    'k': 5,
+                    'fetch_k': 20
                 }
             )
             
@@ -97,38 +97,48 @@ class RAGManager:
             logger.error(f"PDF 인제스트 실패: {e}")
             return False
 
-    def get_career_advice(self, query_text: str, top_k: int = 5) -> str:
-        """종합적인 커리어 조언 검색 (수동 RAG 로직)"""
+    def get_career_advice(self, query_text: str, history: Optional[List[Dict[str, str]]] = None) -> str:
+        """종합적인 커리어 조언 검색 (수동 RAG 로직, 대화 기록 포함)"""
         try:
             if not self.llm_service:
                 logger.warning("LLM 서비스가 초기화되지 않았습니다.")
                 return "LLM 서비스가 준비되지 않아 조언을 생성할 수 없습니다."
 
+            history = history or []
+
             # 1. 문서 검색 (Retrieval)
             retrieved_docs = self.retriever.invoke(query_text)
             if not retrieved_docs:
                 logger.warning(f"'{query_text}'에 대한 관련 문서를 찾지 못했습니다.")
-                # 관련 문서가 없어도 LLM에 직접 질문
                 context_str = "관련 정보 없음"
             else:
-                context_str = self._format_docs(retrieved_docs)
+                # 1.5 문서 재정렬 (Reranking)
+                doc_contents = [doc.page_content for doc in retrieved_docs]
+                reranked_docs = self.llm_service.rerank_documents(query=query_text, documents=doc_contents)
+                # 재정렬된 문서 중 상위 3개만 선택
+                top_docs = reranked_docs[:3]
+                logger.info(f"Rerank 후 상위 {len(top_docs)}개 문서를 컨텍스트로 사용합니다.")
+                context_str = "\n\n".join(top_docs)
 
             # 2. 프롬프트 생성 (Augmentation)
-            prompt = f"""
+            system_prompt = f"""
             당신은 사용자의 커리어 고민에 대해 조언해주는 전문가입니다.
-            아래의 관련 문서를 참고하여 사용자의 질문에 대해 상세하고 친절하게 답변해주세요.
+            아래의 [관련 문서]를 최우선으로 참고하여 사용자의 질문에 대해 상세하고 친절하게 답변해주세요.
+            문서에 내용이 없다면, 당신의 전문 지식을 활용해 답변해도 좋습니다.
             
             [관련 문서]
             {context_str}
-            
-            [사용자 질문]
-            {query_text}
-            
-            [답변]
             """
+            
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            # 대화 기록을 메시지에 추가
+            messages.extend(history)
+            # 현재 사용자 질문을 메시지에 추가
+            messages.append({"role": "user", "content": query_text})
 
             # 3. LLM 호출 (Generation)
-            messages = [{"role": "user", "content": prompt}]
             response = self.llm_service.chat_sync(messages)
             return response
             

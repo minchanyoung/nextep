@@ -401,10 +401,16 @@ document.addEventListener('DOMContentLoaded', () => {
     clearChatButton.disabled = true; // 초기에는 대화 내용이 없으므로 비활성화
     showTypingIndicator();
     
-    // AI 조언을 타이핑 효과로 점진적으로 표시
+    // AI 조언을 즉시 표시
     setTimeout(() => {
         if (aiFullResponse) {
-            showInitialMessageWithTyping();
+            removeTypingIndicator();
+            addMessageToChat('ai', aiFullResponse);
+            chatHistory.push({ sender: 'ai', text: aiFullResponse });
+            userInput.disabled = false;
+            sendButton.disabled = false;
+            updateClearButtonState();
+            userInput.focus();
         } else {
             // AI 조언이 없는 경우, 기본 인사말 표시
             removeTypingIndicator();
