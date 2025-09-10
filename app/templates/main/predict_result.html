@@ -163,160 +163,107 @@
             </div>
 
             <div id="report" class="tab-content">
-                <div class="report-section">
-                    <h4>📊 개인화된 커리어 예측 분석 리포트</h4>
-                    
-                    <!-- 사용자 프로필 요약 -->
-                    <div class="profile-summary">
-                        <h5>👤 분석 대상 프로필</h5>
-                        <div class="profile-grid">
-                            <div class="profile-item">
-                                <span class="label">연령/성별:</span>
+                <!-- [START] Redesigned Report Section -->
+                <div class="report-section-new">
+                    <h4><i class="fas fa-user-circle icon"></i>분석 대상 프로필</h4>
+                    <div class="report-card">
+                        <div class="profile-grid-new">
+                            <div class="profile-item-new">
+                                <span class="label">연령/성별</span>
                                 <span class="value">{{ user_input.age }}세 {{ "남성" if user_input.gender == '0' else "여성" }}</span>
                             </div>
-                            <div class="profile-item">
-                                <span class="label">학력:</span>
+                            <div class="profile-item-new">
+                                <span class="label">학력</span>
                                 <span class="value">{{ dict(education.items())[user_input.education] }}</span>
                             </div>
-                            <div class="profile-item">
-                                <span class="label">현재 직업:</span>
+                            <div class="profile-item-new">
+                                <span class="label">현재 직업</span>
                                 <span class="value">{{ job_category_map[user_input.current_job_category] }}</span>
                             </div>
-                            <div class="profile-item">
-                                <span class="label">월 소득:</span>
+                            <div class="profile-item-new">
+                                <span class="label">월 소득</span>
                                 <span class="value">{{ user_input.monthly_income }}만원</span>
                             </div>
-                            <div class="profile-item">
-                                <span class="label">직무 만족도:</span>
+                            <div class="profile-item-new">
+                                <span class="label">직무 만족도</span>
                                 <span class="value">{{ user_input.job_satisfaction }}/5점</span>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- 예측 방법론 -->
-                    <div class="sub-section methodology">
-                        <h5>🔬 AI 예측 방법론</h5>
+                <div class="report-section-new">
+                    <h4><i class="fas fa-cogs icon"></i>AI 예측 방법론</h4>
+                    <div class="report-card">
                         <p>
                             본 예측은 <strong>한국노동패널(KLIPS) 117,397건 데이터</strong>를 학습한 최신 머신러닝 모델을 기반으로 합니다.
                             사용자가 입력한 <strong>9개 만족도 요인</strong>과 개인 특성을 종합 분석하여 1년 후 변화를 예측합니다.
                         </p>
-                        
-                        <div class="model-specs">
-                            <div class="model-card">
-                                <div class="model-header">💰 소득 예측 모델</div>
+                        <div class="model-specs-new">
+                            <div class="model-card-new">
+                                <h5>💰 소득 예측 모델</h5>
                                 <ul>
                                     <li><strong>알고리즘:</strong> LightGBM</li>
                                     <li><strong>예측 정확도:</strong> R² = 67.5%</li>
                                     <li><strong>주요 피처:</strong> 경력 단계, 교육 투자 수익률, 직업별 평균 소득 대비 상대 위치</li>
-                                    <li><strong>예측 범위:</strong> -50% ~ +100% 변화율</li>
                                 </ul>
                             </div>
-                            
-                            <div class="model-card">
-                                <div class="model-header">😊 만족도 예측 모델</div>
+                            <div class="model-card-new">
+                                <h5>😊 만족도 예측 모델</h5>
                                 <ul>
                                     <li><strong>알고리즘:</strong> Ensemble</li>
                                     <li><strong>예측 정확도:</strong> R² = 52.9%</li>
                                     <li><strong>주요 피처:</strong> 9개 만족도 요인, 직업별 특성, 개인 이력 패턴</li>
-                                    <li><strong>예측 범위:</strong> -2.5 ~ +2.5점 변화</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- 개인화 분석 -->
-                    <div class="sub-section personalized-analysis">
-                        <h5>🎯 귀하의 개인화 분석</h5>
-                        
-                        <div class="analysis-grid">
-                            <div class="analysis-card">
-                                <h6>💼 현재 커리어 위치</h6>
-                                <p>
-                                    {{ user_input.age }}세 {{ job_category_map[user_input.current_job_category] }}으로서, 
-                                    {% if user_input.age|int < 30 %}
-                                    성장 잠재력이 높은 초기 경력 단계
-                                    {% elif user_input.age|int < 40 %}
-                                    경력 발전의 핵심 시기
-                                    {% elif user_input.age|int < 50 %}
-                                    경험과 전문성이 축적된 중견 단계
-                                    {% else %}
-                                    풍부한 경험을 바탕으로 한 고급 전문가 단계
-                                    {% endif %}
-                                    에 있습니다.
-                                </p>
-                            </div>
-                            
-                            <div class="analysis-card">
-                                <h6>📈 만족도 패턴 분석</h6>
-                                <p>
-                                    입력하신 9개 만족도 요인을 종합 분석한 결과, 
-                                    {% if user_input.job_satisfaction|int >= 4 %}
-                                    전반적으로 <strong style="color: var(--primary-color);">높은 만족도</strong>를 보이고 있어 현재 직업에 대한 애착이 높을 것으로 예상됩니다.
-                                    {% elif user_input.job_satisfaction|int >= 3 %}
-                                    <strong style="color: var(--primary-color);">보통 수준의 만족도</strong>를 보이고 있어 개선 가능성과 이직 동기가 균형을 이루고 있습니다.
-                                    {% else %}
-                                    현재 직무에 대한 <strong style="color: var(--primary-color);">개선 욕구</strong>가 높아 변화에 대한 동기가 클 것으로 분석됩니다.
-                                    {% endif %}
-                                    이는 향후 커리어 결정에 중요한 기준이 될 것입니다.
-                                </p>
-                            </div>
-                            
-                            <div class="analysis-card">
-                                <h6>🎲 예측 신뢰도</h6>
-                                <p>
-                                    귀하와 유사한 조건(연령, 직업, 학력)을 가진 
-                                    <strong style="color: var(--primary-color);">{{ [80, 120]|random }}명의 실제 사례</strong>를 기반으로 
-                                    분석했습니다. 예측 신뢰구간은 
-                                    {% if user_input.age|int < 35 %}
-                                    다양한 가능성을 반영하여 상대적으로 넓게 설정
-                                    {% else %}
-                                    경력 안정성을 고려하여 비교적 좁게 설정
-                                    {% endif %}
-                                    되었습니다.
-                                </p>
-                            </div>
+                <div class="report-section-new">
+                    <h4><i class="fas fa-chart-pie icon"></i>개인화 분석</h4>
+                    <div class="analysis-grid-new">
+                        <div class="report-card">
+                            <h5>💼 현재 커리어 위치</h5>
+                            <p>
+                                {{ user_input.age }}세 {{ job_category_map[user_input.current_job_category] }}으로서, 
+                                {% if user_input.age|int < 30 %} 성장 잠재력이 높은 초기 경력 단계
+                                {% elif user_input.age|int < 40 %} 경력 발전의 핵심 시기
+                                {% elif user_input.age|int < 50 %} 경험과 전문성이 축적된 중견 단계
+                                {% else %} 풍부한 경험을 바탕으로 한 고급 전문가 단계
+                                {% endif %}
+                                에 있습니다.
+                            </p>
+                        </div>
+                        <div class="report-card">
+                            <h5>📈 만족도 패턴 분석</h5>
+                            <p>
+                                입력하신 9개 만족도 요인을 종합 분석한 결과, 
+                                {% if user_input.job_satisfaction|int >= 4 %} 전반적으로 <strong>높은 만족도</strong>를 보이고 있어 현재 직업에 대한 애착이 높을 것으로 예상됩니다.
+                                {% elif user_input.job_satisfaction|int >= 3 %} <strong>보통 수준의 만족도</strong>를 보이고 있어 개선 가능성과 이직 동기가 균형을 이루고 있습니다.
+                                {% else %} 현재 직무에 대한 <strong>개선 욕구</strong>가 높아 변화에 대한 동기가 클 것으로 분석됩니다.
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="report-card">
+                            <h5>🎲 예측 신뢰도</h5>
+                            <p>
+                                귀하와 유사한 조건(연령, 직업, 학력)을 가진 
+                                <strong>{{ [80, 120]|random }}명의 실제 사례</strong>를 기반으로 
+                                분석했습니다. 예측 신뢰구간은 
+                                {% if user_input.age|int < 35 %} 다양한 가능성을 반영하여 상대적으로 넓게 설정
+                                {% else %} 경력 안정성을 고려하여 비교적 좁게 설정
+                                {% endif %}
+                                되었습니다.
+                            </p>
                         </div>
                     </div>
-
-                    <!-- 기술적 세부사항 -->
-                    <div class="sub-section technical-details">
-                        <h5>🔧 기술적 세부사항</h5>
-                        
-                        <details class="tech-details-expandable">
-                            <summary>모델 개발 과정 및 성능 지표 보기</summary>
-                            
-                            <div class="tech-content">
-                                <h6>데이터 처리 과정</h6>
-                                <div class="process-steps">
-                                    <div class="step">1. 한국노동패널 (KLPIS) 03차수 ~ 26차수 설문조사 데이터 전처리</div>
-                                    <div class="step">2. 데이터 누수 방지를 위한 미래 정보 제거</div>
-                                    <div class="step">3. 29개 고급 피처 엔지니어링</div>
-                                    <div class="step">4. 교차 검증을 통한 모델 최적화</div>
-                                </div>
-                                
-                                <h6>모델 성능 검증</h6>
-                                <div class="performance-metrics">
-                                    <div class="metric">
-                                        <span class="metric-name">소득 모델 R²:</span>
-                                        <span class="metric-value">0.6752</span>
-                                    </div>
-                                    <div class="metric">
-                                        <span class="metric-name">만족도 모델 R²:</span>
-                                        <span class="metric-value">0.5295</span>
-                                    </div>
-                                    <div class="metric">
-                                        <span class="metric-name">학습 데이터 크기:</span>
-                                        <span class="metric-value">117,397건</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </details>
-                    </div>
-
-                    <div class="disclaimer">
-                        <p><strong>면책 조항:</strong> 본 예측은 과거 데이터 기반의 통계적 분석 결과이며, 실제 미래 결과를 보장하지 않습니다. 개인의 구체적인 상황과 노력, 시장 변화 등 다양한 요인이 실제 결과에 영향을 미칠 수 있으므로, 참고 자료로만 활용하시기 바랍니다.</p>
-                    </div>
                 </div>
+
+                <div class="disclaimer-new">
+                    <p><strong>면책 조항:</strong> 본 예측은 과거 데이터 기반의 통계적 분석 결과이며, 실제 미래 결과를 보장하지 않습니다. 개인의 구체적인 상황과 노력, 시장 변화 등 다양한 요인이 실제 결과에 영향을 미칠 수 있으므로, 참고 자료로만 활용하시기 바랍니다.</p>
+                </div>
+                <!-- [END] Redesigned Report Section -->
             </div>
         </div>
 
