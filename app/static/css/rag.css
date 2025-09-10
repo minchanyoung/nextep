@@ -3,8 +3,8 @@
 /* Hero Section from about.css */
 .rag-hero {
     position: relative;
-    height: 50vh;
-    min-height: 350px;
+    height: 40vh;
+    min-height: 300px;
     display: flex;
     align-items: center;
     justify-content: center;
