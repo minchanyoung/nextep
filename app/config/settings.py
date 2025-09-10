@@ -27,7 +27,7 @@ class DatabaseSettings:
 class InferenceServerSettings:
     """추론 서버 설정"""
     url: str
-    timeout: int = 60
+    timeout: int = 300
 
 
 
@@ -106,7 +106,7 @@ class Settings:
         url = os.environ.get('INFERENCE_SERVER_URL', 'http://localhost:8000')
         return InferenceServerSettings(
             url=url,
-            timeout=int(os.environ.get('INFERENCE_SERVER_TIMEOUT', '60'))
+            timeout=int(os.environ.get('INFERENCE_SERVER_TIMEOUT', '300'))
         )
     
     def _load_security_settings(self) -> SecuritySettings:
