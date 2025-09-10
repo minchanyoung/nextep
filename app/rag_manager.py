@@ -146,6 +146,68 @@ class RAGManager:
             logger.error(f"커리어 조언 생성 실패: {e}")
             return "커리어 조언을 생성하는 중 오류가 발생했습니다."
 
+    def get_advice_with_sources(self, query_text: str, history: Optional[List[Dict[str, str]]] = None) -> Dict:
+        """커리어 조언과 소스 문서를 함께 반환합니다."""
+        try:
+            if not self.llm_service:
+                raise RAGError("LLM 서비스가 초기화되지 않았습니다.")
+
+            history = history or []
+
+            # 1. 문서 검색 (Retrieval)
+            retrieved_docs = self.retriever.invoke(query_text)
+            
+            source_documents = []
+            if not retrieved_docs:
+                logger.warning(f"'{query_text}'에 대한 관련 문서를 찾지 못했습니다.")
+                context_str = "관련 정보 없음"
+            else:
+                # 1.5 문서 재정렬 (Reranking)
+                doc_contents = [doc.page_content for doc in retrieved_docs]
+                reranked_contents = self.llm_service.rerank_documents(query=query_text, documents=doc_contents)
+
+                # 재정렬된 내용에 맞춰 원본 Document 객체 순서 맞추기
+                content_to_doc_map = {doc.page_content: doc for doc in retrieved_docs}
+                reranked_docs_full = [content_to_doc_map[content] for content in reranked_contents if content in content_to_doc_map]
+
+                top_docs = reranked_docs_full[:3]
+                logger.info(f"Rerank 후 상위 {len(top_docs)}개 문서를 컨텍스트로 사용합니다.")
+                
+                context_str = "\n\n".join([d.page_content for d in top_docs])
+                # 소스 정보를 포함한 객체 리스트 생성
+                source_documents = [{
+                    "content": d.page_content,
+                    "source": d.metadata.get('source', '출처 정보 없음')
+                } for d in top_docs]
+
+            # 2. 프롬프트 생성 (Augmentation)
+            system_prompt = f"""
+            당신은 사용자의 커리어 고민에 대해 조언해주는 전문가입니다.
+            아래의 [관련 문서]를 최우선으로 참고하여 사용자의 질문에 대해 상세하고 친절하게 답변해주세요.
+            문서에 내용이 없다면, 당신의 전문 지식을 활용해 답변해도 좋습니다.
+            
+            [관련 문서]
+            {context_str}
+            """
+            
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            messages.extend(history)
+            messages.append({"role": "user", "content": query_text})
+
+            # 3. LLM 호출 (Generation)
+            answer = self.llm_service.chat_sync(messages)
+            
+            return {
+                "answer": answer,
+                "sources": source_documents
+            }
+            
+        except Exception as e:
+            logger.error(f"소스와 함께 조언 생성 실패: {e}")
+            raise RAGError(f"소스와 함께 조언 생성 중 오류 발생: {str(e)}")
+
     def search_documents(self, query: str, top_k: int = 5, filters: Optional[Dict] = None) -> List[Dict]:
         """범용 문서 검색 인터페이스"""
         try:

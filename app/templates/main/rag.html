@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}RAG 시스템 테스트 | NEXTEP.AI{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rag.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block header %}
+    {% include 'common/header.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="rag-hero">
+    <div class="hero-background">
+        <div class="hero-pattern"></div>
+        <div class="floating-elements">
+            <div class="floating-icon"><i class="fas fa-file-alt"></i></div>
+            <div class="floating-icon"><i class="fas fa-lightbulb"></i></div>
+            <div class="floating-icon"><i class="fas fa-link"></i></div>
+            <div class="floating-icon"><i class="fas fa-check-circle"></i></div>
+        </div>
+    </div>
+    <div class="hero-content">
+        <h1><i class="fas fa-search-plus icon"></i>RAG 시스템 분석</h1>
+        <p>AI가 어떤 문서를 참고하여 답변을 생성하는지 직접 확인해보세요.</p>
+    </div>
+</div>
+
+<div class="wrapper">
+    <form method="POST" class="rag-form">
+        <textarea name="query" placeholder="테스트할 질문을 입력하세요...">{{ query or '' }}</textarea>
+        <button type="submit">질문하기</button>
+    </form>
+
+    {% if answer %}
+    <div class="results-container">
+        <div class="result-section">
+            <h2><i class="fas fa-brain icon"></i>AI 생성 답변</h2>
+            <div class="result-box answer-box">
+                {{ answer | safe | nl2br }}
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h2><i class="fas fa-book-open icon"></i>참고한 문서 (Sources)</h2>
+            <p class="source-description">아래 문서는 입력된 질문과 가장 관련성이 높다고 판단된 순서(MMR + Reranking)로 표시됩니다.</p>
+            {% if sources %}
+                {% for source_item in sources %}
+                    <div class="result-box source-box">
+                        <p class="source-filename"><b>참고 문서:</b> {{ source_item.source.split('\\')[-1].split('/')[-1] }}</p>
+                        <p>{{ source_item.content | safe | nl2br }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="result-box source-box">
+                    <p>참고한 문서를 찾지 못했습니다. AI가 자체 지식으로 답변했습니다.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block footer %}
+    {% include 'common/footer.html' %}
+{% endblock %}

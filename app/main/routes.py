@@ -270,3 +270,31 @@ def chat_new_redirect():
     return redirect(url_for('main.advice'))
 
 
+@bp.route('/rag', methods=['GET', 'POST'])
+def rag():
+    """RAG 시스템 테스트를 위한 공개 페이지"""
+    answer = None
+    sources = []
+    query = ""
+    if request.method == 'POST':
+        query = request.form.get('query', '').strip()
+        if query:
+            try:
+                from app.rag_manager import get_rag_manager
+                rag_manager = get_rag_manager()
+                if rag_manager:
+                    # 소스와 답변을 함께 가져오는 새로운 함수 호출
+                    results = rag_manager.get_advice_with_sources(query)
+                    answer = results.get('answer')
+                    sources = results.get('sources', [])
+                else:
+                    flash("RAG Manager가 초기화되지 않았습니다.", "error")
+            except Exception as e:
+                current_app.logger.error(f"RAG 테스트 중 오류: {e}", exc_info=True)
+                flash(f"오류가 발생했습니다: {e}", "error")
+        else:
+            flash("질문을 입력해주세요.", "warning")
+
+    return render_template('main/rag.html', query=query, answer=answer, sources=sources)
+
+

@@ -5,6 +5,8 @@ from flask_compress import Compress
 from app.llm_service import LLMService
 from app.rag_manager import RAGManager
 import os
+import re
+from markupsafe import Markup, escape
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -13,11 +15,27 @@ compress = Compress()
 llm_service = LLMService()
 rag_manager = RAGManager()
 
+_paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
+
+def nl2br(value):
+    """Jinja2 템플릿 필터: 줄바꿈 문자를 <br> 태그로 변환합니다."""
+    if value is None:
+        return ''
+    # HTML 태그를 이스케이프 처리하여 XSS 공격을 방지합니다.
+    escaped_value = escape(value)
+    # 연속된 줄바꿈은 단락으로 처리하고, 단일 줄바꿈은 <br>로 변환합니다.
+    result = _paragraph_re.sub('<br><br>', escaped_value).replace('\n', '<br>')
+    return Markup(result)
+
 def create_app(config_class):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # 커스텀 템플릿 필터 등록
+    app.add_template_filter(nl2br)
+
     db.init_app(app)
+
     migrate.init_app(app, db)
     compress.init_app(app)
     
