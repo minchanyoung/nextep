@@ -26,7 +26,7 @@
         </div>
     </div>
     <div class="hero-content">
-        <h1><i class="fas fa-search-plus icon"></i>RAG 시스템 분석</h1>
+        <h1><i class="fas fa-search-plus icon"></i>RAG</h1>
         <p>AI가 어떤 문서를 참고하여 답변을 생성하는지 직접 확인해보세요.</p>
     </div>
 </div>
@@ -48,12 +48,20 @@
 
         <div class="result-section">
             <h2><i class="fas fa-book-open icon"></i>참고한 문서 (Sources)</h2>
-            <p class="source-description">아래 문서는 입력된 질문과 가장 관련성이 높다고 판단된 순서(MMR + Reranking)로 표시됩니다.</p>
+            <p class="source-description">아래 문서는 입력된 질문과 가장 관련성이 높다고 판단된 순서로 표시됩니다.</p>
             {% if sources %}
                 {% for source_item in sources %}
-                    <div class="result-box source-box">
-                        <p class="source-filename"><b>참고 문서:</b> {{ source_item.source.split('\\')[-1].split('/')[-1] }}</p>
-                        <p>{{ source_item.content | safe | nl2br }}</p>
+                    <div class="source-card">
+                        <div class="source-header">
+                            <span class="source-number">{{ loop.index }}</span>
+                            <p class="source-filename">
+                                <i class="fas fa-file-pdf"></i>
+                                <b>출처:</b> {{ source_item.source.split('\\')[-1].split('/')[-1] }}
+                            </p>
+                        </div>
+                        <div class="source-content">
+                            {{ source_item.content | safe | nl2br }}
+                        </div>
                     </div>
                 {% endfor %}
             {% else %}

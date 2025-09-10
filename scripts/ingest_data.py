@@ -2,6 +2,10 @@
 import os
 import sys
 import logging
+from dotenv import load_dotenv
+
+# .env 파일에서 환경변수를 로드합니다.
+load_dotenv()
 
 # 프로젝트 루트를 시스템 경로에 추가하여 'app' 모듈을 임포트할 수 있도록 함
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

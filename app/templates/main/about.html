@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
 {% endblock %}
 
 {% block header %}
@@ -19,21 +18,15 @@
 <div class="about-hero">
     <div class="hero-background">
         <div class="hero-pattern"></div>
-        <div class="floating-elements">
-            <div class="floating-icon" data-aos="fade-up" data-aos-delay="100"><i class="fas fa-chart-line"></i></div>
-            <div class="floating-icon" data-aos="fade-up" data-aos-delay="300"><i class="fas fa-brain"></i></div>
-            <div class="floating-icon" data-aos="fade-up" data-aos-delay="500"><i class="fas fa-target"></i></div>
-            <div class="floating-icon" data-aos="fade-up" data-aos-delay="700"><i class="fas fa-rocket"></i></div>
-        </div>
     </div>
-    <div class="hero-content" data-aos="fade-up">
+    <div class="hero-content">
         <h1><i class="fas fa-lightbulb"></i> 당신의 커리어 고민, 데이터로 답을 찾다</h1>
         <p class="hero-subtitle">미래를 예측하고 최적의 커리어 경로를 찾아보세요</p>
     </div>
 </div>
 
 <div class="wrapper">
-    <div class="section intro-section" data-aos="fade-up">
+    <div class="section intro-section">
         <div class="intro-card">
             <div class="card-icon">
                 <i class="fas fa-compass"></i>
@@ -44,14 +37,14 @@
         </div>
     </div>
 
-    <div class="section how-it-works-section" data-aos="fade-up">
+    <div class="section how-it-works-section">
         <div class="section-header">
             <i class="fas fa-cogs"></i>
             <h2>NEXTEP.AI는 어떻게 미래를 예측하나요?</h2>
             <p class="section-subtitle">과학적인 데이터 분석과 AI 기술의 융합</p>
         </div>
         <div class="steps-container">
-            <div class="step" data-aos="fade-right" data-aos-delay="100">
+            <div class="step">
                 <div class="step-icon">
                     <i class="fas fa-database"></i>
                 </div>
@@ -65,7 +58,7 @@
                 </div>
             </div>
             <div class="step-separator"></div>
-            <div class="step" data-aos="fade-up" data-aos-delay="200">
+            <div class="step">
                 <div class="step-icon">
                     <i class="fas fa-brain"></i>
                 </div>
@@ -79,7 +72,7 @@
                 </div>
             </div>
             <div class="step-separator"></div>
-            <div class="step" data-aos="fade-left" data-aos-delay="300">
+            <div class="step">
                 <div class="step-icon">
                     <i class="fas fa-user-cog"></i>
                 </div>
@@ -95,7 +88,7 @@
         </div>
     </div>
 
-    <div class="services-section" data-aos="fade-up">
+    <div class="services-section">
         <div class="tabs">
             <button class="tab-link active" onclick="openTab(event, 'service-intro')">
                 <i class="fas fa-crystal-ball"></i> 커리어 예측
@@ -109,17 +102,17 @@
                     <h2>AI 커리어 선택 예측 서비스</h2>
                 </div>
                 <div class="features-grid">
-                    <div class="feature-item" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="feature-item">
                         <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
                         <h4>데이터 기반 예측</h4>
                         <p>25년간 축적된 한국노동패널(KLIPS) 117,397건 데이터를 기반으로 합니다. 높은 예측 성능 지표를 투명하게 공개하여 신뢰성을 보장합니다. </p>
                     </div>
-                    <div class="feature-item" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="feature-item">
                         <div class="feature-icon"><i class="fas fa-user-cog"></i></div>
                         <h4>개인 맞춤형 분석</h4>
                         <p>나이, 학력, 직업군 등 기본 정보와 함께 9개 만족도 요인, 시계열 이력, 상대적 소득 위치 등을 종합 분석합니다. 소득-만족도 우선순위 설정으로 개인 맞춤형 추천을 제공하며, 데이터 누수 방지 기법으로 신뢰도를 보장합니다.</p>
                     </div>
-                    <div class="feature-item" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="feature-item">
                         <div class="feature-icon"><i class="fas fa-compass"></i></div>
                         <h4>의사결정 지원 도구</h4>
                         <p>NEXTEP.AI는 정답을 제시하는 것이 아닌, 실제 검증된 데이터에 기반한 객관적 인사이트를 제공하는 의사결정 지원 도구입니다. 시나리오 비교 차트, 유사 사례 분포, 상세 분석 리포트를 통해 정보에 기반한 커리어 선택을 지원합니다.</p>
@@ -128,7 +121,7 @@
             </div>
         </div>
 
-    <div class="cta-section" data-aos="fade-up">
+    <div class="cta-section">
         <div class="cta-card">
             <i class="fas fa-rocket"></i>
             <h2>이제, 당신의 미래를 직접 예측해 보세요.</h2>
@@ -147,15 +140,7 @@
 
 {% block scripts %}
     {{ super() }}
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 100
-        });
-
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
@@ -169,31 +154,5 @@
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.className += " active";
         }
-
-        // Enhanced interactions
-        document.addEventListener("DOMContentLoaded", function() {
-            // Add parallax effect to floating elements
-            window.addEventListener('scroll', function() {
-                const scrolled = window.pageYOffset;
-                const floatingElements = document.querySelectorAll('.floating-icon');
-                
-                floatingElements.forEach((el, index) => {
-                    const speed = 0.5 + (index * 0.1);
-                    el.style.transform = `translateY(${scrolled * speed}px)`;
-                });
-            });
-
-            // Add hover effects to feature items
-            const featureItems = document.querySelectorAll('.feature-item');
-            featureItems.forEach(item => {
-                item.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-10px)';
-                });
-                
-                item.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                });
-            });
-        });
     </script>
 {% endblock %}
