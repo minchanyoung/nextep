@@ -332,10 +332,12 @@
     margin: 60px auto;
     text-align: center;
     padding: 40px 30px;
-    background: #1e293b;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     border-radius: 16px;
-    color: white;
+    color: #1e293b;
     max-width: 500px;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 
 .email-section p {
@@ -348,15 +350,15 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 24px;
+    padding: 14px 28px;
     background: var(--primary-color);
     color: white;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 1rem;
     font-weight: 600;
     text-decoration: none;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 184, 148, 0.2);
     font-family: 'Inter', sans-serif;
     border: none;
 }

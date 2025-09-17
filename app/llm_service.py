@@ -101,14 +101,27 @@ class LLMService:
         app.extensions["llm_service"] = self
         logger.info(f"LLM 서비스 초기화: {self.inference_server_url} (timeout=(connect:{self.connect_timeout}s, read:{self.read_timeout}s))")
 
-    def _post_json(self, path: str, payload: dict) -> requests.Response:
+    def _post_json(self, path: str, payload: dict, max_retries: int = 3) -> requests.Response:
         url = f"{self.inference_server_url}{path if path.startswith('/') else '/' + path}"
         t = (self.connect_timeout, self.read_timeout)
-        resp = self._session.post(url, json=payload, timeout=t)
-        if resp.status_code >= 400:
-            logger.error(f"[LLM] POST {url} -> {resp.status_code} {resp.text[:200]}")
-        resp.raise_for_status()
-        return resp
+
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                resp = self._session.post(url, json=payload, timeout=t)
+                if resp.status_code >= 400:
+                    logger.error(f"[LLM] POST {url} -> {resp.status_code} {resp.text[:200]}")
+                resp.raise_for_status()
+                return resp
+            except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
+                last_error = e
+                logger.warning(f"[LLM] 시도 {attempt + 1}/{max_retries} 실패: {e}")
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(2 ** attempt)  # 지수 백오프
+
+        # 모든 재시도 실패
+        raise last_error
 
     def _post_stream(self, path: str, payload: dict) -> Iterator[str]:
         url = f"{self.inference_server_url}{path if path.startswith('/') else '/' + path}"

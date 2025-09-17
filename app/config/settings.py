@@ -28,6 +28,8 @@ class InferenceServerSettings:
     """추론 서버 설정"""
     url: str
     timeout: int = 300
+    fallback_url: str = "http://localhost:11434"  # 로컬 Ollama 폴백
+    use_fallback: bool = True
 
 
 
@@ -106,7 +108,9 @@ class Settings:
         url = os.environ.get('INFERENCE_SERVER_URL', 'https://nh1tl78z8i74f6-8000.proxy.runpod.net/')
         return InferenceServerSettings(
             url=url,
-            timeout=int(os.environ.get('INFERENCE_SERVER_TIMEOUT', '1000'))
+            timeout=int(os.environ.get('INFERENCE_SERVER_TIMEOUT', '1000')),
+            fallback_url=os.environ.get('FALLBACK_LLM_URL', 'http://localhost:11434'),
+            use_fallback=os.environ.get('USE_LLM_FALLBACK', 'True').lower() == 'true'
         )
     
     def _load_security_settings(self) -> SecuritySettings:

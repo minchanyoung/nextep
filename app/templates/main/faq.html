@@ -51,6 +51,9 @@
         <button class="category-btn" data-category="service">
             <i class="fas fa-cog"></i> 서비스 이용
         </button>
+        <button class="category-btn" data-category="ai-advice">
+            <i class="fas fa-robot"></i> AI 조언
+        </button>
     </div>
     
     <div class="accordion">
@@ -84,8 +87,8 @@
                 <i class="fas fa-chevron-down accordion-arrow"></i>
             </button>
             <div class="accordion-body">
-                <p><strong>소득 예측에는 모든 알고리즘에서 최고 성능 모델인</strong> LightGBM 모델을 사용합니다.</p>
-                <p><strong>만족도 예측에는 XGBoost, LightGBM, CatBoost의 성능 기반 가중 앙상블</strong>을 사용합니다. CatBoost는 범주형 변수(직업, 학력 등)를 자동으로 처리하여 복합적인 만족도 변화를 더 정확하게 예측합니다.</p>
+                <p><strong>소득 예측에는 최고 성능을 보인 LightGBM 모델</strong>을 사용합니다 (R² = 67.5%).</p>
+                <p><strong>만족도 예측에는 CatBoost 단일 모델</strong>을 사용합니다 (R² = 63.1%). CatBoost는 범주형 변수(직업, 학력 등)를 자동으로 처리하여 복합적인 만족도 변화를 더 정확하게 예측합니다.</p>
                 <p>모든 모델은 TimeSeriesSplit 교차 검증으로 최적화되었으며, 조기 종료(Early Stopping)를 통해 과적합을 방지합니다.</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
@@ -114,8 +117,8 @@
                 </ul>
                 <p><strong>직무 만족도 변화 예측 모델:</strong></p>
                 <ul>
-                    <li>R² Score: 52.9% (앙상블 모델 기준)</li>
-                    <li>RMSE: 0.4151 (실제 검증 결과)</li>
+                    <li>R² Score: 63.1% (CatBoost 단일 모델 기준)</li>
+                    <li>RMSE: 0.3951 (실제 검증 결과)</li>
                     <li>주요 피처: 9개 만족도 요인, 만족도 이력 패턴, 직업-개인 특성 상호작용</li>
                 </ul>
                 <p>이러한 성능 지표는 2022-2023년 실제 데이터로 검증된 결과이며, 시계열 피처 엔지니어링이 성능 향상에 결정적 역할을 했습니다.</p>
@@ -269,8 +272,99 @@
                 <p>A. <strong>핵심 예측 기능은 계속 무료</strong>로 제공됩니다:</p>
                 <p><strong>• 커리어 예측</strong>: 소득변화율, 만족도변화 예측</p>
                 <p><strong>• 산업 분석</strong>: 직업군별 성장률 및 시장 전망</p>
-                <p><strong>• AI 조언</strong>: 기본적인 커리어 방향 제시</p>
+                <p><strong>• AI 조언</strong>: 7,990개 전문 문서 기반 RAG 시스템으로 맞춤형 커리어 조언 제공</p>
                 <p>향후 <strong>프리미엄 기능</strong> (1:1 전문가 상담, 심화 분석 리포트 등)이 추가될 경우 별도 요금제가 도입될 수 있으나, 기본 서비스는 계속 무료입니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item" data-category="ai-advice">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-robot"></i></div>
+                    <span class="question-text">Q. AI 조언 기능은 어떻게 작동하나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
+            <div class="accordion-body">
+                <p><strong>RAG(Retrieval-Augmented Generation) 시스템을 통해 전문적인 조언을 제공합니다:</strong></p>
+                <ul>
+                    <li><strong>7,990개 전문 문서 청크</strong>: 노동시장 트렌드, 직업별 전망, 스킬 개발 가이드 등을 벡터 데이터베이스에 저장</li>
+                    <li><strong>실시간 검색</strong>: 사용자 질문과 관련된 문서를 즉시 검색하여 맥락 제공</li>
+                    <li><strong>개인화 조언</strong>: 회원의 경우 예측 결과와 프로필 정보를 함께 활용</li>
+                    <li><strong>출처 투명성</strong>: 모든 조언에 참고 문서명을 명시하여 신뢰성 보장</li>
+                </ul>
+                <p>대화형 챗봇을 통해 언제든지 커리어 관련 질문을 할 수 있으며, Oracle 데이터베이스와 분리된 별도 프로세스에서 안정적으로 작동합니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item" data-category="ai-advice">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-comments"></i></div>
+                    <span class="question-text">Q. 회원과 비회원의 AI 조언 차이가 있나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
+            <div class="accordion-body">
+                <p><strong>네, 회원의 경우 더욱 개인화된 조언을 받을 수 있습니다:</strong></p>
+
+                <p><strong>비회원 조언:</strong></p>
+                <ul>
+                    <li>RAG 시스템 기반 일반적인 커리어 조언</li>
+                    <li>전문 문서에서 검색된 정보 제공</li>
+                </ul>
+
+                <p><strong>회원 조언 (추가 혜택):</strong></p>
+                <ul>
+                    <li><strong>개인 프로필 반영</strong>: 나이, 직종, 소득, 만족도 등 개인 정보 활용</li>
+                    <li><strong>예측 결과 활용</strong>: AI가 예측한 소득과 만족도 변화를 바탕으로 한 맞춤형 조언</li>
+                    <li><strong>세션 연속성</strong>: 이전 대화 맥락과 예측 데이터를 기억하여 일관된 조언 제공</li>
+                </ul>
+                <p>예를 들어, "30세 개발자, 월소득 400만원" 회원에게는 해당 프로필에 맞는 구체적인 커리어 조언을 제공합니다.</p>
+                <div class="feedback-widget">
+                    <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn" data-feedback="yes">👍 도움이 됐어요</button>
+                        <button class="feedback-btn" data-feedback="no">👎 아쉬워요</button>
+                    </div>
+                    <span class="feedback-thanks" style="display: none;">피드백 주셔서 감사합니다!</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item" data-category="data">
+            <button class="accordion-header">
+                <div class="question-content">
+                    <div class="question-icon"><i class="fas fa-database"></i></div>
+                    <span class="question-text">Q. Oracle 데이터베이스는 어떻게 활용되나요?</span>
+                </div>
+                <i class="fas fa-chevron-down accordion-arrow"></i>
+            </button>
+            <div class="accordion-body">
+                <p><strong>회원 정보 관리와 서비스 개인화를 위해 Oracle 데이터베이스를 사용합니다:</strong></p>
+                <ul>
+                    <li><strong>회원 정보 저장</strong>: 암호화된 개인 프로필과 로그인 정보</li>
+                    <li><strong>예측 이력 관리</strong>: 사용자별 커리어 예측 결과 저장</li>
+                    <li><strong>개인화 서비스</strong>: 로그인 시 프로필 정보 자동 적용</li>
+                    <li><strong>안정성 보장</strong>: Oracle 11g thick mode로 안정적인 데이터 관리</li>
+                </ul>
+                <p><strong>중요:</strong> AI 조언 기능은 Oracle과 완전히 분리된 별도 프로세스에서 작동하여, 데이터베이스 문제가 AI 서비스에 영향을 주지 않도록 설계되었습니다.</p>
                 <div class="feedback-widget">
                     <span class="feedback-prompt">이 답변이 도움이 되었나요?</span>
                     <div class="feedback-buttons">

@@ -38,7 +38,7 @@
                 <i class="fas fa-compass"></i>
             </div>
             <p>
-                <strong>NEXTEP.AI</strong>는 개인의 커리어 선택을 지원하는 AI 기반 예측 서비스입니다. <span class="highlight">한국노동패널(KLIPS) 117,397건의 실증 데이터</span>와 <span class="highlight">고성능 머신러닝 예측 모델</span>을 활용하여 소득 변화율과 직무 만족도 변화를 과학적으로 예측합니다. 막연한 추측이 아닌, 실제 검증된 데이터에 근거한 커리어 인사이트를 제공합니다.
+                <strong>NEXTEP.AI</strong>는 개인의 커리어 선택을 지원하는 AI 기반 예측 서비스입니다. <span class="highlight">한국노동패널(KLIPS) 117,397건의 실증 데이터</span>와 <span class="highlight">고성능 머신러닝 예측 모델</span>을 활용하여 소득 변화율과 직무 만족도 변화를 과학적으로 예측합니다. 또한 <span class="highlight">7,990개 전문 문서</span>를 바탕으로 한 RAG 시스템을 통해 개인 맞춤형 AI 조언을 제공하여, 막연한 추측이 아닌 실제 검증된 데이터에 근거한 종합적인 커리어 인사이트를 제공합니다.
             </p>
         </div>
     </div>
@@ -70,10 +70,10 @@
                 </div>
                 <div class="step-content">
                     <h3>2. 정교한 AI 모델</h3>
-                    <p><strong>고성능 머신러닝 예측 모델</strong>을 사용하여 소득과 만족도의 미묘한 변화까지 예측하고, 숨겨진 패턴을 발견합니다. TimeSeriesSplit 교차 검증과 조기 종료로 과적합을 방지했습니다.</p>
+                    <p><strong>LightGBM 소득 예측 모델(R² = 67.5%)</strong>과 <strong>CatBoost 만족도 예측 모델(R² = 63.1%)</strong>을 사용하여 개인의 커리어 변화를 정확히 예측합니다. TimeSeriesSplit 교차 검증과 조기 종료로 과적합을 방지했으며, 2023년 실제 데이터로 성능을 검증했습니다.</p>
                     <div class="step-features">
-                        <span class="feature-tag"><i class="fas fa-chart-line"></i> 검증된 예측 성능</span>
-                        <span class="feature-tag"><i class="fas fa-shield-alt"></i> 실제 검증</span>
+                        <span class="feature-tag"><i class="fas fa-chart-line"></i> 67.5% 소득 예측 정확도</span>
+                        <span class="feature-tag"><i class="fas fa-heart"></i> 63.1% 만족도 예측 정확도</span>
                     </div>
                 </div>
             </div>
@@ -99,6 +99,12 @@
             <button class="tab-link active" onclick="openTab(event, 'service-intro')">
                 <i class="fas fa-crystal-ball"></i> 커리어 예측
             </button>
+            <button class="tab-link" onclick="openTab(event, 'ai-advice')">
+                <i class="fas fa-robot"></i> AI 조언
+            </button>
+            <button class="tab-link" onclick="openTab(event, 'member-system')">
+                <i class="fas fa-user-circle"></i> 회원 시스템
+            </button>
         </div>
 
         <div id="service-intro" class="tab-content" style="display: block;">
@@ -111,7 +117,7 @@
                     <div class="feature-item">
                         <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
                         <h4>데이터 기반 예측</h4>
-                        <p>25년간 축적된 한국노동패널(KLIPS) 117,397건 데이터를 기반으로 합니다. 높은 예측 성능 지표를 투명하게 공개하여 신뢰성을 보장합니다. </p>
+                        <p>25년간 축적된 한국노동패널(KLIPS) 117,397건 데이터를 기반으로 합니다. 소득 예측 67.5%, 만족도 예측 63.1%의 높은 성능 지표를 투명하게 공개하여 신뢰성을 보장합니다.</p>
                     </div>
                     <div class="feature-item">
                         <div class="feature-icon"><i class="fas fa-user-cog"></i></div>
@@ -122,6 +128,58 @@
                         <div class="feature-icon"><i class="fas fa-compass"></i></div>
                         <h4>의사결정 지원 도구</h4>
                         <p>NEXTEP.AI는 정답을 제시하는 것이 아닌, 실제 검증된 데이터에 기반한 객관적 인사이트를 제공하는 의사결정 지원 도구입니다. 시나리오 비교 차트, 유사 사례 분포, 상세 분석 리포트를 통해 정보에 기반한 커리어 선택을 지원합니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ai-advice" class="tab-content">
+            <div class="service-card">
+                <div class="service-header">
+                    <i class="fas fa-robot"></i>
+                    <h2>RAG 기반 AI 조언 서비스</h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-database"></i></div>
+                        <h4>7,990개 전문 문서</h4>
+                        <p>노동시장 트렌드, 직업별 전망, 스킬 개발 가이드 등 7,990개의 전문 문서 청크를 벡터 데이터베이스에 저장하여 실시간 검색 기반 조언을 제공합니다.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                        <h4>대화형 챗봇</h4>
+                        <p>별도 프로세스로 안정적으로 운영되는 챗봇을 통해 개인 맞춤형 조언을 받을 수 있습니다. 회원의 경우 예측 결과와 프로필 정보를 바탕으로 더욱 정밀한 조언을 제공합니다.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-search"></i></div>
+                        <h4>출처 투명성</h4>
+                        <p>모든 AI 조언에는 참고한 문서의 출처가 명시되어 정보의 신뢰성을 보장합니다. 사용자는 언제든지 어떤 전문 자료를 바탕으로 한 조언인지 확인할 수 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="member-system" class="tab-content">
+            <div class="service-card">
+                <div class="service-header">
+                    <i class="fas fa-user-circle"></i>
+                    <h2>회원 관리 시스템</h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-database"></i></div>
+                        <h4>Oracle 데이터베이스</h4>
+                        <p>안전한 Oracle 데이터베이스에 회원 정보를 암호화하여 저장합니다. 개인 프로필과 예측 이력을 체계적으로 관리하여 연속적인 서비스를 제공합니다.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-user-shield"></i></div>
+                        <h4>개인화 서비스</h4>
+                        <p>로그인한 회원은 프로필 정보가 자동으로 적용되어 더욱 정확한 예측을 받을 수 있습니다. 예측 결과도 세션에 저장되어 AI 조언에 활용됩니다.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h4>연속성 보장</h4>
+                        <p>회원 가입을 통해 예측 이력을 저장하고, 시간이 지나면서 변화하는 커리어 상황을 지속적으로 추적할 수 있습니다.</p>
                     </div>
                 </div>
             </div>

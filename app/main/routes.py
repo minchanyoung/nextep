@@ -194,14 +194,40 @@ def ask_ai_stream():
 
             # 채팅 세션 정보 가져오기
             from app.chat_session import get_current_chat_session
+            from app.utils.web_helpers import get_current_user
             chat_session = get_current_chat_session()
             chat_session.add_message("user", user_message)
+
+            # 회원 정보 및 예측 데이터 수집 (Oracle 접근 필요 시)
+            user_context = {}
+            try:
+                current_user = get_current_user()
+                if current_user:
+                    # 회원 기본 정보
+                    user_context['user_info'] = {
+                        'age': getattr(current_user, 'age', None),
+                        'gender': getattr(current_user, 'gender', None),
+                        'education': getattr(current_user, 'education', None),
+                        'monthly_income': getattr(current_user, 'monthly_income', None),
+                        'job_category': getattr(current_user, 'job_category', None),
+                        'job_satisfaction': getattr(current_user, 'job_satisfaction', None)
+                    }
+
+                    # 예측 결과 (세션에 저장된 것)
+                    from app.utils.web_helpers import get_prediction_data
+                    prediction_data = get_prediction_data()
+                    if prediction_data:
+                        user_context['prediction_results'] = prediction_data.get('prediction_results', {})
+                        user_context['user_input'] = prediction_data.get('user_input', {})
+            except Exception as e:
+                current_app.logger.warning(f"회원 컨텍스트 수집 실패: {e}")
 
             # 요청 데이터 준비
             request_data = {
                 'message': user_message,
                 'chat_history': chat_session.get_messages(),
                 'context_summary': chat_session.get_context_summary(),
+                'user_context': user_context,  # 회원 정보 추가
                 'streaming': True
             }
 
@@ -284,14 +310,40 @@ def ask_ai():
 
         # 채팅 세션 정보 가져오기
         from app.chat_session import get_current_chat_session
+        from app.utils.web_helpers import get_current_user
         chat_session = get_current_chat_session()
         chat_session.add_message("user", user_message)
+
+        # 회원 정보 및 예측 데이터 수집 (Oracle 접근 필요 시)
+        user_context = {}
+        try:
+            current_user = get_current_user()
+            if current_user:
+                # 회원 기본 정보
+                user_context['user_info'] = {
+                    'age': getattr(current_user, 'age', None),
+                    'gender': getattr(current_user, 'gender', None),
+                    'education': getattr(current_user, 'education', None),
+                    'monthly_income': getattr(current_user, 'monthly_income', None),
+                    'job_category': getattr(current_user, 'job_category', None),
+                    'job_satisfaction': getattr(current_user, 'job_satisfaction', None)
+                }
+
+                # 예측 결과 (세션에 저장된 것)
+                from app.utils.web_helpers import get_prediction_data
+                prediction_data = get_prediction_data()
+                if prediction_data:
+                    user_context['prediction_results'] = prediction_data.get('prediction_results', {})
+                    user_context['user_input'] = prediction_data.get('user_input', {})
+        except Exception as e:
+            current_app.logger.warning(f"회원 컨텍스트 수집 실패: {e}")
 
         # 요청 데이터 준비
         request_data = {
             'message': user_message,
             'chat_history': chat_session.get_messages(),
             'context_summary': chat_session.get_context_summary(),
+            'user_context': user_context,  # 회원 정보 추가
             'streaming': False
         }
 

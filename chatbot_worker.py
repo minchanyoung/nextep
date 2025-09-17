@@ -56,6 +56,7 @@ def process_chat_request(request_data: Dict) -> Dict:
         user_message = request_data.get('message', '').strip()
         chat_history = request_data.get('chat_history', [])
         context_summary = request_data.get('context_summary', '')
+        user_context = request_data.get('user_context', {})
         is_streaming = request_data.get('streaming', False)
 
         if not user_message:
@@ -66,11 +67,34 @@ def process_chat_request(request_data: Dict) -> Dict:
         if not llm_service:
             return {'error': 'LLM 서비스 초기화 실패'}
 
-        # RAG 검색
+        # RAG 검색 및 출처 정보 수집
         additional_context = ""
+        source_info = ""
         if rag_manager:
             try:
-                additional_context = rag_manager.get_career_advice(user_message)
+                # RAG 검색으로 관련 문서 찾기
+                rag_result = rag_manager.get_advice_with_sources(user_message)
+                if rag_result:
+                    additional_context = rag_result.get('answer', '')
+                    sources = rag_result.get('sources', [])
+
+                    # 출처 정보 구성
+                    if sources:
+                        source_files = set()
+                        for source in sources[:3]:  # 상위 3개 출처만
+                            filename = source.get('source', '').split('\\')[-1].split('/')[-1]
+                            if filename:
+                                source_files.add(filename)
+
+                        if source_files:
+                            source_info = f"\n[참고 문서: {', '.join(sorted(source_files))}]"
+
+                            # 컨텍스트에 출처 명시
+                            additional_context = f"""다음은 전문 자료에서 검색된 정보입니다:
+{additional_context}
+
+출처: {', '.join(sorted(source_files))}"""
+
             except Exception as e:
                 logger.warning(f"RAG 검색 실패: {e}")
 
@@ -83,15 +107,58 @@ def process_chat_request(request_data: Dict) -> Dict:
                 content = msg.get("content", "")
                 history_text += f"{role}: {content}\n"
 
+        # 회원 정보 활용한 개인화 컨텍스트 구성
+        personalized_context = ""
+        if user_context:
+            user_info = user_context.get('user_info', {})
+            prediction_results = user_context.get('prediction_results', {})
+
+            if user_info.get('age'):
+                age = user_info.get('age')
+                job_category = user_info.get('job_category', '알 수 없음')
+                monthly_income = user_info.get('monthly_income', '미지정')
+                job_satisfaction = user_info.get('job_satisfaction', '미지정')
+
+                personalized_context = f"""
+회원 프로필:
+- 나이: {age}세
+- 현재 직종: {job_category}
+- 월소득: {monthly_income}만원
+- 직무만족도: {job_satisfaction}/5
+
+"""
+
+            if prediction_results:
+                # 예측 결과가 있으면 개인화된 조언 가능
+                current_prediction = prediction_results.get('current', {})
+                if current_prediction:
+                    income_pred = current_prediction.get('predicted_income', '예측 불가')
+                    satisfaction_pred = current_prediction.get('predicted_satisfaction', '예측 불가')
+                    personalized_context += f"""AI 예측 결과:
+- 예상 소득: {income_pred}만원
+- 예상 만족도: {satisfaction_pred}/5
+
+이 개인 정보를 바탕으로 맞춤형 조언을 제공해주세요.
+"""
+
         # 시스템 프롬프트
         system_prompt = prompt_manager.get_system_prompt("conversational")
+
+        # 참고 정보가 있는 경우 명시적 지시 추가
+        rag_instruction = ""
+        if additional_context:
+            rag_instruction = """
+중요: 아래 '참고 정보' 섹션에는 전문 PDF 문서에서 검색된 정보가 포함되어 있습니다.
+이 정보를 활용하여 답변할 때는 반드시 출처 문서를 명시해주세요.
+사용자가 출처나 참고 문서에 대해 질문하면, 어떤 문서를 참조했는지 명확히 알려주세요."""
 
         # 메시지 구성
         messages = [
             {
                 "role": "system",
-                "content": f"""{system_prompt}
+                "content": f"""{system_prompt}{rag_instruction}
 
+{personalized_context}
 대화 맥락: {context_summary or "없음"}
 최근 대화: {history_text or "없음"}
 참고 정보: {additional_context or "없음"}
@@ -107,13 +174,32 @@ def process_chat_request(request_data: Dict) -> Dict:
         if is_streaming:
             # 스트리밍 응답
             chunks = []
-            for chunk in llm_service.chat_stream(messages):
-                chunks.append(chunk)
-            return {'response': ''.join(chunks), 'chunks': chunks}
+            try:
+                for chunk in llm_service.chat_stream(messages):
+                    chunks.append(chunk)
+                full_response = ''.join(chunks)
+                # 출처 정보를 응답 끝에 추가
+                if source_info:
+                    full_response += source_info
+                return {'response': full_response, 'chunks': chunks}
+            except Exception as llm_error:
+                logger.error(f"LLM 스트리밍 실패: {llm_error}")
+                # 폴백 응답
+                fallback_response = "죄송합니다. 현재 AI 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+                return {'response': fallback_response, 'fallback': True}
         else:
             # 동기 응답
-            response = llm_service.chat_sync(messages)
-            return {'response': response}
+            try:
+                response = llm_service.chat_sync(messages)
+                # 출처 정보를 응답 끝에 추가
+                if source_info:
+                    response += source_info
+                return {'response': response}
+            except Exception as llm_error:
+                logger.error(f"LLM 동기 호출 실패: {llm_error}")
+                # 폴백 응답
+                fallback_response = "죄송합니다. 현재 AI 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+                return {'response': fallback_response, 'fallback': True}
 
     except Exception as e:
         logger.error(f"챗봇 요청 처리 실패: {e}")

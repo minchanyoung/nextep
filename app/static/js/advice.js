@@ -361,18 +361,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 타이핑 인디케이터 표시
                 showTypingIndicator();
                 
-                // 초기 AI 조언을 다시 표시 (약간의 지연 후)
+                // 초기 AI 조언을 다시 표시 (타이핑 애니메이션 없이)
                 setTimeout(() => {
+                    removeTypingIndicator();
                     if (aiFullResponse) {
-                        showInitialMessageWithTyping();
+                        addMessageToChat('ai', aiFullResponse);
+                        chatHistory.push({ sender: 'ai', text: aiFullResponse });
                     } else {
-                        removeTypingIndicator();
                         addMessageToChat('ai', '새로운 상담을 시작합니다. 궁금한 점이 있으시면 언제든 말씀해 주세요!');
-                        userInput.disabled = false;
-                        sendButton.disabled = false;
-                        clearChatButton.disabled = false;
-                        userInput.focus();
+                        chatHistory.push({ sender: 'ai', text: '새로운 상담을 시작합니다. 궁금한 점이 있으시면 언제든 말씀해 주세요!' });
                     }
+                    userInput.disabled = false;
+                    sendButton.disabled = false;
+                    updateClearButtonState();
+                    userInput.focus();
                 }, 1000);
             } else {
                 throw new Error('서버 통신 실패');
@@ -399,27 +401,22 @@ document.addEventListener('DOMContentLoaded', () => {
     userInput.disabled = true;
     sendButton.disabled = true;
     clearChatButton.disabled = true; // 초기에는 대화 내용이 없으므로 비활성화
-    showTypingIndicator();
-    
-    // AI 조언을 즉시 표시
-    setTimeout(() => {
-        if (aiFullResponse) {
-            removeTypingIndicator();
-            addMessageToChat('ai', aiFullResponse);
-            chatHistory.push({ sender: 'ai', text: aiFullResponse });
-            userInput.disabled = false;
-            sendButton.disabled = false;
-            updateClearButtonState();
-            userInput.focus();
-        } else {
-            // AI 조언이 없는 경우, 기본 인사말 표시
-            removeTypingIndicator();
-            addMessageToChat('ai', '안녕하세요! 커리어 관련 질문이 있으신가요?');
-            chatHistory.push({ sender: 'ai', text: '안녕하세요! 커리어 관련 질문이 있으신가요?' });
-            userInput.disabled = false;
-            sendButton.disabled = false;
-            updateClearButtonState();
-            userInput.focus();
-        }
-    }, 1500);
+
+    // AI 조언을 즉시 표시 (타이핑 애니메이션 없이)
+    if (aiFullResponse) {
+        addMessageToChat('ai', aiFullResponse);
+        chatHistory.push({ sender: 'ai', text: aiFullResponse });
+        userInput.disabled = false;
+        sendButton.disabled = false;
+        updateClearButtonState();
+        userInput.focus();
+    } else {
+        // AI 조언이 없는 경우, 기본 인사말 표시
+        addMessageToChat('ai', '안녕하세요! 커리어 관련 질문이 있으신가요?');
+        chatHistory.push({ sender: 'ai', text: '안녕하세요! 커리어 관련 질문이 있으신가요?' });
+        userInput.disabled = false;
+        sendButton.disabled = false;
+        updateClearButtonState();
+        userInput.focus();
+    }
 });
