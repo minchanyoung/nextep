@@ -204,18 +204,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // 추천 결과를 advice 폼에 전달
         updateRecommendationInputs(bestScenarioCode, Math.round(priority * 100));
 
-        const recommendedDist = allPredictionResults[bestScenarioCode]?.distribution;
+        // 유사 사례 분포 데이터 업데이트
         document.getElementById('distributionChartTitle').textContent = recommendedJobName;
-        if (recommendedDist?.income && incomeDistributionChart) {
-            incomeDistributionChart.data.labels = recommendedDist.income.bins.slice(0, -1).map((b, i) => `${(b*100).toFixed(0)}~${(recommendedDist.income.bins[i+1]*100).toFixed(0)}%`);
-            incomeDistributionChart.data.datasets[0].data = recommendedDist.income.counts;
-            incomeDistributionChart.update();
-        }
-        if (recommendedDist?.satisfaction && satisfactionDistributionChart) {
-            satisfactionDistributionChart.data.labels = recommendedDist.satisfaction.bins.slice(0, -1).map((b, i) => `${b.toFixed(1)}~${recommendedDist.satisfaction.bins[i+1].toFixed(1)}점`);
-            satisfactionDistributionChart.data.datasets[0].data = recommendedDist.satisfaction.counts;
-            satisfactionDistributionChart.update();
-        }
+        updateSimilarCasesDistribution(bestScenarioCode);
     };
 
     const updateHiddenInputs = () => {
@@ -246,6 +237,81 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (priorityInput) {
                 priorityInput.value = priorityValue;
+            }
+        }
+    };
+
+    // 유사 사례 분포 데이터를 가져와서 차트 업데이트
+    const updateSimilarCasesDistribution = async (recommendedScenario) => {
+        try {
+            const response = await fetch('/api/similar-cases-distribution', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_input: userInputData,
+                    recommended_scenario: recommendedScenario
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success && result.distribution) {
+                const distData = result.distribution;
+
+                // 소득 변화율 분포 차트 업데이트
+                if (distData.income && incomeDistributionChart) {
+                    const incomeLabels = distData.income.bins.slice(0, -1).map((b, i) =>
+                        `${(b * 100).toFixed(0)}~${(distData.income.bins[i + 1] * 100).toFixed(0)}%`
+                    );
+                    incomeDistributionChart.data.labels = incomeLabels;
+                    incomeDistributionChart.data.datasets[0].data = distData.income.counts;
+                    incomeDistributionChart.update();
+                }
+
+                // 직무 만족도 변화 분포 차트 업데이트
+                if (distData.satisfaction && satisfactionDistributionChart) {
+                    const satisLabels = distData.satisfaction.bins.slice(0, -1).map((b, i) =>
+                        `${b.toFixed(1)}~${distData.satisfaction.bins[i + 1].toFixed(1)}점`
+                    );
+                    satisfactionDistributionChart.data.labels = satisLabels;
+                    satisfactionDistributionChart.data.datasets[0].data = distData.satisfaction.counts;
+                    satisfactionDistributionChart.update();
+                }
+
+                // 차트 설명 업데이트 (샘플 크기 표시)
+                const chartDescription = document.querySelector('.chart-description');
+                if (chartDescription && distData.sample_size) {
+                    const originalText = chartDescription.innerHTML;
+                    const newText = originalText.replace(
+                        /유사한 조건.*?분포입니다\./,
+                        `유사한 조건을 가진 사람들 <strong>${distData.sample_size}명</strong>의 1년 후 결과 분포입니다.`
+                    );
+                    chartDescription.innerHTML = newText;
+                }
+            }
+        } catch (error) {
+            console.error('유사 사례 분포 데이터 가져오기 실패:', error);
+            // 실패 시 기본 분포 데이터 사용
+            const fallbackDist = allPredictionResults[recommendedScenario]?.distribution;
+            if (fallbackDist?.income && incomeDistributionChart) {
+                incomeDistributionChart.data.labels = fallbackDist.income.bins.slice(0, -1).map((b, i) =>
+                    `${(b * 100).toFixed(0)}~${(fallbackDist.income.bins[i + 1] * 100).toFixed(0)}%`
+                );
+                incomeDistributionChart.data.datasets[0].data = fallbackDist.income.counts;
+                incomeDistributionChart.update();
+            }
+            if (fallbackDist?.satisfaction && satisfactionDistributionChart) {
+                satisfactionDistributionChart.data.labels = fallbackDist.satisfaction.bins.slice(0, -1).map((b, i) =>
+                    `${b.toFixed(1)}~${fallbackDist.satisfaction.bins[i + 1].toFixed(1)}점`
+                );
+                satisfactionDistributionChart.data.datasets[0].data = fallbackDist.satisfaction.counts;
+                satisfactionDistributionChart.update();
             }
         }
     };

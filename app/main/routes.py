@@ -437,6 +437,36 @@ def chat_new_redirect():
     return redirect(url_for('main.advice'))
 
 
+@bp.route('/api/similar-cases-distribution', methods=['POST'])
+def get_similar_cases_distribution():
+    """AI 추천 시나리오의 유사 사례 분포 데이터 API"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': '요청 데이터가 없습니다.'}), 400
+
+        user_input = data.get('user_input')
+        recommended_scenario = data.get('recommended_scenario')
+
+        if not user_input or not recommended_scenario:
+            return jsonify({'error': '필수 데이터가 누락되었습니다.'}), 400
+
+        # ML Predictor에서 유사 사례 분포 데이터 생성
+        predictor = current_app.extensions.get('ml_predictor')
+        if not predictor:
+            return jsonify({'error': 'ML 서비스를 사용할 수 없습니다.'}), 500
+
+        distribution_data = predictor.get_similar_cases_distribution(user_input, recommended_scenario)
+
+        return jsonify({
+            'success': True,
+            'distribution': distribution_data
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"유사 사례 분포 API 오류: {e}", exc_info=True)
+        return jsonify({'error': '서버 오류가 발생했습니다.'}), 500
+
 @bp.route('/rag', methods=['GET', 'POST'])
 def rag():
     """RAG 시스템 테스트를 위한 공개 페이지"""
