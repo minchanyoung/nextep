@@ -1,5 +1,10 @@
 /* rag.css */
 
+/* 전역 오버플로 제어 */
+body {
+    overflow-x: hidden;
+}
+
 /* Hero Section from about.css */
 .rag-hero {
     position: relative;
@@ -106,6 +111,8 @@
     max-width: 1100px;
     margin: 40px auto;
     padding: 20px;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .rag-form {
@@ -150,6 +157,8 @@
     display: flex;
     flex-direction: column;
     gap: 40px;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .result-section h2 {
@@ -184,6 +193,11 @@
     line-height: 1.7;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     font-size: 15px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: auto;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .answer-box {
@@ -198,6 +212,8 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     overflow: hidden; /* for border-radius */
     transition: box-shadow 0.3s ease;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .source-card:hover {
@@ -246,4 +262,141 @@
     line-height: 1.7;
     white-space: pre-wrap;
     color: #475569;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* RAG 페이지 마크다운 콘텐츠 스타일링 */
+.result-box h1, .result-box h2, .result-box h3, .result-box h4, .result-box h5, .result-box h6,
+.source-content h1, .source-content h2, .source-content h3, .source-content h4, .source-content h5, .source-content h6 {
+    margin: 15px 0 10px 0;
+    color: #1e293b;
+    font-weight: 600;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.result-box h1, .source-content h1 { font-size: 1.5rem; }
+.result-box h2, .source-content h2 { font-size: 1.4rem; }
+.result-box h3, .source-content h3 { font-size: 1.3rem; }
+.result-box h4, .source-content h4 { font-size: 1.2rem; }
+.result-box h5, .result-box h6, .source-content h5, .source-content h6 { font-size: 1.1rem; }
+
+.result-box p, .source-content p {
+    margin: 10px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.result-box ul, .result-box ol, .source-content ul, .source-content ol {
+    margin: 10px 0;
+    padding-left: 25px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.result-box li, .source-content li {
+    margin: 6px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.result-box strong, .source-content strong {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.result-box em, .source-content em {
+    font-style: italic;
+    color: #64748b;
+}
+
+.result-box code, .source-content code {
+    background-color: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+    color: #e11d48;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.result-box pre, .source-content pre {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 15px 0;
+    overflow-x: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.result-box pre code, .source-content pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.result-box blockquote, .source-content blockquote {
+    border-left: 4px solid var(--primary-color);
+    margin: 15px 0;
+    padding: 10px 0 10px 20px;
+    background-color: #f8fafc;
+    color: #64748b;
+    font-style: italic;
+}
+
+.result-box hr, .source-content hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 20px 0;
+}
+
+/* RAG 테이블 스타일 */
+.result-box table, .source-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 15px 0;
+    font-size: 0.9em;
+    max-width: 100%;
+    table-layout: fixed;
+    overflow: hidden;
+}
+
+/* 추가적인 텍스트 오버플로 방지 */
+.result-box *, .source-content * {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 긴 링크나 URL 처리 */
+.result-box a, .source-content a {
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+/* 이미지 크기 제한 */
+.result-box img, .source-content img {
+    max-width: 100%;
+    height: auto;
+}
+
+.result-box th, .result-box td, .source-content th, .source-content td {
+    border: 1px solid #e2e8f0;
+    padding: 10px;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.result-box th, .source-content th {
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #1e293b;
 }

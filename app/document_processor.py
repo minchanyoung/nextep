@@ -140,8 +140,12 @@ class DocumentProcessor:
                     end = sentence_end + 1
             
             chunk_text = text[start:end].strip()
-            if chunk_text:
+            # 최소 길이 필터링 (50자 미만 청크 제외)
+            if chunk_text and len(chunk_text) >= 50:
                 chunks.append(chunk_text)
+            elif chunk_text and len(chunk_text) < 50:
+                # 매우 짧은 청크는 다음 청크와 합치거나 무시
+                logger.debug(f"짧은 청크 필터링됨: '{chunk_text[:30]}...' (길이: {len(chunk_text)})")
             
             # 다음 청크 시작점 (중복 고려)
             start = max(start + 1, end - self.chunk_overlap)

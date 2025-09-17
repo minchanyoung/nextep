@@ -41,8 +41,8 @@
     <div class="results-container">
         <div class="result-section">
             <h2><i class="fas fa-brain icon"></i>생성 답변</h2>
-            <div class="result-box answer-box">
-                {{ answer | safe | nl2br }}
+            <div class="result-box answer-box" id="aiAnswer">
+                {{ answer }}
             </div>
         </div>
 
@@ -59,8 +59,8 @@
                                 <b>출처:</b> {{ source_item.source.split('\\')[-1].split('/')[-1] }}
                             </p>
                         </div>
-                        <div class="source-content">
-                            {{ source_item.content | safe | nl2br }}
+                        <div class="source-content" data-source-content>
+                            {{ source_item.content }}
                         </div>
                     </div>
                 {% endfor %}
@@ -77,4 +77,45 @@
 
 {% block footer %}
     {% include 'common/footer.html' %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <!-- Marked.js for markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/lib/marked.umd.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 마크다운을 HTML로 변환하는 함수 (advice.js와 동일)
+            function parseMarkdown(text) {
+                if (typeof marked === 'undefined') return text.replace(/\n/g, '<br>');
+
+                // marked 설정
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    sanitize: false
+                });
+
+                return marked.parse(text);
+            }
+
+            // RAG 답변에 마크다운 적용
+            const aiAnswer = document.getElementById('aiAnswer');
+            if (aiAnswer) {
+                const originalText = aiAnswer.textContent.trim();
+                if (originalText) {
+                    aiAnswer.innerHTML = parseMarkdown(originalText);
+                }
+            }
+
+            // RAG 소스 내용에 마크다운 적용
+            const sourceContents = document.querySelectorAll('[data-source-content]');
+            sourceContents.forEach(content => {
+                const originalText = content.textContent.trim();
+                if (originalText) {
+                    content.innerHTML = parseMarkdown(originalText);
+                }
+            });
+        });
+    </script>
 {% endblock %}

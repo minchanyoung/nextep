@@ -207,6 +207,13 @@ def retrieve_learning_recommendations(query_text: str, top_n: int = 2) -> str:
 def generate_career_advice(user_input, prediction_results):
     """커리어 조언 생성 - 메인 인터페이스 함수"""
     from app.main.routes import JOB_CATEGORY_MAP, SATIS_FACTOR_MAP
+
+    # 디버깅: 받은 데이터 확인
+    logger.info(f"DEBUG services - user_input received: job_A={user_input.get('job_A_category')}, job_B={user_input.get('job_B_category')}")
+    logger.info(f"DEBUG services - prediction_results type: {type(prediction_results)}")
+    if isinstance(prediction_results, dict):
+        logger.info(f"DEBUG services - prediction_results keys: {list(prediction_results.keys())}")
+
     return generate_career_advice_hf(user_input, prediction_results, JOB_CATEGORY_MAP, SATIS_FACTOR_MAP)
 
 def generate_career_advice_hf(user_input, prediction_results, job_category_map, satis_factor_map):
@@ -231,11 +238,27 @@ def generate_career_advice_hf(user_input, prediction_results, job_category_map, 
             # history를 전달하는 로직 추가 필요 (현재는 None)
             rag_context = rag_manager.get_career_advice(comprehensive_query, history=None)
 
+        # UI 추천 정보 생성
+        ui_recommendation = None
+        recommended_scenario = user_input.get('recommended_scenario')
+        priority_weight = user_input.get('priority_weight', '50')
+
+        if recommended_scenario and recommended_scenario in prediction_results:
+            scenario_names = {
+                'current': '현직 유지',
+                user_input.get('job_A_category'): job_category_map.get(user_input.get('job_A_category', ''), '옵션 A'),
+                user_input.get('job_B_category'): job_category_map.get(user_input.get('job_B_category', ''), '옵션 B')
+            }
+            recommended_name = scenario_names.get(recommended_scenario, recommended_scenario)
+            priority_text = f"소득 {priority_weight}% : 만족도 {100-int(priority_weight)}%" if priority_weight != '50' else "소득과 만족도 균형"
+            ui_recommendation = f"사용자 설정 우선순위({priority_text})에 따른 AI 시스템 추천: {recommended_name}"
+
         # 프롬프트 템플릿 사용 (통합된 RAG 컨텍스트 전달)
         messages = prompt_manager.get_career_advice_prompt(
             user_input, prediction_results, job_category_map, satis_factor_map,
             labor_market_context=rag_context,  # labor_market_context 자리에 통합 컨텍스트 전달
-            learning_context=""  # learning_context는 비움
+            learning_context="",  # learning_context는 비움
+            ui_recommendation=ui_recommendation
         )
         
         # LangChain으로 응답 생성

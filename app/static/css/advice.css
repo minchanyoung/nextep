@@ -134,6 +134,9 @@
     max-width: 85%;
     line-height: 1.6;
     font-size: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
 }
 
 /* AI 메시지 스타일 */
@@ -267,6 +270,120 @@
     background: #ffffff;
     border: 1px solid #e5e5e5;
     animation: none;
+}
+
+/* 마크다운 콘텐츠 스타일링 - 카드 영역 초과 방지 */
+.message-bubble h1,
+.message-bubble h2,
+.message-bubble h3,
+.message-bubble h4,
+.message-bubble h5,
+.message-bubble h6 {
+    margin: 10px 0 8px 0;
+    color: #333;
+    font-weight: 600;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-bubble h1 { font-size: 1.4rem; }
+.message-bubble h2 { font-size: 1.3rem; }
+.message-bubble h3 { font-size: 1.2rem; }
+.message-bubble h4 { font-size: 1.1rem; }
+.message-bubble h5, .message-bubble h6 { font-size: 1rem; }
+
+.message-bubble p {
+    margin: 8px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-bubble ul, .message-bubble ol {
+    margin: 8px 0;
+    padding-left: 20px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-bubble li {
+    margin: 4px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-bubble strong {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.message-bubble em {
+    font-style: italic;
+    color: #555;
+}
+
+.message-bubble code {
+    background-color: #f1f3f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-bubble pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 10px 0;
+    overflow-x: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.message-bubble pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+.message-bubble blockquote {
+    border-left: 4px solid #4a90e2;
+    margin: 10px 0;
+    padding: 8px 0 8px 16px;
+    background-color: #f8f9fa;
+    color: #555;
+    font-style: italic;
+}
+
+.message-bubble hr {
+    border: none;
+    border-top: 1px solid #e5e5e5;
+    margin: 16px 0;
+}
+
+/* 테이블 스타일 (마크다운 테이블 지원) */
+.message-bubble table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 0.9em;
+    max-width: 100%;
+    table-layout: fixed;
+}
+
+.message-bubble th, .message-bubble td {
+    border: 1px solid #e5e5e5;
+    padding: 8px;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-bubble th {
+    background-color: #f1f3f4;
+    font-weight: 600;
 }
 
 /* 반응형 디자인 */

@@ -201,6 +201,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const recommendedCard = document.querySelector(`.result-card[data-scenario-id="${cardId}"]`);
         if(recommendedCard) recommendedCard.classList.add('recommended');
 
+        // 추천 결과를 advice 폼에 전달
+        updateRecommendationInputs(bestScenarioCode, Math.round(priority * 100));
+
         const recommendedDist = allPredictionResults[bestScenarioCode]?.distribution;
         document.getElementById('distributionChartTitle').textContent = recommendedJobName;
         if (recommendedDist?.income && incomeDistributionChart) {
@@ -228,6 +231,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (predictionForm) {
             predictionForm.querySelector('input[name="job_A_category"]').value = jobASelect.value;
             predictionForm.querySelector('input[name="job_B_category"]').value = jobBSelect.value;
+        }
+    };
+
+    // 추천 결과를 hidden input에 업데이트하는 함수
+    const updateRecommendationInputs = (recommendedScenarioCode, priorityValue) => {
+        const adviceForm = document.getElementById('adviceForm');
+        if (adviceForm) {
+            const recommendedInput = adviceForm.querySelector('input[name="recommended_scenario"]');
+            const priorityInput = adviceForm.querySelector('input[name="priority_weight"]');
+
+            if (recommendedInput) {
+                recommendedInput.value = recommendedScenarioCode;
+            }
+            if (priorityInput) {
+                priorityInput.value = priorityValue;
+            }
         }
     };
 

@@ -166,6 +166,10 @@ def advice():
         return redirect(url_for('main.predict'))
 
     try:
+        # 디버깅: 전달되는 데이터 확인
+        current_app.logger.info(f"DEBUG - user_input: job_A_category={user_input.get('job_A_category')}, job_B_category={user_input.get('job_B_category')}")
+        current_app.logger.info(f"DEBUG - prediction_results keys: {list(prediction_results.keys()) if isinstance(prediction_results, dict) else 'Not a dict'}")
+
         from app.chat_session import get_current_chat_session, clear_chat_session
         clear_chat_session()
         chat_session = get_current_chat_session()

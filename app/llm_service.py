@@ -201,10 +201,29 @@ class LLMService:
         try:
             if not documents:
                 return []
+
+            # 디버깅: 입력 문서들 길이 확인
+            logger.info(f"DEBUG RERANK - Input documents count: {len(documents)}")
+            for i, doc in enumerate(documents):
+                doc_len = len(doc)
+                preview = doc[:50] + "..." if doc_len > 50 else doc
+                logger.info(f"DEBUG RERANK - Input doc {i+1}: length={doc_len}, preview='{preview}'")
+
             payload = {"query": query, "documents": documents}
             resp = self._post_json("/rerank", payload)
             data = resp.json()
-            return data.get("reranked_documents", [])
+            reranked_docs = data.get("reranked_documents", [])
+
+            # 디버깅: 출력 문서들 길이 확인
+            logger.info(f"DEBUG RERANK - Output documents count: {len(reranked_docs)}")
+            for i, doc in enumerate(reranked_docs):
+                doc_len = len(doc)
+                preview = doc[:50] + "..." if doc_len > 50 else doc
+                logger.info(f"DEBUG RERANK - Output doc {i+1}: length={doc_len}, preview='{preview}'")
+                if doc_len < 20:
+                    logger.warning(f"DEBUG RERANK - Output doc {i+1} suspiciously short: '{doc}'")
+
+            return reranked_docs
         except Exception as e:
             raise LLMServiceError(f"Reranking 처리 중 오류: {str(e)}")
 

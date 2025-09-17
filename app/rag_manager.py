@@ -83,7 +83,13 @@ class RAGManager:
                 logger.error("PDF 처리 결과가 없습니다.")
                 return False
             
-            documents = [Document(page_content=chunk.get('content', ''), metadata={'source': pdf_path}) for chunk in chunks if chunk.get('content', '').strip()]
+            # 최소 길이 필터링 추가 (50자 미만 청크 제외)
+            MIN_CHUNK_LENGTH = 50
+            documents = [
+                Document(page_content=chunk.get('content', ''), metadata={'source': pdf_path})
+                for chunk in chunks
+                if chunk.get('content', '').strip() and len(chunk.get('content', '').strip()) >= MIN_CHUNK_LENGTH
+            ]
             
             if not documents:
                 logger.warning("변환할 문서가 없습니다.")
@@ -155,8 +161,16 @@ class RAGManager:
             history = history or []
 
             # 1. 문서 검색 (Retrieval)
-            retrieved_docs = self.retriever.invoke(query_text)
-            
+            raw_retrieved_docs = self.retriever.invoke(query_text)
+
+            # 1.1 너무 짧은 문서 필터링 (최소 50자 이상)
+            MIN_CONTENT_LENGTH = 50
+            retrieved_docs = [doc for doc in raw_retrieved_docs if len(doc.page_content.strip()) >= MIN_CONTENT_LENGTH]
+
+            if len(raw_retrieved_docs) != len(retrieved_docs):
+                filtered_count = len(raw_retrieved_docs) - len(retrieved_docs)
+                logger.info(f"너무 짧은 문서 {filtered_count}개 필터링됨 (최소 {MIN_CONTENT_LENGTH}자 미만)")
+
             source_documents = []
             if not retrieved_docs:
                 logger.warning(f"'{query_text}'에 대한 관련 문서를 찾지 못했습니다.")
@@ -164,21 +178,49 @@ class RAGManager:
             else:
                 # 1.5 문서 재정렬 (Reranking)
                 doc_contents = [doc.page_content for doc in retrieved_docs]
-                reranked_contents = self.llm_service.rerank_documents(query=query_text, documents=doc_contents)
 
-                # 재정렬된 내용에 맞춰 원본 Document 객체 순서 맞추기
-                content_to_doc_map = {doc.page_content: doc for doc in retrieved_docs}
-                reranked_docs_full = [content_to_doc_map[content] for content in reranked_contents if content in content_to_doc_map]
+                try:
+                    reranked_contents = self.llm_service.rerank_documents(query=query_text, documents=doc_contents)
 
-                top_docs = reranked_docs_full[:3]
+                    # 재정렬된 내용에서도 짧은 문서 필터링
+                    filtered_reranked = [content for content in reranked_contents if len(content.strip()) >= MIN_CONTENT_LENGTH]
+
+                    # 재정렬된 내용에 맞춰 원본 Document 객체 순서 맞추기
+                    content_to_doc_map = {doc.page_content: doc for doc in retrieved_docs}
+                    reranked_docs_full = [content_to_doc_map[content] for content in filtered_reranked if content in content_to_doc_map]
+
+                    # 충분한 문서가 있는지 확인
+                    if len(reranked_docs_full) >= 3:
+                        top_docs = reranked_docs_full[:3]
+                    else:
+                        logger.warning(f"Rerank 후 유효한 문서가 부족함: {len(reranked_docs_full)}개. 원본 사용.")
+                        top_docs = retrieved_docs[:3]
+
+                except Exception as e:
+                    logger.error(f"Rerank 실패, 원본 순서 사용: {e}")
+                    top_docs = retrieved_docs[:3]
                 logger.info(f"Rerank 후 상위 {len(top_docs)}개 문서를 컨텍스트로 사용합니다.")
-                
+
+                # 디버깅: 각 문서 내용 길이 확인
+                for i, doc in enumerate(top_docs):
+                    content_len = len(doc.page_content)
+                    content_preview = doc.page_content[:100] + "..." if content_len > 100 else doc.page_content
+                    logger.info(f"DEBUG RAG - Document {i+1}: length={content_len}, preview='{content_preview}'")
+
                 context_str = "\n\n".join([d.page_content for d in top_docs])
                 # 소스 정보를 포함한 객체 리스트 생성
                 source_documents = [{
                     "content": d.page_content,
                     "source": d.metadata.get('source', '출처 정보 없음')
                 } for d in top_docs]
+
+                # 추가 디버깅: source_documents 내용 확인
+                for i, src in enumerate(source_documents):
+                    content_len = len(src["content"])
+                    logger.info(f"DEBUG RAG - Source {i+1}: content_length={content_len}")
+                    if content_len < 20:  # 매우 짧은 경우
+                        logger.warning(f"DEBUG RAG - Source {i+1} suspiciously short: '{src['content']}'")
+
 
             # 2. 프롬프트 생성 (Augmentation)
             system_prompt = f"""

@@ -52,7 +52,8 @@ class PromptTemplateManager:
         job_category_map: Dict,
         satis_factor_map: Dict,
         labor_market_context: str = "",
-        learning_context: str = ""
+        learning_context: str = "",
+        ui_recommendation: str = None
     ) -> List[Dict]:
         current_job = job_category_map.get(user_input.get('current_job_category', ''), '알 수 없음')
         job_a = job_category_map.get(user_input.get('job_A_category', ''), '알 수 없음')
@@ -60,9 +61,16 @@ class PromptTemplateManager:
         gender_text = '여성' if str(user_input.get('gender')) == '1' else '남성'
         
         # 사용자가 선택한 직업군에 맞는 예측 결과 사용
+        job_A_code = user_input.get('job_A_category')
+        job_B_code = user_input.get('job_B_category')
+
+        # 디버깅 로그
+        print(f"DEBUG prompt - job_A_code: {job_A_code}, job_B_code: {job_B_code}")
+        print(f"DEBUG prompt - prediction_results keys: {list(prediction_results.keys()) if isinstance(prediction_results, dict) else 'Not dict'}")
+
         p0 = prediction_results.get('current', {})
-        p1 = prediction_results.get(user_input.get('job_A_category'), {})
-        p2 = prediction_results.get(user_input.get('job_B_category'), {})
+        p1 = prediction_results.get(job_A_code, {})
+        p2 = prediction_results.get(job_B_code, {})
 
         prediction_text = f"""
 [예측 결과]
@@ -80,13 +88,19 @@ class PromptTemplateManager:
             rag_context += f"\n[노동시장] {labor_market_context}"
         if learning_context:
             rag_context += f"\n[학습추천] {learning_context}"
+        if ui_recommendation:
+            rag_context += f"\n[UI 추천] {ui_recommendation}"
         system_prompt = self.get_system_prompt("initial_advice")
         user_prompt = f"""{user_profile}
 {prediction_text}
 {rag_context}
 
 [요청]
-위 사용자 프로필과 AI 예측 결과를 바탕으로, 세 가지 커리어 경로(현직 유지, 옵션 A, 옵션 B)에 대해 각각의 긍정적인 점과 부정적인 점, 그리고 현실적인 위험 요소를 자연스러운 문장으로 서술하여 비교 분석해주세요. 분석을 마친 후, 노동 시장 트렌드와 사용자의 상황을 종합적으로 고려하여 가장 추천하는 커리어 경로를 하나 선택하고 그 이유를 설명해주세요. 마지막으로, 해당 경로를 성공적으로 걷기 위한 구체적인 첫 단계부터 시작하여, 필요한 역량을 쌓기 위한 학습 계획까지 상세하게 이야기해주세요."""
+위 사용자 프로필과 AI 예측 결과를 바탕으로, 세 가지 커리어 경로(현직 유지, 옵션 A({job_a}), 옵션 B({job_b}))에 대해 각각의 긍정적인 점과 부정적인 점, 그리고 현실적인 위험 요소를 자연스러운 문장으로 서술하여 비교 분석해주세요. 분석을 마친 후, 노동 시장 트렌드와 사용자의 상황을 종합적으로 고려하여 가장 추천하는 커리어 경로를 하나 선택하고 그 이유를 설명해주세요. 마지막으로, 해당 경로를 성공적으로 걷기 위한 구체적인 첫 단계부터 시작하여, 필요한 역량을 쌓기 위한 학습 계획까지 상세하게 이야기해주세요.
+
+참고사항:
+- 옵션 A는 "{job_a}"이고, 옵션 B는 "{job_b}"입니다. 반드시 정확한 직업명을 사용하여 조언하세요.
+- 사용자가 예측 결과 페이지에서 설정한 우선순위와 AI 추천 결과를 고려하여 일관성 있는 조언을 제공해주세요."""
         return [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

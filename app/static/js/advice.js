@@ -1,6 +1,19 @@
 // advice.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 마크다운을 HTML로 변환하는 함수
+    function parseMarkdown(text) {
+        if (typeof marked === 'undefined') return text.replace(/\n/g, '<br>');
+
+        // marked 설정
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            sanitize: false
+        });
+
+        return marked.parse(text);
+    }
     const chatWindow = document.getElementById('chatWindow');
     const aiFullResponse = document.getElementById('aiFullResponse').textContent.trim();
     const userInput = document.getElementById('userInput');
@@ -18,14 +31,16 @@ document.addEventListener('DOMContentLoaded', () => {
         function typeNextChar() {
             if (currentIndex < textToType.length) {
                 const char = textToType[currentIndex];
-                bubble.innerHTML = textToType.substring(0, currentIndex + 1).replace(/\n/g, '<br>') + '<span class="streaming-cursor">|</span>';
+                const partialText = textToType.substring(0, currentIndex + 1);
+                // 타이핑 중에는 마크다운 파싱하지 않고 단순 줄바꿈만 적용
+                bubble.innerHTML = partialText.replace(/\n/g, '<br>') + '<span class="streaming-cursor">|</span>';
                 currentIndex++;
-                
+
                 const delay = (char === '.' || char === '!' || char === '?') ? punctuationDelay : delayPerChar;
                 setTimeout(typeNextChar, delay);
             } else {
-                // 타이핑 완료
-                bubble.innerHTML = textToType.replace(/\n/g, '<br>'); // 커서 제거
+                // 타이핑 완료 후 마크다운 파싱 적용
+                bubble.innerHTML = parseMarkdown(textToType);
                 onComplete();
             }
             chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -60,7 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const bubble = document.createElement('div');
         bubble.classList.add('message-bubble');
-        bubble.innerHTML = text.replace(/\n/g, '<br>');
+        // AI 메시지만 마크다운 파싱, 사용자 메시지는 일반 텍스트로 처리
+        bubble.innerHTML = sender === 'ai' ? parseMarkdown(text) : text.replace(/\n/g, '<br>');
 
         messageElement.appendChild(avatar);
         if (sender === 'user') {
@@ -223,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 스트리밍 메시지 업데이트
     function updateStreamingMessage(container, text) {
         const bubble = container.querySelector('.message-bubble');
+        // 스트리밍 중에는 마크다운 파싱하지 않고 단순 줄바꿈만 적용
         bubble.innerHTML = text.replace(/\n/g, '<br>') + '<span class="streaming-cursor">|</span>';
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
@@ -230,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 스트리밍 메시지 완료
     function finalizeStreamingMessage(container, text) {
         const bubble = container.querySelector('.message-bubble');
-        bubble.innerHTML = text.replace(/\n/g, '<br>');
+        // 완료 후 마크다운 파싱 적용
+        bubble.innerHTML = parseMarkdown(text);
         container.classList.remove('streaming-message');
     }
 
