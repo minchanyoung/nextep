@@ -8,4 +8,4 @@ FLASK_APP=run.py
 FLASK_DEBUG=1
 
 # RunPod 추론 서버 URL
-INFERENCE_SERVER_URL=https://nh1tl78z8i74f6-8000.proxy.runpod.net/
+INFERENCE_SERVER_URL=https://dzu7fe4f371e03-8000.proxy.runpod.net/

@@ -52,7 +52,7 @@ def _sanitize_output(s: str) -> str:
 
 class LLMService:
     def __init__(self, app=None):
-        self.inference_server_url = "https://nh1tl78z8i74f6-8000.proxy.runpod.net/"
+        self.inference_server_url = "https://dzu7fe4f371e03-8000.proxy.runpod.net/"
         self.connect_timeout = 10
         self.read_timeout = _MIN_READ_TIMEOUT
         self._session = self._build_session()

@@ -59,13 +59,16 @@ class PromptTemplateManager:
         job_b = job_category_map.get(user_input.get('job_B_category', ''), '알 수 없음')
         gender_text = '여성' if str(user_input.get('gender')) == '1' else '남성'
         
-        # 예측 결과가 3개 이상일 경우를 대비하여 처음 3개만 사용
-        p0, p1, p2 = list(prediction_results.values())[:3]
+        # 사용자가 선택한 직업군에 맞는 예측 결과 사용
+        p0 = prediction_results.get('current', {})
+        p1 = prediction_results.get(user_input.get('job_A_category'), {})
+        p2 = prediction_results.get(user_input.get('job_B_category'), {})
+
         prediction_text = f"""
 [예측 결과]
-- 현직 유지({current_job}): 소득 {p0['income_change_rate']:.2%}, 만족도 {p0['satisfaction_change_score']:.2f}
-- 옵션 A({job_a}): 소득 {p1['income_change_rate']:.2%}, 만족도 {p1['satisfaction_change_score']:.2f}
-- 옵션 B({job_b}): 소득 {p2['income_change_rate']:.2%}, 만족도 {p2['satisfaction_change_score']:.2f}"""
+- 현직 유지({current_job}): 소득 {p0.get('income_change_rate', 0):.2%}, 만족도 {p0.get('satisfaction_change_score', 0):.2f}
+- 옵션 A({job_a}): 소득 {p1.get('income_change_rate', 0):.2%}, 만족도 {p1.get('satisfaction_change_score', 0):.2f}
+- 옵션 B({job_b}): 소득 {p2.get('income_change_rate', 0):.2%}, 만족도 {p2.get('satisfaction_change_score', 0):.2f}"""
         user_profile = f"""
 [사용자 프로필]
 - 나이: {user_input.get('age', 'N/A')}세

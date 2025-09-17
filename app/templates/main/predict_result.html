@@ -314,33 +314,28 @@
         </div>
 
         <div class="advice-link-wrapper">
-            {% if is_guest %}
-                <!-- 비회원용: POST 요청으로 데이터 전달 -->
-                <form action="{{ url_for('main.advice') }}" method="post">
-                    <input type="hidden" name="age" value="{{ user_input.age }}">
-                    <input type="hidden" name="gender" value="{{ user_input.gender }}">
-                    <input type="hidden" name="education" value="{{ user_input.education }}">
-                    <input type="hidden" name="monthly_income" value="{{ user_input.monthly_income }}">
-                    <input type="hidden" name="job_satisfaction" value="{{ user_input.job_satisfaction }}">
-                    <input type="hidden" name="current_job_category" value="{{ user_input.current_job_category }}">
-                    <!-- 9개 만족도 요인 hidden 필드 -->
-                    <input type="hidden" name="satis_wage" value="{{ user_input.satis_wage or 3 }}">
-                    <input type="hidden" name="satis_stability" value="{{ user_input.satis_stability or 3 }}">
-                    <input type="hidden" name="satis_growth" value="{{ user_input.satis_growth or 3 }}">
-                    <input type="hidden" name="satis_task_content" value="{{ user_input.satis_task_content or 3 }}">
-                    <input type="hidden" name="satis_work_env" value="{{ user_input.satis_work_env or 3 }}">
-                    <input type="hidden" name="satis_work_time" value="{{ user_input.satis_work_time or 3 }}">
-                    <input type="hidden" name="satis_communication" value="{{ user_input.satis_communication or 3 }}">
-                    <input type="hidden" name="satis_fair_eval" value="{{ user_input.satis_fair_eval or 3 }}">
-                    <input type="hidden" name="satis_welfare" value="{{ user_input.satis_welfare or 3 }}">
-                    <input type="hidden" name="job_A_category" value="{{ user_input.job_A_category }}">
-                    <input type="hidden" name="job_B_category" value="{{ user_input.job_B_category }}">
-                    <button type="submit" class="btn-advice">AI 조언 받기</button>
-                </form>
-            {% else %}
-                <!-- 회원용: GET 요청으로 이동 (세션 데이터 사용) -->
-                <a href="{{ url_for('main.advice') }}" class="btn-advice">AI 조언 받기</a>
-            {% endif %}
+            <form id="adviceForm" action="{{ url_for('main.advice') }}" method="post">
+                <input type="hidden" name="age" value="{{ user_input.age }}">
+                <input type="hidden" name="gender" value="{{ user_input.gender }}">
+                <input type="hidden" name="education" value="{{ user_input.education }}">
+                <input type="hidden" name="monthly_income" value="{{ user_input.monthly_income }}">
+                <input type="hidden" name="job_satisfaction" value="{{ user_input.job_satisfaction }}">
+                <input type="hidden" name="current_job_category" value="{{ user_input.current_job_category }}">
+                <!-- 9개 만족도 요인 hidden 필드 -->
+                <input type="hidden" name="satis_wage" value="{{ user_input.satis_wage or 3 }}">
+                <input type="hidden" name="satis_stability" value="{{ user_input.satis_stability or 3 }}">
+                <input type="hidden" name="satis_growth" value="{{ user_input.satis_growth or 3 }}">
+                <input type="hidden" name="satis_task_content" value="{{ user_input.satis_task_content or 3 }}">
+                <input type="hidden" name="satis_work_env" value="{{ user_input.satis_work_env or 3 }}">
+                <input type="hidden" name="satis_work_time" value="{{ user_input.satis_work_time or 3 }}">
+                <input type="hidden" name="satis_communication" value="{{ user_input.satis_communication or 3 }}">
+                <input type="hidden" name="satis_fair_eval" value="{{ user_input.satis_fair_eval or 3 }}">
+                <input type="hidden" name="satis_welfare" value="{{ user_input.satis_welfare or 3 }}">
+                
+                <input type="hidden" name="job_A_category" value="{{ user_input.job_A_category }}">
+                <input type="hidden" name="job_B_category" value="{{ user_input.job_B_category }}">
+                <button type="submit" class="btn-advice">AI 조언 받기</button>
+            </form>
         </div>
     </main>
 </div>

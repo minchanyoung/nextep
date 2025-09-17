@@ -216,12 +216,21 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const updateHiddenInputs = () => {
-        const adviceForm = document.querySelector('.advice-link-wrapper form');
+        const adviceForm = document.getElementById('adviceForm');
+        const predictionForm = document.getElementById('predictionForm');
+
         if (adviceForm) {
             adviceForm.querySelector('input[name="job_A_category"]').value = jobASelect.value;
             adviceForm.querySelector('input[name="job_B_category"]').value = jobBSelect.value;
         }
+
+        // 예측 폼의 hidden 필드도 업데이트하여 서버에 현재 선택값이 전달되도록 함
+        if (predictionForm) {
+            predictionForm.querySelector('input[name="job_A_category"]').value = jobASelect.value;
+            predictionForm.querySelector('input[name="job_B_category"]').value = jobBSelect.value;
+        }
     };
+
 
     // --- 7. 이벤트 리스너 및 초기화 --- //
     jobASelect.addEventListener('change', (e) => {

@@ -147,7 +147,9 @@ def advice():
     if request.method == 'POST' and not user:
         user_input = _create_user_input(request.form)
         try:
-            prediction_results = services.run_prediction(user_input)
+            # 모든 직업군에 대한 예측 실행 (predict_result와 동일하게)
+            all_job_codes = list(JOB_CATEGORY_MAP.keys())
+            prediction_results = services.run_prediction(user_input, scenarios_to_run=all_job_codes)
         except Exception as e:
             current_app.logger.error(f"비회원 예측 중 오류: {e}")
             flash("예측 중 오류가 발생했습니다. 다시 시도해주세요.")
