@@ -297,39 +297,45 @@ def generate_follow_up_advice(user_message: str, chat_history: List[Dict], conte
         raise LLMServiceError(f"추가 조언 생성 중 오류: {str(e)}")
 
 
-def generate_follow_up_advice_stream(user_message: str, chat_history: List[Dict], context_summary: str = "") -> Iterator[str]:
-    """LangChain 기반 스트리밍 추가 질문 응답"""
+def generate_follow_up_advice_stream_isolated(chat_session) -> Iterator[str]:
+    """Oracle 격리된 환경에서 LangChain 기반 스트리밍 응답"""
+    import gc
     try:
         llm_service = get_llm_service()
         rag_manager = get_rag_manager()
-        
+
         if not llm_service:
             raise LLMServiceError("LLM 서비스를 사용할 수 없습니다.")
-        
-        # RAG 검색
+
+        # chat_session에서 필요한 정보 추출
+        messages = chat_session.get_messages()
+        context_summary = chat_session.get_context_summary()
+        user_message = messages[-1].get("content", "") if messages else ""
+
+        # RAG 검색 (Oracle과 분리된 환경)
         additional_context = ""
         if rag_manager:
             try:
                 additional_context = rag_manager.get_career_advice(user_message)
             except Exception as e:
                 logger.warning(f"RAG 검색 실패: {e}")
-        
+
         # 대화 히스토리
         history_text = ""
-        if chat_history:
-            recent_history = chat_history[-6:]
+        if messages:
+            recent_history = messages[-6:]
             for msg in recent_history:
                 role = "사용자" if msg.get("role") == "user" else "AI"
                 content = msg.get("content", "")
                 history_text += f"{role}: {content}\n"
-        
+
         # 시스템 프롬프트
         system_prompt = prompt_manager.get_system_prompt("conversational")
-        
+
         # 스트리밍용 메시지 구성
-        messages = [
+        stream_messages = [
             {
-                "role": "system", 
+                "role": "system",
                 "content": f"""{system_prompt}
 
 대화 맥락: {context_summary or "없음"}
@@ -339,18 +345,80 @@ def generate_follow_up_advice_stream(user_message: str, chat_history: List[Dict]
 사용자의 질문에 대해 구체적이고 실용적인 조언을 한국어로 제공해주세요."""
             },
             {
-                "role": "user", 
+                "role": "user",
                 "content": user_message
             }
         ]
-        
+
         # 스트리밍 응답 생성
-        for chunk in llm_service.chat_stream(messages):
+        for chunk in llm_service.chat_stream(stream_messages):
             yield chunk
-                
+
     except Exception as e:
-        logger.error(f"스트리밍 조언 생성 실패: {e}")
+        logger.error(f"격리된 스트리밍 조언 생성 실패: {e}")
         yield "스트리밍 응답 생성 중 오류가 발생했습니다."
+    finally:
+        # 후처리 메모리 정리
+        gc.collect()
+
+
+def generate_follow_up_advice_isolated(user_message: str, chat_history: List[Dict], context_summary: str = "") -> str:
+    """Oracle 격리된 환경에서 LangChain 기반 추가 질문 응답"""
+    import gc
+    try:
+        llm_service = get_llm_service()
+        rag_manager = get_rag_manager()
+
+        if not llm_service:
+            raise LLMServiceError("LLM 서비스를 사용할 수 없습니다.")
+
+        # RAG 검색
+        additional_context = ""
+        if rag_manager:
+            try:
+                additional_context = rag_manager.get_career_advice(user_message)
+            except Exception as e:
+                logger.warning(f"RAG 검색 실패: {e}")
+
+        # 대화 히스토리
+        history_text = ""
+        if chat_history:
+            recent_history = chat_history[-6:]
+            for msg in recent_history:
+                role = "사용자" if msg.get("role") == "user" else "AI"
+                content = msg.get("content", "")
+                history_text += f"{role}: {content}\n"
+
+        # 시스템 프롬프트
+        system_prompt = prompt_manager.get_system_prompt("follow_up")
+
+        # 메시지 구성
+        messages = [
+            {
+                "role": "system",
+                "content": f"""{system_prompt}\n\n대화 맥락: {context_summary or "없음"}\n최근 대화: {history_text or "없음"}\n참고 정보: {additional_context or "없음"}\n\n사용자의 질문에 대해 구체적이고 실용적인 조언을 한국어로 제공해주세요."""
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ]
+
+        # 응답 생성
+        response = llm_service.chat_sync(messages)
+        return response
+
+    except Exception as e:
+        logger.error(f"격리된 추가 조언 생성 실패: {e}")
+        raise LLMServiceError(f"추가 조언 생성 중 오류: {str(e)}")
+    finally:
+        gc.collect()
+
+
+# 기존 함수들은 호환성을 위해 유지
+def generate_follow_up_advice_stream(chat_session) -> Iterator[str]:
+    """기존 스트리밍 함수 - 격리된 버전으로 리다이렉트"""
+    return generate_follow_up_advice_stream_isolated(chat_session)
 
 
 def summarize_context(user_input: Dict, prediction_results: List) -> str:

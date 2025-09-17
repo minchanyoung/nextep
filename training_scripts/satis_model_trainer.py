@@ -40,9 +40,11 @@ def create_advanced_features_satis(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def split_and_add_stats(df: pd.DataFrame):
+    # 더 안정적인 시계열 분할: 최신 2년을 테스트로 사용
     latest_year = df["year"].max()
-    train_val_df = df[df["year"] < latest_year].copy()
-    test_df = df[df["year"] == latest_year].copy()
+    test_years = [latest_year, latest_year - 1]
+    train_val_df = df[~df["year"].isin(test_years)].copy()
+    test_df = df[df["year"].isin(test_years)].copy()
     train_df, val_df = train_test_split(train_val_df, test_size=0.2, random_state=42, stratify=train_val_df["year"])
     job_cat_stats = (
         train_df.groupby("job_category").agg(
@@ -97,10 +99,11 @@ def main():
         "satis_wage","satis_stability","satis_growth","satis_task_content","satis_work_env",
         "satis_work_time","satis_communication","satis_fair_eval","satis_welfare","prev_job_satisfaction",
     ]
+    # 피처 누출 가능성이 있는 satisfaction 관련 lag 피처 제거
     gen_features = [
-        "satisfaction_lag_1","income_lag_1","satisfaction_roll_mean_3","satisfaction_roll_std_3",
-        "income_roll_mean_3","career_length","career_stage","satisfaction_mean","satisfaction_std","satisfaction_range",
-        "age_x_education","income_x_satisfaction_lag_1","job_cat_income_avg","job_cat_satis_avg",
+        "income_lag_1","income_roll_mean_3","career_length","career_stage",
+        "satisfaction_mean","satisfaction_std","satisfaction_range",
+        "age_x_education","job_cat_income_avg","job_cat_satis_avg",
     ]
     feature_cols = [f for f in base_features + gen_features if f in train_df.columns]
     target_col = "satisfaction_change_score"
@@ -109,44 +112,43 @@ def main():
     X_test, y_test = test_df[feature_cols], test_df[target_col]
     cat_cols = [c for c in ["gender","education","job_category","career_stage"] if c in feature_cols]
     cat_idx = [feature_cols.index(c) for c in cat_cols]
-    models = {}
-    val_r2 = {}
-    xgb_model = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=1000, learning_rate=0.05, max_depth=5, subsample=0.8, colsample_bytree=0.8, random_state=42, n_jobs=-1)
-    lgb_model = lgb.LGBMRegressor(objective="regression_l1", n_estimators=1000, learning_rate=0.05, num_leaves=31, max_depth=5, subsample=0.8, colsample_bytree=0.8, random_state=42, n_jobs=-1)
+
+    # CatBoost 모델만 훈련
     cat_model = ctb.CatBoostRegressor(iterations=1000, learning_rate=0.05, depth=6, l2_leaf_reg=3, loss_function="RMSE", random_state=42, allow_writing_files=False)
-    models["xgb"], val_r2["xgb"] = train_one(xgb_model, X_train, y_train, X_val, y_val, "XGBoost")
-    models["lgb"], val_r2["lgb"] = train_one(lgb_model, X_train, y_train, X_val, y_val, "LightGBM")
-    models["cat"], val_r2["cat"] = train_one(cat_model, X_train, y_train, X_val, y_val, "CatBoost", cat_features_idx=cat_idx)
-    pred_xgb = models["xgb"].predict(X_test)
-    pred_lgb = models["lgb"].predict(X_test)
-    pred_cat = models["cat"].predict(X_test)
+    cat_model, val_r2_cat = train_one(cat_model, X_train, y_train, X_val, y_val, "CatBoost", cat_features_idx=cat_idx)
+
+    # 테스트 세트에서 예측 및 평가
+    pred_cat = cat_model.predict(X_test)
     def scores(y_true, pred):
         return (r2_score(y_true, pred), np.sqrt(mean_squared_error(y_true, pred)), mean_absolute_error(y_true, pred))
-    r2_xgb, rmse_xgb, mae_xgb = scores(y_test, pred_xgb)
-    r2_lgb, rmse_lgb, mae_lgb = scores(y_test, pred_lgb)
     r2_cat, rmse_cat, mae_cat = scores(y_test, pred_cat)
-    w = np.array([val_r2["xgb"], val_r2["lgb"], val_r2["cat"]], dtype=float)
-    w[w < 0] = 0
-    w = w / w.sum() if w.sum() > 0 else np.array([1/3,1/3,1/3])
-    pred_ens = pred_xgb * w[0] + pred_lgb * w[1] + pred_cat * w[2]
-    r2_ens, rmse_ens, mae_ens = scores(y_test, pred_ens)
-    best_name = max({"XGBoost": r2_xgb, "LightGBM": r2_lgb, "CatBoost": r2_cat}, key=lambda k: {"XGBoost": r2_xgb, "LightGBM": r2_lgb, "CatBoost": r2_cat}[k])
-    final_choice = best_name if {"XGBoost": r2_xgb, "LightGBM": r2_lgb, "CatBoost": r2_cat}[best_name] >= r2_ens else "Ensemble"
-    joblib.dump(models["xgb"], os.path.join(save_dir, "final_xgb_satis_model.pkl"))
-    models["lgb"].booster_.save_model(os.path.join(save_dir, "final_lgb_satis_model.txt"))
-    models["cat"].save_model(os.path.join(save_dir, "final_cat_satis_model.cbm"))
-    ens_cfg = {
-        "weights": {"xgb": float(w[0]), "lgb": float(w[1]), "cat": float(w[2])},
+
+    # 모델 저장
+    cat_model.save_model(os.path.join(save_dir, "final_cat_satis_model.cbm"))
+
+    # 설정 저장 (CatBoost 단일 모델용)
+    cat_cfg = {
         "features": feature_cols,
         "cat_features": cat_cols,
         "split": {"test_year": int(latest_year), "val_ratio": 0.2, "stratify": "year"},
+        "model_type": "catboost_only"
     }
-    with open(os.path.join(save_dir, "final_ensemble_satis_config.json"), "w") as f:
-        json.dump(ens_cfg, f, indent=2)
-    plot_feature_importance(models["xgb"], feature_cols, "XGBoost", save_dir)
-    plot_feature_importance(models["lgb"], feature_cols, "LightGBM", save_dir)
-    cat_fi = models["cat"].get_feature_importance(prettified=True)
+    with open(os.path.join(save_dir, "final_catboost_satis_config.json"), "w") as f:
+        json.dump(cat_cfg, f, indent=2)
+
+    # 피처 중요도 출력
+    cat_fi = cat_model.get_feature_importance(prettified=True)
     print(cat_fi.head(15))
+
+    # 성능지표 출력
+    print("\n" + "=" * 80)
+    print("SATISFACTION MODEL PERFORMANCE METRICS (CatBoost Only)")
+    print("=" * 80)
+    print(f"CatBoost:")
+    print(f"  R2   : {r2_cat:.4f}")
+    print(f"  RMSE : {rmse_cat:.4f}")
+    print(f"  MAE  : {mae_cat:.4f}")
+    print("=" * 80)
 
 if __name__ == "__main__":
     main()

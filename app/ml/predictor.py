@@ -110,9 +110,6 @@ class MLPredictor:
         self.job_category_stats = None
         try:
             self.models['lgb_income'] = lgb.Booster(model_file=os.path.join(MODEL_DIR, "lgb_income_change_model.txt"))
-            with open(os.path.join(MODEL_DIR, "final_xgb_satis_model.pkl"), 'rb') as f:
-                self.models['xgb_satis'] = joblib.load(f)
-            self.models['lgb_satis'] = lgb.Booster(model_file=os.path.join(MODEL_DIR, "final_lgb_satis_model.txt"))
             cat_model = CatBoostRegressor()
             cat_model_path = os.path.join(MODEL_DIR, "final_cat_satis_model.cbm")
             cat_model.load_model(cat_model_path)
@@ -121,11 +118,17 @@ class MLPredictor:
             self.job_category_stats = klips_df.groupby('job_category').agg(
                 {'monthly_income': 'mean', 'education': 'mean', 'job_satisfaction': 'mean'}
             ).rename(columns={'monthly_income': 'job_category_income_avg', 'education': 'job_category_education_avg', 'job_satisfaction': 'job_category_satisfaction_avg'})
-            with open(os.path.join(MODEL_DIR, "final_ensemble_satis_config.json"), 'r') as f:
-                ensemble_config = json.load(f)
-                self.features['satis'] = ensemble_config['features']
-                self.features['satis_cat_features'] = ensemble_config.get('cat_features', [])
-                self.models['ensemble_weights'] = ensemble_config.get('weights', {'xgb': 0.34, 'lgb': 0.31, 'cat': 0.34})
+            config_path = os.path.join(MODEL_DIR, "final_catboost_satis_config.json")
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    cat_config = json.load(f)
+                    self.features['satis'] = cat_config['features']
+                    self.features['satis_cat_features'] = cat_config.get('cat_features', [])
+            else:
+                with open(os.path.join(MODEL_DIR, "final_ensemble_satis_config.json"), 'r') as f:
+                    ensemble_config = json.load(f)
+                    self.features['satis'] = ensemble_config['features']
+                    self.features['satis_cat_features'] = ensemble_config.get('cat_features', [])
             if not self.features.get('satis_cat_features'):
                 self.features['satis_cat_features'] = _catboost_cat_feature_names(self.models['cat_satis'], self.features['satis'])
             with open(os.path.join(MODEL_DIR, "income_feature_names_correct.json"), 'r') as f:
@@ -148,8 +151,7 @@ class MLPredictor:
             income_features = self.features['income']
             satis_features = self.features['satis']
             lgb_income_model = self.models['lgb_income']
-            ensemble_models = {k: self.models[k] for k in ['xgb_satis', 'lgb_satis', 'cat_satis']}
-            weights = self.models['ensemble_weights']
+            cat_satis_model = self.models['cat_satis']
             for i, scenario_code in enumerate(scenario_codes):
                 income_row = income_df.iloc[i].to_dict()
                 satis_row = satis_df.iloc[i].to_dict()
@@ -179,19 +181,7 @@ class MLPredictor:
                     for c in satis_df_row.columns:
                         satis_df_row[c] = pd.to_numeric(satis_df_row[c], errors="coerce").astype("float32").fillna(0.0)
                 cat_pool = Pool(satis_df_row, cat_features=satis_cat_features) if satis_cat_features else Pool(satis_df_row)
-                predictions = []
-                for name, model in ensemble_models.items():
-                    if not model:
-                        continue
-                    w = weights.get(name.replace('_satis', ''), 0.33)
-                    if name == 'cat_satis':
-                        p = float(model.predict(cat_pool)[0])
-                    elif name == 'lgb_satis':
-                        p = float(model.predict(satis_input)[0])
-                    else:
-                        p = float(model.predict(satis_input)[0])
-                    predictions.append((p, w))
-                satis_change = sum(p * w for p, w in predictions) / sum(w for _, w in predictions) if predictions else 0.0
+                satis_change = float(cat_satis_model.predict(cat_pool)[0])
                 distribution = _generate_distribution_data(user_input, scenario_code, income_change, satis_change)
                 results[scenario_code] = {
                     "income_change_rate": round(income_change, 4),

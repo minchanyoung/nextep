@@ -522,7 +522,7 @@ def main():
         savepath=os.path.join(out_dir, "cat_feature_importance.png"),
     )
 
-    # 5. 콘솔 요약
+    # 5. 콘솔 요약 및 성능 지표 출력
     best = results_df["r2"].idxmax()
     print("\n" + "=" * 80)
     print("훈련 완료! 최종 요약")
@@ -531,6 +531,17 @@ def main():
     print(f"사용된 피처 수: {len(feature_names)}개")
     print(f"최고 성능 모델: {best} (R² = {results_df.loc[best, 'r2']:.4f})")
     print(f"결과 파일 저장 경로: {os.path.abspath(out_dir)}")
+
+    # 성능지표 상세 출력
+    print("\n" + "=" * 80)
+    print("INCOME MODEL PERFORMANCE METRICS")
+    print("=" * 80)
+    for model_name in results_df.index:
+        print(f"{model_name}:")
+        print(f"  R2   : {results_df.loc[model_name, 'r2']:.4f}")
+        print(f"  RMSE : {results_df.loc[model_name, 'rmse']:.4f}")
+        print(f"  MAE  : {results_df.loc[model_name, 'mae']:.4f}")
+        print()
 
 
 if __name__ == "__main__":

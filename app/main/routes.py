@@ -1,8 +1,9 @@
 import json
+import sys
 import time
 import traceback
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Response
-from app import services
+from app import services, db
 from app.constants import (
     JOB_CATEGORY_MAP, SATIS_FACTOR_MAP, EDUCATION_MAP,
     REQUIRED_PROFILE_FIELDS, DEFAULT_PREDICTION_RESULTS, MESSAGES
@@ -185,20 +186,80 @@ def ask_ai_stream():
         return Response(json.dumps({'error': '메시지가 없습니다.'}), status=400, mimetype='application/json')
 
     def generate_stream():
+        import subprocess
+        import tempfile
+        import os
         try:
+            current_app.logger.info("별도 프로세스에서 챗봇 실행 시작")
+
+            # 채팅 세션 정보 가져오기
             from app.chat_session import get_current_chat_session
             chat_session = get_current_chat_session()
             chat_session.add_message("user", user_message)
-            full_response = ""
-            for chunk in services.generate_follow_up_advice_stream(chat_session):
-                if chunk and chunk.strip():
-                    full_response += chunk
+
+            # 요청 데이터 준비
+            request_data = {
+                'message': user_message,
+                'chat_history': chat_session.get_messages(),
+                'context_summary': chat_session.get_context_summary(),
+                'streaming': True
+            }
+
+            # 임시 파일 생성
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as input_file:
+                json.dump(request_data, input_file, ensure_ascii=False, indent=2)
+                input_path = input_file.name
+
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as output_file:
+                output_path = output_file.name
+
+            try:
+                # 별도 프로세스에서 챗봇 워커 실행
+                worker_script = os.path.join(current_app.root_path, '..', 'chatbot_worker.py')
+                process = subprocess.run([
+                    sys.executable, worker_script, input_path, output_path
+                ], timeout=300, capture_output=True, text=False, errors='ignore')
+
+                if process.returncode != 0:
+                    stderr_text = process.stderr.decode('utf-8', errors='ignore') if process.stderr else 'Unknown error'
+                    current_app.logger.error(f"챗봇 워커 프로세스 실패: {stderr_text}")
+                    yield f"data: {json.dumps({'error': '챗봇 처리 중 오류가 발생했습니다.'})}\n\n"
+                    return
+
+                # 결과 읽기
+                with open(output_path, 'r', encoding='utf-8') as f:
+                    result = json.load(f)
+
+                if 'error' in result:
+                    yield f"data: {json.dumps({'error': result['error']})}\n\n"
+                    return
+
+                # 스트리밍 시뮬레이션
+                response = result.get('response', '')
+                chat_session.add_message("assistant", response, {"streaming": True})
+
+                # 청크 단위로 전송
+                chunk_size = 20
+                for i in range(0, len(response), chunk_size):
+                    chunk = response[i:i + chunk_size]
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-                    time.sleep(0.005)
-            chat_session.add_message("assistant", full_response, {"streaming": True})
-            yield f"data: {json.dumps({'done': True, 'full_response': full_response})}\n\n"
+                    time.sleep(0.05)
+
+                yield f"data: {json.dumps({'done': True, 'full_response': response})}\n\n"
+
+            finally:
+                # 임시 파일 정리
+                try:
+                    os.unlink(input_path)
+                    os.unlink(output_path)
+                except:
+                    pass
+
+        except subprocess.TimeoutExpired:
+            current_app.logger.error("챗봇 워커 프로세스 타임아웃")
+            yield f"data: {json.dumps({'error': '요청 처리 시간이 초과되었습니다.'})}\n\n"
         except Exception as e:
-            current_app.logger.error(f"스트리밍 AI 응답 중 오류: {e}", exc_info=True)
+            current_app.logger.error(f"별도 프로세스 스트리밍 중 오류: {e}", exc_info=True)
             yield f"data: {json.dumps({'error': 'AI 응답 생성 중 오류가 발생했습니다.'})}\n\n"
 
     headers = {
@@ -210,26 +271,74 @@ def ask_ai_stream():
 
 @bp.route('/ask-ai', methods=['POST'])
 def ask_ai():
+    import subprocess
+    import tempfile
+    import os
     data = request.get_json(silent=True) or {}
     user_message = (data.get('message') or '').strip()
     if not user_message:
         return jsonify({'error': '메시지가 없습니다.'}), 400
 
     try:
+        current_app.logger.info("별도 프로세스에서 챗봇 실행 시작")
+
+        # 채팅 세션 정보 가져오기
         from app.chat_session import get_current_chat_session
         chat_session = get_current_chat_session()
         chat_session.add_message("user", user_message)
-        
-        response = services.generate_follow_up_advice(
-            user_message=user_message,
-            chat_history=chat_session.get_messages(),
-            context_summary=chat_session.get_context_summary()
-        )
-        
-        chat_session.add_message("assistant", response)
-        return jsonify({'reply': response})
+
+        # 요청 데이터 준비
+        request_data = {
+            'message': user_message,
+            'chat_history': chat_session.get_messages(),
+            'context_summary': chat_session.get_context_summary(),
+            'streaming': False
+        }
+
+        # 임시 파일 생성
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as input_file:
+            json.dump(request_data, input_file, ensure_ascii=False, indent=2)
+            input_path = input_file.name
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as output_file:
+            output_path = output_file.name
+
+        try:
+            # 별도 프로세스에서 챗봇 워커 실행
+            worker_script = os.path.join(current_app.root_path, '..', 'chatbot_worker.py')
+            process = subprocess.run([
+                sys.executable, worker_script, input_path, output_path
+            ], timeout=300, capture_output=True, text=False, errors='ignore')
+
+            if process.returncode != 0:
+                stderr_text = process.stderr.decode('utf-8', errors='ignore') if process.stderr else 'Unknown error'
+                current_app.logger.error(f"챗봇 워커 프로세스 실패: {stderr_text}")
+                return jsonify({'error': '챗봇 처리 중 오류가 발생했습니다.'}), 500
+
+            # 결과 읽기
+            with open(output_path, 'r', encoding='utf-8') as f:
+                result = json.load(f)
+
+            if 'error' in result:
+                return jsonify({'error': result['error']}), 500
+
+            response = result.get('response', '')
+            chat_session.add_message("assistant", response)
+            return jsonify({'reply': response})
+
+        finally:
+            # 임시 파일 정리
+            try:
+                os.unlink(input_path)
+                os.unlink(output_path)
+            except:
+                pass
+
+    except subprocess.TimeoutExpired:
+        current_app.logger.error("챗봇 워커 프로세스 타임아웃")
+        return jsonify({'error': '요청 처리 시간이 초과되었습니다.'}), 500
     except Exception as e:
-        current_app.logger.error(f"AI 응답 중 오류: {e}", exc_info=True)
+        current_app.logger.error(f"별도 프로세스 AI 응답 중 오류: {e}", exc_info=True)
         return jsonify({'error': 'AI 응답 생성 중 오류가 발생했습니다.'}), 500
 
 @bp.route('/db-test')

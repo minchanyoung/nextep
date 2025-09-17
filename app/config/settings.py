@@ -103,10 +103,10 @@ class Settings:
     
     def _load_inference_server_settings(self) -> InferenceServerSettings:
         """추론 서버 설정 로드"""
-        url = os.environ.get('INFERENCE_SERVER_URL', 'http://localhost:8000')
+        url = os.environ.get('INFERENCE_SERVER_URL', 'https://nh1tl78z8i74f6-8000.proxy.runpod.net/')
         return InferenceServerSettings(
             url=url,
-            timeout=int(os.environ.get('INFERENCE_SERVER_TIMEOUT', '300'))
+            timeout=int(os.environ.get('INFERENCE_SERVER_TIMEOUT', '1000'))
         )
     
     def _load_security_settings(self) -> SecuritySettings:

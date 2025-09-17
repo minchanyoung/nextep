@@ -22,6 +22,15 @@ class Config:
     SECRET_KEY = _settings.security.secret_key
     SQLALCHEMY_DATABASE_URI = _settings.database.uri
     SQLALCHEMY_TRACK_MODIFICATIONS = _settings.database.track_modifications
+
+    # Oracle 안정성을 위한 연결 풀 설정
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 2,  # 연결 풀 크기 축소
+        'pool_recycle': 3600,  # 1시간 후 연결 재활용
+        'pool_pre_ping': True,  # 연결 유효성 사전 확인
+        'max_overflow': 1,  # 최대 오버플로우 축소
+        'pool_timeout': 30  # 연결 대기 시간 제한
+    }
     
     SESSION_COOKIE_SECURE = _settings.security.session_cookie_secure
     SESSION_COOKIE_HTTPONLY = _settings.security.session_cookie_httponly
