@@ -67,6 +67,10 @@ class PromptTemplateManager:
         # 디버깅 로그
         print(f"DEBUG prompt - job_A_code: {job_A_code}, job_B_code: {job_B_code}")
         print(f"DEBUG prompt - prediction_results keys: {list(prediction_results.keys()) if isinstance(prediction_results, dict) else 'Not dict'}")
+        print(f"DEBUG prompt - job_a (옵션A): {job_a}")
+        print(f"DEBUG prompt - job_b (옵션B): {job_b}")
+        print(f"DEBUG prompt - p1 (A 예측): {prediction_results.get(job_A_code, {})}")
+        print(f"DEBUG prompt - p2 (B 예측): {prediction_results.get(job_B_code, {})}")
 
         p0 = prediction_results.get('current', {})
         p1 = prediction_results.get(job_A_code, {})
@@ -76,7 +80,11 @@ class PromptTemplateManager:
 [예측 결과]
 - 현직 유지({current_job}): 소득 {p0.get('income_change_rate', 0):.2%}, 만족도 {p0.get('satisfaction_change_score', 0):.2f}
 - 옵션 A({job_a}): 소득 {p1.get('income_change_rate', 0):.2%}, 만족도 {p1.get('satisfaction_change_score', 0):.2f}
-- 옵션 B({job_b}): 소득 {p2.get('income_change_rate', 0):.2%}, 만족도 {p2.get('satisfaction_change_score', 0):.2f}"""
+- 옵션 B({job_b}): 소득 {p2.get('income_change_rate', 0):.2%}, 만족도 {p2.get('satisfaction_change_score', 0):.2f}
+
+[직업 매핑 확인]
+- 옵션 A = {job_a} (코드: {job_A_code})
+- 옵션 B = {job_b} (코드: {job_B_code})"""
         user_profile = f"""
 [사용자 프로필]
 - 나이: {user_input.get('age', 'N/A')}세
@@ -98,8 +106,12 @@ class PromptTemplateManager:
 [요청]
 위 사용자 프로필과 AI 예측 결과를 바탕으로, 세 가지 커리어 경로(현직 유지, 옵션 A({job_a}), 옵션 B({job_b}))에 대해 각각의 긍정적인 점과 부정적인 점, 그리고 현실적인 위험 요소를 자연스러운 문장으로 서술하여 비교 분석해주세요. 분석을 마친 후, 노동 시장 트렌드와 사용자의 상황을 종합적으로 고려하여 가장 추천하는 커리어 경로를 하나 선택하고 그 이유를 설명해주세요. 마지막으로, 해당 경로를 성공적으로 걷기 위한 구체적인 첫 단계부터 시작하여, 필요한 역량을 쌓기 위한 학습 계획까지 상세하게 이야기해주세요.
 
-참고사항:
-- 옵션 A는 "{job_a}"이고, 옵션 B는 "{job_b}"입니다. 반드시 정확한 직업명을 사용하여 조언하세요.
+**중요한 참고사항:**
+- 옵션 A는 "{job_a}"입니다.
+- 옵션 B는 "{job_b}"입니다.
+- 학습 계획을 제안할 때는 추천하는 커리어 경로에 맞는 직업군의 역량을 개발하도록 조언하세요.
+- 예를 들어, "{job_a}"를 추천한다면 "{job_a}" 직무에 필요한 역량 개발 방법을 제시하세요.
+- 반드시 정확한 직업명을 사용하여 조언하세요.
 - 사용자가 예측 결과 페이지에서 설정한 우선순위와 AI 추천 결과를 고려하여 일관성 있는 조언을 제공해주세요."""
         return [
             {"role": "system", "content": system_prompt},
